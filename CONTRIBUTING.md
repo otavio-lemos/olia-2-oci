@@ -1,12 +1,16 @@
 # Contributing to OCI Specialist LLM
 
+> **Language / Idioma**: EN-US | PT-BR (default: PT-BR)
+
+---
+
 ## Fluxo Obrigatório
 
 ```
 1. ABRIR ISSUE  → Descrever mudança proposta
-2. APROVADA    → Mantenedor aprova o issue
-3. FORK → PR   → Criar branch e PR linkando o issue
-4. DESCRIÇÃO   → Explicar changes no PR
+2. APROVADA     → Mantenedor aprova o issue
+3. FORK → PR    → Criar branch e PR linkando o issue
+4. DESCRIÇÃO    → Explicar changes no PR
 ```
 
 **PR sem issue linkada será rejeitado.**
@@ -64,7 +68,7 @@
 
 ### Scripts/Terraform
 
-- python: seguir PEP 8, type hints
+- Python: seguir PEP 8, type hints
 - Terraform: seguir HashiCorp style
 - Testar localmente antes do PR
 
