@@ -12,11 +12,11 @@ Fine-tuning pipeline para um LLM especialista em OCI usando Apple Silicon, MLX e
 
 </div>
 
-> **Idioma / Language**: PT-BR | EN-US (padrão: PT-BR)
+> **Idioma**: [PT-BR](#visao-geral) | [EN-US](#overview) (padrão: PT-BR)
 
 ---
 
-## Visão Geral
+## Visão Geral {#visao-geral}
 
 Este projeto constrói um LLM especializado em Oracle Cloud Infrastructure (OCI). O pipeline prioriza qualidade do dataset, baixo custo, validação rigorosa e segue regras de qualidade rigorosas para garantir respostas precisas e úteis.
 
@@ -132,7 +132,7 @@ python scripts/evaluate_model.py outputs/adapters data/eval.jsonl outputs/benchm
 ## Estrutura do Projeto
 
 ```
-ulia-2-oci/
+olia-2-oci/
 ├── AGENTS.md                      # Diretrizes do agente
 ├── README.md                      # Este arquivo
 ├── CONTRIBUTING.md                # Guia de contribuição
