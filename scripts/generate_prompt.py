@@ -20,6 +20,7 @@ Output:
 """
 
 import sys
+import re
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -118,6 +119,8 @@ def get_topics_from_taxonomy(taxonomy_path: Path) -> list:
     for line in lines:
         if line.startswith("#### "):
             topic = line.replace("#### ", "").strip()
+            # Remove "(10)" suffix if present
+            topic = re.sub(r"\s*\(\d+\)\s*$", "", topic)
             topics.append(topic)
 
     return topics
@@ -127,6 +130,9 @@ def get_topic_from_taxonomy(taxonomy_path: Path, topic: str) -> str:
     """Extract topic section from taxonomy."""
     content = taxonomy_path.read_text()
 
+    # Strip (10) suffix if present for matching
+    topic_clean = re.sub(r"\s*\(\d+\)\s*$", "", topic)
+
     lines = content.split("\n")
     in_topic = False
     topic_lines = []
@@ -135,7 +141,9 @@ def get_topic_from_taxonomy(taxonomy_path: Path, topic: str) -> str:
         if line.startswith("#### "):
             if in_topic:
                 break
-            if topic in line:
+            # Also strip (10) from taxonomy line for matching
+            line_clean = re.sub(r"\s*\(\d+\)\s*$", "", line)
+            if topic_clean in line_clean:
                 in_topic = True
                 topic_lines.append(line)
         elif in_topic:
