@@ -12,7 +12,7 @@ Fine-tuning pipeline para um LLM especialista em OCI usando Apple Silicon, MLX e
 
 </div>
 
-> **Idioma**: PT-BR (padrão) | [EN-US](README.en-US.md)
+> **Idioma**: 🇧🇷 PT-BR (padrão) | [🇺🇸 EN-US](README.en-US.md)
 
 ---
 
