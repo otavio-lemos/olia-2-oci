@@ -1,396 +1,418 @@
 # OCI Specialist LLM - Taxonomy
 
-## Category Hierarchy
+## Category Hierarchy (10 examples per topic)
 
 ### oci-core (Priority: High)
 
-#### oci-core/compute (30 examples suggested)
-- Instances, shapes, HPC
-- Instance pools, auto-scaling
-- Custom images, boot volumes
-- Example questions: "Como criar instância com shape Ampere A1?", "Configurar instance pool com auto-scaling"
+#### compute/instances (10)
+- Instance creation, shapes (Ampere A1, VM.Standard)
+- SSH access, boot volume management
+- Instance lifecycle (start, stop, terminate)
 - **Docs**: https://docs.oracle.com/en-us/iaas/Content/Compute/Concepts/computeoverview.htm
 
-#### oci-core/storage (25 examples suggested)
-- Block Volume
-- Object Storage
-- File Storage
-- Archive Storage
-- Example questions: "Como criar bucket com versioning?", "Migrar dados para Object Storage"
+#### compute/scaling (10)
+- Instance pools, auto-scaling
+- Capacity planning, shape resizing
+- Load balancing integration
+- **Docs**: https://docs.oracle.com/en-us/iaas/Content/Compute/Concepts/computeoverview.htm
+
+#### compute/custom-images (10)
+- Custom images, boot volumes
+- Image import/export
+- Instance configuration templates
+- **Docs**: https://docs.oracle.com/en-us/iaas/Content/Compute/Concepts/computeoverview.htm
+
+#### storage/block (10)
+- Block Volume creation, attachment
+- Performance tiers (VP, BP)
+- Volume backup, clone
 - **Docs**: https://docs.oracle.com/en-us/iaas/Content/Storage/Concepts/storageoverview.htm
 
-#### oci-core/networking (25 examples suggested)
-- VCN design
+#### storage/object (10)
+- Object Storage buckets
+- Pre-authenticated requests
+- Lifecycle policies, versioning
+- **Docs**: https://docs.oracle.com/en-us/iaas/Content/Storage/Concepts/storageoverview.htm
+
+#### storage/file (10)
+- File Storage (NFS)
+- Mount targets, export options
+- Backup strategies
+- **Docs**: https://docs.oracle.com/en-us/iaas/Content/Storage/Concepts/storageoverview.htm
+
+#### networking/vcn (10)
+- VCN design, CIDR blocks
 - Subnets (public/private)
-- Security Lists
-- Network Security Groups
-- Route Tables
-- DRG, VPN, FastConnect
-- Example questions: "Como configurar NSG para permitir HTTP?", "Conectar VCN on-premises via FastConnect"
+- Internet Gateway, NAT Gateway
 - **Docs**: https://docs.oracle.com/en-us/iaas/Content/Network/Concepts/overview.htm
 
-#### oci-core/load-balancing (20 examples suggested)
+#### networking/security (10)
+- Security Lists, NSG
+- Stateful vs stateless
+- Ingress/egress rules
+- **Docs**: https://docs.oracle.com/en-us/iaas/Content/Network/Concepts/overview.htm
+
+#### networking/connectivity (10)
+- DRG, VPN IPSec, FastConnect
+- Hybrid cloud connectivity
+- Peering (local vs remote)
+- **Docs**: https://docs.oracle.com/en-us/iaas/Content/Network/Concepts/overview.htm
+
+#### lb/load-balancer (10)
 - Load Balancer (HTTP, TCP, SSL)
 - Backend sets, listeners
-- SSL certificates
-- Health checks
-- Path routing
-- Example questions: "Como configurar Load Balancer para aplicação web?", "Configurar SSL no Load Balancer"
+- SSL certificates, health checks
 - **Docs**: https://docs.oracle.com/en-us/iaas/Content/LoadBalancing/Concepts/loadbalanceroverview.htm
 
-#### oci-core/database (20 examples suggested)
+#### database/autonomous (10)
 - Autonomous Database (ATP, ADW)
-- MySQL HeatWave
-- PostgreSQL
-- Exadata
-- Example questions: "Como criar Autonomous Database?", "Configurar backup automático"
+- Wallet, connection strings
+- Backup, restore
 - **Docs**: https://docs.oracle.com/en-us/iaas/Content/Database/Concepts/databaseoverview.htm
 
-#### oci-core/container (15 examples suggested)
-- OKE (Oracle Kubernetes Engine)
-- Container Instances
-- Registry (OCIR)
-- Example questions: "Como criar cluster OKE?", "Deployar aplicação no OKE"
+#### database/mysql (10)
+- OCI MySQL HeatWave
+- Configuration, scaling
+- Backup, replication
+- **Docs**: https://docs.oracle.com/en-us/iaas/Content/Database/Concepts/databaseoverview.htm
+
+#### database/postgresql (10)
+- OCI PostgreSQL
+- Instance management, scaling
+- Backup, high availability
+- **Docs**: https://docs.oracle.com/en-us/iaas/Content/Database/Concepts/databaseoverview.htm
+
+#### database/nosql (10)
+- Oracle NoSQL Database
+- Table creation, CRUD operations
+- TTL, consistency
+- **Docs**: https://docs.oracle.com/en-us/iaas/Content/nosql/-nosql.htm
+
+#### database/autonomous-json (10)
+- Autonomous JSON Database
+- Document store, MongoDB compatibility
+- JSON collections, APEX
+- **Docs**: https://docs.oracle.com/en-us/iaas/Content/Database/Concepts/databaseoverview.htm
+
+#### database/exadata (10)
+- Exadata Cloud Service
+- Infrastructure, DB systems
+- Patching, maintenance
+- **Docs**: https://docs.oracle.com/en-us/iaas/Content/Database/Concepts/databaseoverview.htm
+
+#### container/oke (10)
+- OKE cluster creation
+- Node pools, worker nodes
+- kubectl, deployment
 - **Docs**: https://docs.oracle.com/en-us/iaas/Content/ContEng/Concepts/contengoverview.htm
 
-#### oci-core/serverless (10 examples suggested)
+#### container/instances (10)
+- OCI Container Instances
+- Container Registry (OCIR)
+- Image management
+- **Docs**: https://docs.oracle.com/en-us/iaas/Content/ContEng/Concepts/contengoverview.htm
+
+#### serverless/functions (10)
 - OCI Functions
-- API Gateway
-- Example questions: "Como criar function com OCI Functions?", "Configurar API Gateway"
+- Function deployment
+- Invoke, monitoring
 - **Docs**: https://docs.oracle.com/en-us/iaas/Content/Functions/Con/functionsoverview.htm
 
-#### oci-core/ai-ml (10 examples suggested)
-- OCI AI Services
-- Data Science
-- Model deployment
-- Example questions: "Como usar OCI Vision?", "Deployar modelo no OCI Data Science"
-- **Docs**: https://docs.oracle.com/en-us/iaas/Content/AI/overview.htm
+#### serverless/api-gateway (10)
+- API Gateway
+- Routes, integrations
+- Authentication, throttling
+- **Docs**: https://docs.oracle.com/en-us/iaas/Content/Functions/Con/functionsoverview.htm
+
+---
 
 ### oci-security (Priority: High)
 
-#### oci-security/iam (30 examples suggested)
-- Compartments
-- Policies
-- Groups
-- Users
-- Dynamic Groups
-- Authentication (MFA)
-- Federation (IdCS, Okta)
-- Example questions: "Policy para permitir criação de instâncias apenas em compartment dev", "Configurar MFA para usuários"
+#### security/iam-basics (10)
+- Compartments, users, groups
+- Authentication, MFA
+- Console access
 - **Docs**: https://docs.oracle.com/en-us/iaas/Content/Identity/Concepts/overview.htm
 
-#### oci-security/vault (20 examples suggested)
-- Secrets
-- Keys
-- HSM
-- Secret rotation
-- Example questions: "Como criar secret para API key?", "Configurar rotação automática de secrets"
+#### security/policies (10)
+- Policy syntax, statements
+- Resource vs tenancy-level
+- Common patterns
+- **Docs**: https://docs.oracle.com/en-us/iaas/Content/Identity/Concepts/overview.htm
+
+#### security/dynamic-groups (10)
+- Dynamic Group rules
+- Instance principal
+- Resource principal
+- **Docs**: https://docs.oracle.com/en-us/iaas/Content/Identity/Concepts/overview.htm
+
+#### security/federation (10)
+- IdCS, Okta federation
+- SAML, OAuth
+- User provisioning
+- **Docs**: https://docs.oracle.com/en-us/iaas/Content/Identity/Concepts/overview.htm
+
+#### security/vault-secrets (10)
+- Secrets management
+- Secret creation, retrieval
+- Rotation
 - **Docs**: https://docs.oracle.com/en-us/iaas/Content/KeyManagement/Concepts/keyoverview.htm
 
-#### oci-security/encryption (20 examples suggested)
+#### security/vault-keys (10)
+- Keys, encryption
+- Key policies
+- Import, generate
+- **Docs**: https://docs.oracle.com/en-us/iaas/Content/KeyManagement/Concepts/keyoverview.htm
+
+#### security/encryption (10)
 - Volume encryption
-- Object Storage encryption
-- Customer-managed keys (CMK)
-- BYOK (Bring Your Own Key)
-- Example questions: "Como usar Vault para criptografar Block Volume?", "Configurar BYOK"
+- BYOK, customer-managed keys
+- HSM integration
 - **Docs**: https://docs.oracle.com/en-us/iaas/Content/SecurityEncryption/overview.htm
 
-#### oci-security/cloud-guard (15 examples suggested)
-- Cloud Guard security posture
+#### security/cloud-guard (10)
+- Cloud Guard configuration
 - Detector recipes
 - Responder rules
-- Security scores
-- Target configurations
-- Example questions: "Configurar Cloud Guard para detectar vulnerabilidades", "Review de security do OCI"
 - **Docs**: https://docs.oracle.com/en-us/iaas/Content/CloudGuard/concepts/cloudguardoverview.htm
 
-#### oci-security/waf (10 examples suggested)
+#### security/waf (10)
 - Web Application Firewall
-- Access rules
-- Rate limiting
-- IP blocking
-- SQL injection protection
-- Example questions: "Configurar WAF para API", "Proteger aplicação contra ataques"
+- Access rules, rate limiting
+- Protection patterns
 - **Docs**: https://docs.oracle.com/en-us/iaas/Content/WAF/Concepts/overview.htm
+
+---
 
 ### oci-migration (Priority: High)
 
-#### oci-migration/aws-to-oci (20 examples suggested)
+#### migration/aws-compute (10)
 - EC2 → OCI Compute
+- Instance mapping
+- Migration tools
+- **Docs**: https://docs.oracle.com/en-us/iaas/Content/Migration/overview.htm
+
+#### migration/aws-storage (10)
 - S3 → Object Storage
-- RDS → Autonomous DB
-- VPC → VCN mapping
-- IAM role mapping
-- EKS → OKE
-- Example questions: "Mapear VPC AWS para VCN OCI", "Migrar RDS MySQL para Autonomous Database"
+- Bucket replication
+- Data transfer
 - **Docs**: https://docs.oracle.com/en-us/iaas/Content/Migration/overview.htm
 
-#### oci-migration/azure-to-oci (20 examples suggested)
+#### migration/aws-database (10)
+- RDS → Autonomous Database
+- Migration strategies
+- Connection management
+- **Docs**: https://docs.oracle.com/en-us/iaas/Content/Migration/overview.htm
+
+#### migration/azure-compute (10)
 - Azure VMs → OCI Compute
-- Azure Blob → Object Storage
+- Migration assessment
+- Cutover
+- **Docs**: https://docs.oracle.com/en-us/iaas/Content/Migration/overview.htm
+
+#### migration/azure-database (10)
 - Azure SQL → Autonomous DB
-- VNet → VCN mapping
-- AKS → OKE
-- Example questions: "Mapear VNet Azure para VCN", "Migrar Azure Blob para OCI Object Storage"
+- Migration approaches
+- Validation
 - **Docs**: https://docs.oracle.com/en-us/iaas/Content/Migration/overview.htm
 
-#### oci-migration/gcp-to-oci (20 examples suggested)
-- Compute Engine → OCI Compute
-- Cloud Storage → Object Storage
-- Cloud SQL → Autonomous DB
-- VPC → VCN mapping
-- GKE → OKE
-- Example questions: "Mapear GCP VPC para VCN OCI", "Migrar Cloud Storage para Object Storage"
+#### migration/gcp-compute (10)
+- GCP Compute Engine → OCI Compute
+- Instance migration
+- Migration tools
 - **Docs**: https://docs.oracle.com/en-us/iaas/Content/Migration/overview.htm
 
-#### oci-migration/onprem-to-oci (20 examples suggested)
-- VMware → OCI (VMware Cloud Foundation)
-- Lift-and-shift patterns
-- Hybrid connectivity (FastConnect, VPN)
-- Oracle Cloud Migrations service
-- Data migration tools
-- Example questions: "Conectar datacenter on-premises via FastConnect", "Migração lift-and-shift de VMs via OCI Cloud Migrations"
+#### migration/gcp-storage (10)
+- GCP Cloud Storage → OCI Object Storage
+- Bucket replication
+- Data transfer
+- **Docs**: https://docs.oracle.com/en-us/iaas/Content/Migration/overview.htm
+
+#### migration/gcp-database (10)
+- GCP Cloud SQL → OCI Database
+- Database migration
+- Validation
+- **Docs**: https://docs.oracle.com/en-us/iaas/Content/Migration/overview.htm
+
+#### migration/gcp-to-oci (10)
+- GCP → OCI mapping
+- Compute, Storage, Database
+- Migration patterns
+- **Docs**: https://docs.oracle.com/en-us/iaas/Content/Migration/overview.htm
+
+#### migration/onprem-vmware (10)
+- VMware → OCI (VCF)
+- Lift-and-shift
+- Hybrid connectivity
 - **Docs**: https://docs.oracle.com/en-us/iaas/Content/cloud-migration/home.htm
 
-#### oci-migration/database-migration (20 examples suggested)
-- OCI Database Migration Service
-- Online vs Offline migration
-- Zero Downtime Migration (ZDM)
-- Oracle → Autonomous DB migration
-- MySQL → OCI MySQL migration
-- Example questions: "Migrar banco Oracle on-premises para Autonomous DB", "Configurar Zero Downtime Migration"
-- **Docs**: https://docs.oracle.com/en-us/iaas/database-migration/doc/overview.html
+#### migration/onprem-database (10)
+- Oracle → Autonomous DB
+- ZDM (Zero Downtime Migration)
+- Migration service
+- **Docs**: https://docs.oracle.com/en-us/iaas/Content/Migration/overview.htm
 
-#### oci-migration/data-migration (15 examples suggested)
-- OCI GoldenGate for data replication
-- Data Integration service
-- Object Storage data transfer
-- Storage Gateway
-- Example questions: "Configurar replicação com GoldenGate", "Migrar dados com OCI Data Integration"
+#### migration/data-transfer (10)
+- GoldenGate replication
+- Data Integration
+- Large-scale transfers
 - **Docs**: https://docs.oracle.com/en-us/iaas/Content/Integration/overview.htm
 
-#### oci-migration/storage-migration (15 examples suggested)
-- OCI Object Storage Sync
-- s5cmd tool
-- Storage Gateway
-- File Storage migration
-- Large data transfer
-- Example questions: "Migrar grande volume de dados para Object Storage", "Usar s5cmd para upload"
-- **Docs**: https://docs.oracle.com/en/learn/migr-ocistorage-p1/
-
-#### oci-migration/oracle-to-oci (15 examples suggested)
-- Oracle Cloud Classic → OCI migration
-- Oracle E-Business Suite → OCI
-- PeopleSoft → OCI
-- JD Edwards → OCI
-- Oracle Fusion → OCI
-- Example questions: "Migrar EBS para OCI", "Mover Oracle Cloud Classic para OCI"
-- **Docs**: https://docs.oracle.com/en-us/iaas/Content/cloud-migration/home.htm
-
-#### oci-migration/applications (15 examples suggested)
-- Oracle Integration migration
-- Oracle Process Automation migration
-- SaaS migration patterns
-- Application re-platforming
-- Example questions: "Migrar Oracle Integration para OCI", "Mover aplicações SaaS para OCI"
-- **Docs**: https://docs.oracle.com/en/cloud/paas/application-integration/oracle-integration-oci/
+---
 
 ### oci-terraform (Priority: Medium)
 
-#### oci-terraform/provider (10 examples suggested)
+#### terraform/provider (10)
 - Provider configuration
-- Authentication (API key, instance principal, resource principal)
-- Region configuration
-- Provider version management
-- Example questions: "Configurar provider OCI com API key", "Autenticação via instance principal"
+- Authentication (API key, instance principal)
+- Region, tenancy
 - **Docs**: https://registry.terraform.io/providers/oracle/oci/latest/docs
 
-#### oci-terraform/resources (30 examples suggested)
-- Compute: instance, instance pool, custom image
-- Networking: vcn, subnet, security list, NSG, load balancer
-- IAM: policy, group, user, dynamic group
-- Storage: object storage bucket, block volume, file system
-- Database: autonomous database, mysql, database
-- Example questions: "Criar instância com Terraform", "Criar VCN com subnets via Terraform"
+#### terraform/compute-storage (10)
+- Instance, block volume
+- Object storage bucket
+- Resources
 - **Docs**: https://registry.terraform.io/providers/oracle/oci/latest/docs
 
-#### oci-terraform/modules (15 examples suggested)
-- Oracle official modules
-- Module usage and composition
-- Reusable infrastructure patterns
-- Network modules (vcn, subnets)
-- Compute modules (instance, instance pool)
-- Example questions: "Usar módulos oficiais OCI Terraform", "Criar VCN com módulo Oracle"
-- **Docs**: https://github.com/oracle-terraform-modules
+#### terraform/networking (10)
+- VCN, subnet
+- Security list, NSG
+- Load balancer
+- **Docs**: https://registry.terraform.io/providers/oracle/oci/latest/docs
 
-#### oci-terraform/best-practices (15 examples suggested)
-- State management (local vs remote)
-- Remote state with OCI Object Storage
-- Workspaces
-- Sentinel policies
-- Drift detection
-- Code organization
-- Example questions: "Configurar remote state no OCI", "Usar workspaces no Terraform"
-- **Docs**: https://docs.oracle.com/en-us/iaas/Content/dev/terraform/supported-services.htm
+#### terraform/iam (10)
+- Policy, group, user
+- Dynamic group
+- Compartment
+- **Docs**: https://registry.terraform.io/providers/oracle/oci/latest/docs
 
-#### oci-terraform/oke (15 examples suggested)
-- OKE cluster creation
+#### terraform/database (10)
+- Autonomous database, MySQL, PostgreSQL
+- NoSQL, Exadata resources
+- Database resources
+- **Docs**: https://registry.terraform.io/providers/oracle/oci/latest/docs
+
+#### terraform/oke (10)
+- OKE cluster
 - Node pools
-- OCI Kubernetes Engine resources
-- Kubernetes manifests vs Terraform
-- CNI configuration
-- Example questions: "Criar cluster OKE com Terraform", "Configurar node pool com Terraform"
-- **Docs**: https://registry.terraform.io/providers/oracle/oci/latest/docs/container_engine.html
+- Kubernetes resources
+- **Docs**: https://registry.terraform.io/providers/oracle/oci/latest/docs
+
+#### terraform/state (10)
+- Remote state (Object Storage)
+- State locking
+- Workspaces
+- **Docs**: https://registry.terraform.io/providers/oracle/oci/latest/docs
+
+---
 
 ### oci-observability (Priority: Medium)
 
-#### oci-observability/logging (15 examples)
+#### observability/logging (10)
 - Logging service
-- Log groups
-- Custom logs
-- Log retention
-- Audit logs
-- Service logs (Compute, Network, Database)
-- Example questions: "Configurar logging para instância", "Criar log group customizado"
+- Log groups, custom logs
+- Retention, audit
 - **Docs**: https://docs.oracle.com/en-us/iaas/Content/Logging/overview.htm
 
-#### oci-observability/monitoring (15 examples)
-- Metrics
-- Alarms
+#### observability/monitoring (10)
+- Metrics, alarms
 - Notifications
-- Alarm destinations (email, Slack, PagerDuty)
 - Custom metrics
-- Example questions: "Criar alarme para CPU > 80%", "Configurar notificação via OCI Notifications"
 - **Docs**: https://docs.oracle.com/en-us/iaas/Content/Monitoring/overview.htm
 
-#### oci-observability/stack-monitoring (10 examples)
+#### observability/stack-monitoring (10)
 - Stack Monitoring
-- Enterprise Manager
 - Resource monitoring
 - Database monitoring
-- Exadata monitoring
-- Example questions: "Configurar Stack Monitoring para banco de dados", "Monitorar infraestrutura OCI"
 - **Docs**: https://docs.oracle.com/en-us/iaas/Content/StackMonitoring/overview.htm
 
-#### oci-observability/apm (10 examples)
-- Application Performance Monitoring (APM)
+#### observability/apm (10)
+- APM configuration
 - Distributed tracing
 - Performance diagnostics
-- Service maps
-- Example questions: "Configurar APM para aplicação", "Debugar performance com tracing"
 - **Docs**: https://docs.oracle.com/en-us/iaas/Content/apm/overview.htm
+
+---
 
 ### oci-troubleshooting (Priority: High)
 
-#### oci-troubleshooting/connectivity (25 examples suggested)
-- Instance not accessible from internet
-- Routing issues (route table problems)
-- Security List / NSG blocking traffic
-- DNS problems (internal/external)
-- VPN/FastConnect connectivity issues
-- MTU issues
-- Example questions: "Instância não acessível pela internet", "Problemas de DNS interno", "VPN IPSec não conecta"
+#### troubleshooting/connectivity (10)
+- Instance not accessible
+- Routing, DNS issues
+- VPN/FastConnect problems
 - **Docs**: https://docs.oracle.com/en/learn/oci-ntw-troubleshoot-1/index.html
 
-#### oci-troubleshooting/performance (20 examples suggested)
-- Instance performance (CPU, memory)
-- Shape sizing issues
-- Storage bottlenecks (IOPS, throughput)
+#### troubleshooting/performance (10)
+- CPU, memory issues
+- Storage bottlenecks
 - Network latency
-- Database performance
-- Example questions: "Instance muito lenta, como diagnosticar?", "Performance de storage ruim"
 - **Docs**: https://docs.oracle.com/en-us/iaas/Content/Compute/Concepts/computeoverview.htm
 
-#### oci-troubleshooting/authentication (20 examples suggested)
-- IAM policy permission denied
-- Dynamic Group issues
-- MFA problems
+#### troubleshooting/authentication (10)
+- Policy permission denied
+- MFA issues
 - Federation failures
-- Token expiration issues
-- "NotAuthorized" errors
-- Example questions: "Policy não funciona, usuário não acessa recurso", "Erro 403 NotAuthorized"
 - **Docs**: https://docs.oracle.com/en-us/iaas/Content/Identity/Concepts/overview.htm
 
-#### oci-troubleshooting/database (20 examples suggested)
-- Autonomous Database connection issues
-- Connection string problems
-- Wallet file issues
+#### troubleshooting/database (10)
+- Connection issues
 - TNS errors
-- Performance issues in ADB
-- Example questions: "Não consigo conectar no Autonomous Database", "Erro TNS: listener"
+- Wallet problems
 - **Docs**: https://docs.oracle.com/en-us/iaas/Content/Database/Concepts/databaseoverview.htm
 
-#### oci-troubleshooting/compute (15 examples suggested)
-- Instance stuck in provisioning
-- Boot volume issues
-- Shape allocation failures
-- SSH key problems
-- Instance lifecycle errors
-- Example questions: "Instância travada em provisioning", "Não consigo fazer SSH na instância"
+#### troubleshooting/compute (10)
+- Provisioning issues
+- Boot volume problems
+- SSH/key issues
 - **Docs**: https://docs.oracle.com/en-us/iaas/Content/Compute/known-issues.htm
 
-#### oci-troubleshooting/storage (15 examples suggested)
-- Bucket access issues
-- Object upload/download failures
+#### troubleshooting/storage (10)
+- Bucket access
+- Upload failures
 - Performance issues
-- Replication problems
-- Lifecycle policy issues
-- Example questions: "Bucket não acessível", "Upload de arquivo muito lento"
 - **Docs**: https://docs.oracle.com/en-us/iaas/Content/Storage/Concepts/storageoverview.htm
 
-#### oci-troubleshooting/oke (10 examples suggested)
-- OKE cluster creation failures
+#### troubleshooting/oke (10)
+- Cluster creation failures
 - Node pool issues
-- Worker node not joining
-- CNI plugin problems
-- Storage mount issues
-- Example questions: "Worker node não junta no cluster", "PVC não monta no OKE"
+- Worker node problems
 - **Docs**: https://docs.oracle.com/en-us/iaas/Content/ContEng/Concepts/contengoverview.htm
 
-#### oci-troubleshooting/functions-api-gateway (10 examples suggested)
+#### troubleshooting/functions (10)
 - Function invocation errors
-- API Gateway 502/504 errors
+- API Gateway 502/504
 - Timeout issues
-- Cold start problems
-- Example questions: "Function retorna erro 500", "API Gateway retorna 502 Bad Gateway"
 - **Docs**: https://docs.oracle.com/en-us/iaas/Content/Functions/Con/functionsoverview.htm
+
+---
 
 ### oci-devops (Priority: Medium)
 
-#### oci-devops/ci-cd (20 examples)
-- OCI DevOps service
-- Build pipelines
+#### devops/ci-cd (10)
+- OCI DevOps build pipelines
 - Deploy pipelines
-- Artifacts registry
-- Container registry (OCIR)
-- GitHub Actions integration
-- Example questions: "Configurar CI/CD com OCI DevOps", "Deploy automático via OCI DevOps"
+- Artifacts
 - **Docs**: https://docs.oracle.com/en-us/iaas/Content/DevOps/Concepts/devopsoverview.htm
 
-#### oci-devops/resource-manager (15 examples)
-- Resource Manager
+#### devops/resource-manager (10)
 - Terraform stacks
 - Job execution
 - Drift detection
-- State management
-- Example questions: "Usar Resource Manager para deploy", "Importar Terraform no OCI"
 - **Docs**: https://docs.oracle.com/en-us/iaas/Content/ResourceManager/Con/resourcemanager.htm
 
-#### oci-devops/artifacts-registry (10 examples)
-- OCI Artifacts service
-- Container Registry (OCIR)
-- Generic artifacts
+#### devops/artifacts (10)
+- OCIR (Container Registry)
+- Artifacts service
 - Image signing
-- Access control
-- Example questions: "Configurar OCIR para armazenar imagens", "Usar Artifacts service"
 - **Docs**: https://docs.oracle.com/en-us/iaas/Content/Artifacts/Concepts/artifactsoverview.htm
 
-#### oci-devops/secrets (10 examples)
-- OCI Vault integration with DevOps
-- Secret injection in pipelines
-- Secure parameter storage
-- Example questions: "Usar Vault secrets no pipeline", "Injetar API key no deployment"
+#### devops/secrets (10)
+- Vault integration
+- Secret injection
+- Pipeline parameters
 - **Docs**: https://docs.oracle.com/en-us/iaas/Content/KeyManagement/Concepts/keyoverview.htm
+
+---
 
 ## Difficulty Levels
 
@@ -398,13 +420,6 @@
 - **intermediate**: Implementation, configuration (50%)
 - **advanced**: Architecture design, migration, troubleshooting (20%)
 
-## Total Examples Guide
+## Total
 
-Basic execution (local training): 660-710 examples
-- oci-core/*: ~155 examples
-- oci-security/*: ~95 examples
-- oci-migration/*: ~160 examples
-- oci-terraform/*: ~70 examples
-- oci-observability/*: ~50 examples
-- oci-troubleshooting/*: ~135 examples
-- oci-devops/*: ~55 examples
+- 64 topics × 10 examples = 640 examples total

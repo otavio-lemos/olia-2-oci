@@ -69,12 +69,22 @@ Recommended online LLMs for generation:
 
 ## Quantity Guidelines
 
-Basic execution (local):
-- oci-core/*: 20-30 examples per subcategory
-- oci-security/*: 15-20 examples per subcategory
-- oci-migration/*: 15-20 examples per subcategory
-- oci-terraform/*: 10-15 examples per subcategory
-- oci-troubleshooting/*: 15-20 examples per subcategory
+**10 examples per topic** (64 topics × 10 = 640 examples total)
+
+Quick reference:
+- compute: 3 topics (instances, scaling, custom-images)
+- storage: 3 topics (block, object, file)
+- networking: 3 topics (vcn, security, connectivity)
+- lb: 1 topic (load-balancer)
+- database: 6 topics (autonomous, autonomous-json, mysql, postgresql, nosql, exadata)
+- container: 2 topics (oke, instances)
+- serverless: 2 topics (functions, api-gateway)
+- security: 9 topics (iam-basics, policies, dynamic-groups, federation, vault-secrets, vault-keys, encryption, cloud-guard, waf)
+- migration: 12 topics (aws-compute, aws-storage, aws-database, azure-compute, azure-database, gcp-compute, gcp-storage, gcp-database, gcp-to-oci, onprem-vmware, onprem-database, data-transfer)
+- terraform: 7 topics (provider, compute-storage, networking, iam, database, oke, state)
+- observability: 4 topics (logging, monitoring, stack-monitoring, apm)
+- troubleshooting: 8 topics (connectivity, performance, authentication, database, compute, storage, oke, functions)
+- devops: 4 topics (ci-cd, resource-manager, artifacts, secrets)
 
 ## Quality Checklist
 
