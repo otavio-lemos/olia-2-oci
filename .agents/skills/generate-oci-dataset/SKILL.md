@@ -69,7 +69,7 @@ Recommended online LLMs for generation:
 
 ## Quantity Guidelines
 
-**10 examples per topic** (64 topics × 10 = 640 examples total)
+**10 examples per topic** (71 topics × 10 = 710 examples total)
 
 Quick reference:
 - compute: 3 topics (instances, scaling, custom-images)
@@ -80,8 +80,8 @@ Quick reference:
 - container: 2 topics (oke, instances)
 - serverless: 2 topics (functions, api-gateway)
 - security: 9 topics (iam-basics, policies, dynamic-groups, federation, vault-secrets, vault-keys, encryption, cloud-guard, waf)
-- migration: 12 topics (aws-compute, aws-storage, aws-database, azure-compute, azure-database, gcp-compute, gcp-storage, gcp-database, gcp-to-oci, onprem-vmware, onprem-database, data-transfer)
-- terraform: 7 topics (provider, compute-storage, networking, iam, database, oke, state)
+- migration: 14 topics (aws-compute, aws-storage, aws-database, azure-compute, azure-storage, azure-database, gcp-compute, gcp-storage, gcp-database, onprem-compute, onprem-storage, onprem-vmware, onprem-database, data-transfer)
+- terraform: 12 topics (provider, compute, storage, networking, load-balancer, database, container, serverless, security, observability, devops, state)
 - observability: 4 topics (logging, monitoring, stack-monitoring, apm)
 - troubleshooting: 8 topics (connectivity, performance, authentication, database, compute, storage, oke, functions)
 - devops: 4 topics (ci-cd, resource-manager, artifacts, secrets)

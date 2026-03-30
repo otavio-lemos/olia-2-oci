@@ -188,74 +188,86 @@
 
 #### migration/aws-compute (10)
 - EC2 → OCI Compute
-- Instance mapping
-- Migration tools
+- Instance migration, shape mapping
+- Migration tools (Mover, CLI)
 - **Docs**: https://docs.oracle.com/en-us/iaas/Content/Migration/overview.htm
 
 #### migration/aws-storage (10)
 - S3 → Object Storage
-- Bucket replication
-- Data transfer
+- Bucket migration, replication
+- Data transfer (s5cmd, OCI CLI)
 - **Docs**: https://docs.oracle.com/en-us/iaas/Content/Migration/overview.htm
 
 #### migration/aws-database (10)
-- RDS → Autonomous Database
-- Migration strategies
-- Connection management
+- RDS (MySQL, PostgreSQL, Oracle) → OCI Database
+- Migration strategies, connection management
+- OCI Database Migration Service
 - **Docs**: https://docs.oracle.com/en-us/iaas/Content/Migration/overview.htm
 
 #### migration/azure-compute (10)
 - Azure VMs → OCI Compute
-- Migration assessment
-- Cutover
+- Migration assessment, cutover
+- Azure to OCI mapping
+- **Docs**: https://docs.oracle.com/en-us/iaas/Content/Migration/overview.htm
+
+#### migration/azure-storage (10)
+- Azure Blob → OCI Object Storage
+- Storage migration, data transfer
+- AzCopy → OCI CLI
 - **Docs**: https://docs.oracle.com/en-us/iaas/Content/Migration/overview.htm
 
 #### migration/azure-database (10)
-- Azure SQL → Autonomous DB
-- Migration approaches
-- Validation
+- Azure SQL → Autonomous Database
+- Migration approaches, validation
+- DMS configuration
 - **Docs**: https://docs.oracle.com/en-us/iaas/Content/Migration/overview.htm
 
 #### migration/gcp-compute (10)
 - GCP Compute Engine → OCI Compute
 - Instance migration
-- Migration tools
+- GCP to OCI mapping
 - **Docs**: https://docs.oracle.com/en-us/iaas/Content/Migration/overview.htm
 
 #### migration/gcp-storage (10)
 - GCP Cloud Storage → OCI Object Storage
-- Bucket replication
+- Bucket migration, gsutil → OCI CLI
 - Data transfer
 - **Docs**: https://docs.oracle.com/en-us/iaas/Content/Migration/overview.htm
 
 #### migration/gcp-database (10)
-- GCP Cloud SQL → OCI Database
+- GCP Cloud SQL (MySQL, PostgreSQL) → OCI Database
 - Database migration
-- Validation
+- Migration tools
 - **Docs**: https://docs.oracle.com/en-us/iaas/Content/Migration/overview.htm
 
-#### migration/gcp-to-oci (10)
-- GCP → OCI mapping
-- Compute, Storage, Database
-- Migration patterns
+#### migration/onprem-compute (10)
+- On-premises VMs → OCI Compute
+- Lift-and-shift migration
+- Assessment, cutover planning
 - **Docs**: https://docs.oracle.com/en-us/iaas/Content/Migration/overview.htm
+
+#### migration/onprem-storage (10)
+- On-premises file storage → OCI File Storage
+- NFS migration, data transfer
+- Backup strategies
+- **Docs**: https://docs.oracle.com/en-us/iaas/Content/Storage/Concepts/storageoverview.htm
 
 #### migration/onprem-vmware (10)
-- VMware → OCI (VCF)
-- Lift-and-shift
-- Hybrid connectivity
+- VMware → OCI (VMware Cloud Foundation)
+- Lift-and-shift patterns
+- Hybrid connectivity (FastConnect, VPN)
 - **Docs**: https://docs.oracle.com/en-us/iaas/Content/cloud-migration/home.htm
 
 #### migration/onprem-database (10)
-- Oracle → Autonomous DB
+- Oracle on-premises → Autonomous Database
 - ZDM (Zero Downtime Migration)
-- Migration service
+- OCI Database Migration Service
 - **Docs**: https://docs.oracle.com/en-us/iaas/Content/Migration/overview.htm
 
 #### migration/data-transfer (10)
 - GoldenGate replication
-- Data Integration
-- Large-scale transfers
+- OCI Data Integration service
+- Large-scale data transfers
 - **Docs**: https://docs.oracle.com/en-us/iaas/Content/Integration/overview.htm
 
 ---
@@ -268,22 +280,28 @@
 - Region, tenancy
 - **Docs**: https://registry.terraform.io/providers/oracle/oci/latest/docs
 
-#### terraform/compute-storage (10)
-- Instance, block volume
-- Object storage bucket
-- Resources
+#### terraform/compute (10)
+- Instance, instance pool
+- Custom images, boot volumes
+- Auto-scaling resources
+- **Docs**: https://registry.terraform.io/providers/oracle/oci/latest/docs
+
+#### terraform/storage (10)
+- Block volume, object storage bucket
+- File storage, archive storage
+- Volume attachments
 - **Docs**: https://registry.terraform.io/providers/oracle/oci/latest/docs
 
 #### terraform/networking (10)
 - VCN, subnet
 - Security list, NSG
-- Load balancer
+- Internet Gateway, NAT Gateway
 - **Docs**: https://registry.terraform.io/providers/oracle/oci/latest/docs
 
-#### terraform/iam (10)
-- Policy, group, user
-- Dynamic group
-- Compartment
+#### terraform/load-balancer (10)
+- Load balancer resource
+- Backend sets, listeners
+- SSL certificates
 - **Docs**: https://registry.terraform.io/providers/oracle/oci/latest/docs
 
 #### terraform/database (10)
@@ -292,10 +310,34 @@
 - Database resources
 - **Docs**: https://registry.terraform.io/providers/oracle/oci/latest/docs
 
-#### terraform/oke (10)
-- OKE cluster
-- Node pools
-- Kubernetes resources
+#### terraform/container (10)
+- OKE cluster, node pools
+- Container instances
+- OCIR registry
+- **Docs**: https://registry.terraform.io/providers/oracle/oci/latest/docs
+
+#### terraform/serverless (10)
+- Functions, API Gateway
+- Invoke configurations
+- Serverless resources
+- **Docs**: https://registry.terraform.io/providers/oracle/oci/latest/docs
+
+#### terraform/security (10)
+- Vault, secrets, keys
+- Cloud Guard resources
+- WAF, encryption
+- **Docs**: https://registry.terraform.io/providers/oracle/oci/latest/docs
+
+#### terraform/observability (10)
+- Logging, monitoring resources
+- Alarms, notifications
+- APM configuration
+- **Docs**: https://registry.terraform.io/providers/oracle/oci/latest/docs
+
+#### terraform/devops (10)
+- DevOps resources
+- Artifacts, OCIR
+- Resource Manager stacks
 - **Docs**: https://registry.terraform.io/providers/oracle/oci/latest/docs
 
 #### terraform/state (10)
