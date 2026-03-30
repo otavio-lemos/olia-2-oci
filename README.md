@@ -99,8 +99,11 @@ Use o **MASTER_PROMPT** com qualquer LLM externo (Gemini, GPT-4, Claude):
 # Listar topics disponíveis
 python scripts/generate_prompt.py --list
 
-# Gerar prompt para um topic
+# Gerar prompt para um topic específico
 python scripts/generate_prompt.py compute/instances
+
+# Gerar TODOS os prompts de uma vez
+python scripts/generate_prompt.py --all
 ```
 
 O prompt gerado deve ser enviado para um LLM, e o resultado salvo em `data/curated/[topic]-001.jsonl`.
