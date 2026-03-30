@@ -8,74 +8,29 @@ from pathlib import Path
 from typing import List, Dict, Any
 from collections import defaultdict
 
-SYSTEM_PROMPT = """Você é um arquiteto especialista em OCI, migração multicloud e modernização on-premises. Seja técnico, objetivo e não invente serviços inexistentes."""
-
-CATEGORY_MAP = {
-    "oci-core-compute": "oci-core/compute",
-    "oci-core-storage": "oci-core/storage",
-    "oci-core-networking": "oci-core/networking",
-    "oci-core-database": "oci-core/database",
-    "oci-security-iam": "oci-security/iam",
-    "oci-security-vault": "oci-security/vault",
-    "oci-security-encryption": "oci-security/encryption",
-    "oci-migration-aws-to-oci": "oci-migration/aws-to-oci",
-    "oci-migration-azure-to-oci": "oci-migration/azure-to-oci",
-    "oci-migration-gcp-to-oci": "oci-migration/gcp-to-oci",
-    "oci-migration-onprem-to-oci": "oci-migration/onprem-to-oci",
-    "oci-terraform-provider": "oci-terraform/provider",
-    "oci-terraform-resources": "oci-terraform/resources",
-    "oci-troubleshooting-connectivity": "oci-troubleshooting/connectivity",
-    "oci-troubleshooting-performance": "oci-troubleshooting/performance",
-}
-
-
-def extract_category_from_filename(filename: str) -> str:
-    """Extract category from JSONL filename like 'oci-migration-aws-to-oci-033.jsonl'."""
-    name = Path(filename).stem
-    for prefix, category in CATEGORY_MAP.items():
-        if name.startswith(prefix):
-            return category
-    return "unknown"
-
 
 def load_examples(input_path: Path) -> List[Dict[str, Any]]:
     """Load from single JSONL OR directory of JSON files."""
     examples = []
 
     if input_path.is_file() and input_path.suffix == ".jsonl":
-        category = extract_category_from_filename(input_path.name)
         with open(input_path, "r", encoding="utf-8") as f:
             for line in f:
                 try:
                     ex = json.loads(line.strip())
                     if isinstance(ex, dict):
-                        if "metadata" not in ex:
-                            ex["metadata"] = {}
-                        if (
-                            "category" not in ex["metadata"]
-                            or ex["metadata"]["category"] == "unknown"
-                        ):
-                            ex["metadata"]["category"] = category
                         examples.append(ex)
                 except json.JSONDecodeError:
                     continue
     elif input_path.is_dir():
         for json_file in input_path.rglob("*.jsonl"):
-            if json_file.name == "all_unique.jsonl":
+            if json_file.name in ["all_unique.jsonl", "all_curated.jsonl"]:
                 continue
-            category = extract_category_from_filename(json_file.name)
             with open(json_file, "r", encoding="utf-8") as f:
                 for line in f:
                     try:
                         ex = json.loads(line.strip())
                         if isinstance(ex, dict):
-                            if "metadata" not in ex:
-                                ex["metadata"] = {}
-                            if (
-                                "category" not in ex["metadata"]
-                                or ex["metadata"]["category"] == "unknown"
-                            ):
-                                ex["metadata"]["category"] = category
                             examples.append(ex)
                     except json.JSONDecodeError:
                         continue
@@ -87,22 +42,15 @@ def load_examples(input_path: Path) -> List[Dict[str, Any]]:
 
 
 def ensure_chat_format(example: Dict[str, Any]) -> Dict[str, Any]:
-    """Ensure chat format with system prompt."""
+    """Ensure chat format - preserves existing system prompt if present."""
     if "messages" in example:
-        # Already chat format
-        messages = example["messages"]
-    else:
-        # Convert legacy format
-        messages = [{"role": "system", "content": SYSTEM_PROMPT}]
-        if "question" in example or "prompt" in example:
-            user_content = example.get("question", example.get("prompt", ""))
-            messages.append({"role": "user", "content": user_content})
-        if "answer" in example or "response" in example:
-            assistant_content = example.get("answer", example.get("response", ""))
-            messages.append({"role": "assistant", "content": assistant_content})
+        # Already chat format - preserve as-is (including existing system prompt)
+        return example
 
-    metadata = example.get("metadata", {})
-    return {"messages": messages, "metadata": metadata}
+    # Convert legacy format (should not happen with new data)
+    raise ValueError(
+        f"Example at line does not have 'messages' field - legacy format not supported"
+    )
 
 
 def balanced_split(
