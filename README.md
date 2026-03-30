@@ -93,7 +93,7 @@ pip install -r requirements.txt
 
 ### Gerar Dados Curados
 
-Use o **MASTER_PROMPT** com qualquer LLM externo (Gemini, GPT-4, Claude):
+Use o **MASTER_PROMPT** com qualquer LLM externo (Gemini, Claude, GPT):
 
 ```bash
 # Listar topics disponíveis
@@ -111,22 +111,36 @@ O prompt gerado deve ser enviado para um LLM, e o resultado salvo em `data/curat
 ### Pipeline Completo
 
 ```bash
-# 1. Ativar ambiente virtual
+# 0. Ativar ambiente virtual
 source venv/bin/activate
 
-# 2. Validar dataset
-python3 scripts/validate_jsonl.py data/all_curated.jsonl --filter
+# 1. Gerar TODOS os prompts
+python scripts/generate_prompt.py --all
 
-# 3. Deduplicar
+# 2. Enviar para LLM e salvar em data/curated/
+ - Ler cada arquivo em tmp/prompt_*.md
+ - Enviar para Gemini/Claude/GPT
+ - Salvar resultado em data/curated/[topic]-001.jsonl
+
+# 3. Concatenar todos os JSONL
+cat data/curated/*.jsonl > data/all_curated.jsonl
+
+# 4. Validar dataset
+python3 scripts/validate_jsonl.py data/all_curated.jsonl --filter
+mv data/all_curated_valid.jsonl data/all_curated.jsonl
+
+# 5. Deduplicar
 python3 scripts/dedupe_dataset.py data/all_curated.jsonl --remove
 
-# 4. Criar splits (train/valid/eval)
+# 6. Criar splits (train/valid/eval)
 python3 scripts/build_dataset_fixed.py -i data/all_curated.jsonl -o data/
 
-# 5. Treinar modelo
+# 7. Treinar modelo
 source config/cycle-1.env && bash training/train_mlx.sh
 
-# 6. Avaliar
+# 8. Avaliar
+python scripts/evaluate_model.py outputs/adapters data/eval.jsonl outputs/benchmarks
+```
 python scripts/evaluate_model.py outputs/adapters data/eval.jsonl outputs/benchmarks
 ```
 
