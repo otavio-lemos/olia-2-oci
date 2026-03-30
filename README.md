@@ -108,6 +108,15 @@ Use the **MASTER_PROMPT** with any external LLM (Gemini, GPT-4, Claude, Perplexi
     └── [category].md                         ← category-specific topics
 ```
 
+> **Note**: The `@` references above are for you (the human) to know which files to include.
+> When sending to the LLM, you must manually combine:
+> - `.agents/skills/generate-oci-dataset/MASTER_PROMPT.md` (format instructions)
+> - Relevant sections from `docs/taxonomy.md` (category and topics)
+> - `docs/quality-rules.md` (quality rules)
+> - The specific category prompt from `.agents/skills/generate-oci-dataset/prompts/[category].md`
+>
+> **Tip**: Generate one category at a time to stay within token limits.
+
 #### Step by Step
 
 1. **Choose a category** - see `docs/taxonomy.md`
@@ -118,10 +127,10 @@ Use the **MASTER_PROMPT** with any external LLM (Gemini, GPT-4, Claude, Perplexi
    ```
 
 3. **Combine the prompt**:
-   - MASTER_PROMPT (format instructions)
-   - Category from taxonomy
+   - `.agents/skills/generate-oci-dataset/MASTER_PROMPT.md` (format instructions)
+   - Category from `docs/taxonomy.md`
    - Topics from category prompt
-   - Rules from quality-rules.md
+   - Rules from `docs/quality-rules.md`
 
 4. **Send to an LLM** (Gemini, GPT-4, Claude)
 
