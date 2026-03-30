@@ -114,39 +114,85 @@ The generated prompt should be sent to an LLM, and the result saved to `data/cur
 # 0. Activate virtual environment
 source venv/bin/activate
 
-# 1. Generate ALL prompts
+# ========== 1. DATA PREPARATION ==========
+
+# 1.1 Generate ALL prompts
 python scripts/generate_prompt.py --all
 
-# 2. Send to LLM and save to data/curated/
+# 1.2 Send to LLM and save to data/curated/
  - Read each file in tmp/prompt_*.md
  - Send to Gemini/Claude/GPT
  - Save result to data/curated/[topic]-001.jsonl
 
-# 3. Concatenate all JSONL
+# 1.3 Concatenate all JSONL
 cat data/curated/*.jsonl > data/all_curated.jsonl
 
-# 4. Validate dataset
+# 1.4 Validate dataset
 python3 scripts/validate_jsonl.py data/all_curated.jsonl --filter
 mv data/all_curated_valid.jsonl data/all_curated.jsonl
 
-# 5. Deduplicate
+# 1.5 Deduplicate
 python3 scripts/dedupe_dataset.py data/all_curated.jsonl --remove
 
-# 6. Create splits (train/valid/eval)
+# 1.6 Create splits (train/valid/eval)
 python3 scripts/build_dataset_fixed.py -i data/all_curated.jsonl -o data/
 
-# 7. Train model
-source config/cycle-1.env && bash training/train_mlx.sh
+# ========== 2. TRAINING ==========
 
-# 8. Evaluate
+# 2.1 Select base model (default: mlx-community/Llama-3.2-3B-Instruct-4bit)
+export MODEL="mlx-community/Llama-3.2-3B-Instruct-4bit"
+
+# 2.2 Fine-Tune LoRA
+bash training/train_mlx.sh
+
+# ========== 3. POST-TRAINING ==========
+
+# 3.1 Export/Merge adapter
+bash training/export_adapter.sh
+
+# 3.2 Test inference
+bash training/run_inference.sh
+
+# 3.3 Evaluate
 python scripts/evaluate_model.py outputs/adapters data/eval.jsonl outputs/benchmarks
 ```
 
 ### Pipeline Flow
 
 ```mermaid
-flowchart LR
-    A[venv] --> B[Generate Prompts]
+flowchart TB
+    subgraph DataPrep["1. Data Preparation"]
+        DP1[Generate Prompts] --> DP2{Send to LLM}
+        DP2 -->|Manual| DP3[Gemini/Claude/GPT]
+        DP3 --> DP4[Save JSONL]
+        DP4 --> DP5[Validate]
+        DP5 --> DP6[Deduplicate]
+        DP6 --> DP7[Create Splits]
+    end
+    
+    subgraph Training["2. Training"]
+        DP7 --> T1[Select Base Model]
+        T1 --> T2[Configure Hyperparameters]
+        T2 --> T3[Fine-Tune LoRA]
+    end
+    
+    subgraph PostProcess["3. Post-Training"]
+        T3 --> P1[Export/Merge Adapter]
+        P1 --> P2[Test Inference]
+        P2 --> P3[Evaluate]
+    end
+    
+    DP7 -.->|75%| Train[train.jsonl]
+    DP7 -.->|15%| Valid[valid.jsonl]
+    DP7 -.->|10%| Eval[eval.jsonl]
+    
+    P1 --> outputs/adapters
+    P3 --> outputs/benchmarks
+    
+    style DP2 fill:#e1f5fe,stroke:#01579b
+    style DP3 fill:#fff3e0,stroke:#e65100
+    style DP4 fill:#fff3e0,stroke:#e65100
+```
     B --> C{Send to LLM}
     C -->|Manual| D[Gemini/Claude/GPT]
     D --> E[Save JSONL]
