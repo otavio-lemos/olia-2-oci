@@ -6,7 +6,7 @@
 Fine-tuning pipeline for an OCI specialist LLM using Apple Silicon, MLX, and LoRA.
 
 [![License](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](LICENSE)
-[![Python](https://img.shields.io/badge/Python-3.10+-blue?style=flat-square&logo=python&logoColor=white)](https://www.python.org)
+[![Python](https://img.shields.io/badge/Python-3.12-blue?style=flat-square&logo=python&logoColor=white)](https://www.python.org)
 [![MLX](https://img.shields.io/badge/MLX-Apple%20Silicon-orange?style=flat-square)](https://mlx.ai)
 
 </div>
@@ -82,10 +82,28 @@ We enforce strict quality rules to ensure dataset accuracy:
 ## Prerequisites
 
 - **Apple Silicon Mac** (M1/M2/M3/M4) for MLX training
-- **Python 3.10+**
-- **MLX installed**: `pip install mlx mlx-lm`
+- **Python 3.12** (recommended via venv)
+
+### Setup Virtual Environment
+
+```bash
+# Create venv with Python 3.12
+python3.12 -m venv venv
+
+# Activate
+source venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+```
 
 ## Quick Start
+
+### 0. Activate Virtual Environment
+
+```bash
+source venv/bin/activate
+```
 
 ### 1. Validate Dataset
 
@@ -112,6 +130,8 @@ export MODEL="mlx-community/Llama-3.2-3B-Instruct-4bit"
 export EPOCHS=3
 bash training/train_mlx.sh
 ```
+
+> **Note:** The training script sets `KMP_DUPLICATE_LIB_OK=TRUE` to handle OpenMP conflicts on macOS.
 
 ### 5. Run Inference
 
@@ -146,6 +166,7 @@ The benchmark evaluates responses on:
 olia-2-oci/
 ├── AGENTS.md                    # Agent guidelines
 ├── README.md                    # This file
+├── requirements.txt             # Python dependencies
 ├── docs/
 │   ├── scope.md                # Model scope definition
 │   ├── taxonomy.md             # Knowledge categories

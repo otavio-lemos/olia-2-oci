@@ -28,6 +28,8 @@ echo "=========================================="
 
 mkdir -p "$OUTPUT_DIR"
 
+export KMP_DUPLICATE_LIB_OK=TRUE
+
 python -m mlx_lm.lora \
     --model "$MODEL" \
     --train "$TRAIN_DATA" \
