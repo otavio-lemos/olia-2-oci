@@ -3,7 +3,7 @@
 Generate ready-to-use prompts for LLM data generation.
 
 Usage:
-    # Generate ALL prompts (all 86 topics)
+    # Generate ALL prompts
     python scripts/generate_prompt.py --all
 
     # Generate prompt for a specific topic
