@@ -141,7 +141,29 @@ source config/cycle-1.env && bash training/train_mlx.sh
 # 8. Evaluate
 python scripts/evaluate_model.py outputs/adapters data/eval.jsonl outputs/benchmarks
 ```
-python scripts/evaluate_model.py outputs/adapters data/eval.jsonl outputs/benchmarks
+
+### Pipeline Flow
+
+```mermaid
+flowchart LR
+    A[venv] --> B[Generate Prompts]
+    B --> C{Send to LLM}
+    C -->|Manual| D[Gemini/Claude/GPT]
+    D --> E[Save JSONL]
+    E --> F[Concatenate]
+    F --> G[Validate]
+    G --> H[Deduplicate]
+    H --> I[Create Splits]
+    I --> J[Train]
+    J --> K[Evaluate]
+    
+    I -.->|75%| L[train]
+    I -.->|15%| M[valid]
+    I -.->|10%| N[eval]
+    
+    style C fill:#e1f5fe,stroke:#01579b
+    style D fill:#fff3e0,stroke:#e65100
+    style E fill:#fff3e0,stroke:#e65100
 ```
 
 ---

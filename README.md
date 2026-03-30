@@ -141,7 +141,29 @@ source config/cycle-1.env && bash training/train_mlx.sh
 # 8. Avaliar
 python scripts/evaluate_model.py outputs/adapters data/eval.jsonl outputs/benchmarks
 ```
-python scripts/evaluate_model.py outputs/adapters data/eval.jsonl outputs/benchmarks
+
+### Fluxo do Pipeline
+
+```mermaid
+flowchart LR
+    A[venv] --> B[Gerar Prompts]
+    B --> C{Enviar p/ LLM}
+    C -->|Manual| D[Gemini/Claude/GPT]
+    D --> E[Salvar JSONL]
+    E --> F[Concatenar]
+    F --> G[Validar]
+    G --> H[Deduplicar]
+    H --> I[Criar Splits]
+    I --> J[Treinar]
+    J --> K[Avaliar]
+    
+    I -.->|75%| L[train]
+    I -.->|15%| M[valid]
+    I -.->|10%| N[eval]
+    
+    style C fill:#e1f5fe,stroke:#01579b
+    style D fill:#fff3e0,stroke:#e65100
+    style E fill:#fff3e0,stroke:#e65100
 ```
 
 ---
