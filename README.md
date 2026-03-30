@@ -141,7 +141,7 @@ The benchmark evaluates responses on:
 ## Project Structure
 
 ```
-oci-specialist-llm/
+olia-2-oci/
 ├── AGENTS.md                    # Agent guidelines
 ├── README.md                    # This file
 ├── docs/
