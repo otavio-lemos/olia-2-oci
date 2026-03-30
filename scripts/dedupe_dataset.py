@@ -8,34 +8,6 @@ from typing import List, Dict, Any, Set
 from collections import defaultdict
 
 
-CATEGORY_MAP = {
-    "oci-core-compute": "oci-core/compute",
-    "oci-core-storage": "oci-core/storage",
-    "oci-core-networking": "oci-core/networking",
-    "oci-core-database": "oci-core/database",
-    "oci-security-iam": "oci-security/iam",
-    "oci-security-vault": "oci-security/vault",
-    "oci-security-encryption": "oci-security/encryption",
-    "oci-migration-aws-to-oci": "oci-migration/aws-to-oci",
-    "oci-migration-azure-to-oci": "oci-migration/azure-to-oci",
-    "oci-migration-gcp-to-oci": "oci-migration/gcp-to-oci",
-    "oci-migration-onprem-to-oci": "oci-migration/onprem-to-oci",
-    "oci-terraform-provider": "oci-terraform/provider",
-    "oci-terraform-resources": "oci-terraform/resources",
-    "oci-troubleshooting-connectivity": "oci-troubleshooting/connectivity",
-    "oci-troubleshooting-performance": "oci-troubleshooting/performance",
-}
-
-
-def extract_category_from_filename(filename: str) -> str:
-    """Extract category from JSONL filename like 'oci-migration-aws-to-oci-033.jsonl'."""
-    name = Path(filename).stem
-    for prefix, category in CATEGORY_MAP.items():
-        if name.startswith(prefix):
-            return category
-    return "unknown"
-
-
 def normalize_text(text: str) -> str:
     return " ".join(text.lower().split())
 
@@ -89,34 +61,13 @@ def find_near_duplicates(
 def load_jsonl(filepath: Path) -> List[Dict[str, Any]]:
     examples = []
 
-    if filepath.is_dir():
-        for jsonl_file in filepath.rglob("*.jsonl"):
-            if jsonl_file.name == "all_unique.jsonl":
-                continue
-            category = extract_category_from_filename(jsonl_file.name)
-            with open(jsonl_file, "r", encoding="utf-8") as f:
-                for i, line in enumerate(f, 1):
-                    if line.strip():
-                        try:
-                            ex = json.loads(line)
-                            if "metadata" not in ex:
-                                ex["metadata"] = {}
-                            if (
-                                "category" not in ex["metadata"]
-                                or ex["metadata"].get("category") == "unknown"
-                            ):
-                                ex["metadata"]["category"] = category
-                            examples.append(ex)
-                        except json.JSONDecodeError as e:
-                            print(f"Skipping line {i} in {jsonl_file.name}: {e}")
-    else:
-        with open(filepath, "r", encoding="utf-8") as f:
-            for i, line in enumerate(f, 1):
-                if line.strip():
-                    try:
-                        examples.append(json.loads(line))
-                    except json.JSONDecodeError as e:
-                        print(f"Skipping line {i}: {e}")
+    with open(filepath, "r", encoding="utf-8") as f:
+        for i, line in enumerate(f, 1):
+            if line.strip():
+                try:
+                    examples.append(json.loads(line))
+                except json.JSONDecodeError as e:
+                    print(f"Skipping line {i}: {e}")
     return examples
 
 
@@ -162,10 +113,10 @@ def main():
 
         examples = [ex for i, ex in enumerate(examples) if i not in indices_to_remove]
 
-        new_path = filepath.parent / f"{filepath.stem}_deduped{filepath.suffix}"
-        save_jsonl(examples, new_path)
+        # Save in place (overwrite original)
+        save_jsonl(examples, filepath)
         print(f"\nRemoved {len(indices_to_remove)} duplicates")
-        print(f"Saved deduplicated file: {new_path}")
+        print(f"Saved deduplicated file: {filepath}")
 
     if not remove:
         print("\nRun with --remove to deduplicate the file")
