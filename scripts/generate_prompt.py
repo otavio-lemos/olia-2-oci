@@ -1,15 +1,22 @@
 #!/usr/bin/env python3
 """
-Generate a ready-to-use prompt for LLM data generation.
+Generate ready-to-use prompts for LLM data generation.
 
 Usage:
+    # Generate ALL prompts (all 43 categories)
+    python scripts/generate_prompt.py --all
+
+    # Generate prompt for a specific category
     python scripts/generate_prompt.py oci-core/compute
-    python scripts/generate_prompt.py oci-security/iam
-    python scripts/generate_prompt.py oci-migration/aws-to-oci
+
+    # List available categories
+    python scripts/generate_prompt.py --list
+
+    # Show this help
+    python scripts/generate_prompt.py --help
 """
 
 import sys
-import shutil
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).parent.parent
@@ -24,6 +31,21 @@ QUALITY_RULES_PATH = PROJECT_ROOT / "docs/quality-rules.md"
 PROMPTS_DIR = PROJECT_ROOT / ".agents/skills/generate-oci-dataset/prompts"
 
 
+def get_categories_from_taxonomy(taxonomy_path: Path) -> list:
+    """Extract all categories from taxonomy."""
+    content = taxonomy_path.read_text()
+
+    categories = []
+    lines = content.split("\n")
+
+    for line in lines:
+        if line.startswith("#### oci-"):
+            category = line.replace("#### ", "").split(" ")[0]
+            categories.append(category)
+
+    return categories
+
+
 def get_category_from_taxonomy(taxonomy_path: Path, category: str) -> str:
     """Extract category section from taxonomy."""
     content = taxonomy_path.read_text()
@@ -31,7 +53,6 @@ def get_category_from_taxonomy(taxonomy_path: Path, category: str) -> str:
     lines = content.split("\n")
     in_category = False
     category_lines = []
-    category_prefix = f"#### {category}"
 
     for line in lines:
         if line.startswith("#### "):
@@ -53,10 +74,6 @@ def get_category_prompt(prompts_dir: Path, category: str) -> str:
     category_file = prompts_dir / f"{category}.md"
 
     if not category_file.exists():
-        print(f"Warning: Category prompt not found: {category_file}")
-        print(f"Available categories in {prompts_dir}:")
-        for f in sorted(prompts_dir.rglob("*.md")):
-            print(f"  - {f.relative_to(prompts_dir)}")
         return ""
 
     return category_file.read_text()
@@ -106,28 +123,68 @@ Use the category topics and example questions as guidance.
     return prompt
 
 
-def main():
-    if len(sys.argv) != 2:
-        print(__doc__)
-        sys.exit(1)
+def list_categories():
+    """List all available categories."""
+    categories = get_categories_from_taxonomy(TAXONOMY_PATH)
+    print(f"\nAvailable categories ({len(categories)} total):\n")
 
-    category = sys.argv[1]
+    for cat in categories:
+        print(f"  - {cat}")
 
-    print(f"Generating prompt for category: {category}")
+    print(f"\nUsage:")
+    print(f"  python scripts/generate_prompt.py oci-core/compute")
+    print(f"  python scripts/generate_prompt.py --all")
 
-    prompt = generate_prompt(category)
 
-    output_file = TMP_DIR / f"prompt_{category.replace('/', '-')}.md"
-    output_file.write_text(prompt)
+def generate_all_prompts():
+    """Generate prompts for all categories."""
+    categories = get_categories_from_taxonomy(TAXONOMY_PATH)
 
-    print(f"\nPrompt saved to: {output_file}")
+    print(f"\nGenerating prompts for {len(categories)} categories...\n")
+
+    for i, category in enumerate(categories, 1):
+        print(f"[{i}/{len(categories)}] {category}...", end=" ")
+
+        prompt = generate_prompt(category)
+        output_file = TMP_DIR / f"prompt_{category.replace('/', '-')}.md"
+        output_file.write_text(prompt)
+
+        print(f"✓ saved to {output_file.name}")
+
+    print(f"\n✅ All prompts generated in: {TMP_DIR}/")
     print(f"\nTo use:")
-    print(f"1. Copy the content above")
+    print(f"1. Copy content from tmp/prompt_*.md")
     print(f"2. Send to Gemini/GPT-4/Claude")
-    print(f"3. Save results to: data/curated/{category}-001.jsonl")
-    print(f"\n{'=' * 50}")
-    print(f"\nPROMPT CONTENT:\n")
-    print(prompt)
+    print(f"3. Save results to: data/curated/[category]-001.jsonl")
+
+
+def main():
+    if len(sys.argv) == 1 or sys.argv[1] == "--all":
+        generate_all_prompts()
+    elif sys.argv[1] == "--list":
+        list_categories()
+    elif sys.argv[1] == "--help":
+        print(__doc__)
+    elif len(sys.argv) == 2:
+        category = sys.argv[1]
+
+        print(f"Generating prompt for category: {category}\n")
+
+        prompt = generate_prompt(category)
+
+        output_file = TMP_DIR / f"prompt_{category.replace('/', '-')}.md"
+        output_file.write_text(prompt)
+
+        print(f"Prompt saved to: {output_file}")
+        print(f"\nTo use:")
+        print(f"1. Copy the content below")
+        print(f"2. Send to Gemini/GPT-4/Claude")
+        print(f"3. Save results to: data/curated/{category}-001.jsonl")
+        print(f"\n{'=' * 60}")
+        print(f"\nPROMPT CONTENT:\n")
+        print(prompt)
+    else:
+        print(__doc__)
 
 
 if __name__ == "__main__":
