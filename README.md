@@ -15,6 +15,8 @@ Fine-tuning pipeline for an OCI specialist LLM using Apple Silicon, MLX, and LoR
 
 This project builds a fine-tuned LLM specialized in Oracle Cloud Infrastructure (OCI). The pipeline prioritizes dataset quality, low cost, rigorous validation, and follows strict quality rules to ensure accurate and helpful responses.
 
+> **Note**: This is a reference implementation for building an OCI specialist model. The current dataset is small (~500 examples) to keep training fast and cheap on Apple Silicon. For production use, you should scale the dataset to 10,000+ examples following the same quality rules and taxonomy structure.
+
 The model is designed to assist with:
 - Explaining OCI services, architecture, and best practices
 - Troubleshooting OCI workloads
