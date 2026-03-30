@@ -89,10 +89,12 @@ def validate_file(filepath: Path) -> Dict[str, Any]:
 
 def main():
     if len(sys.argv) < 2:
-        print("Usage: python validate_jsonl.py <file.jsonl>")
+        print("Usage: python validate_jsonl.py <file.jsonl> [--filter]")
         sys.exit(1)
 
     filepath = Path(sys.argv[1])
+    filter_mode = "--filter" in sys.argv
+
     if not filepath.exists():
         print(f"Error: File not found: {filepath}")
         sys.exit(1)
@@ -104,6 +106,27 @@ def main():
     print(f"Total examples: {results['total']}")
     print(f"Valid: {results['valid']}")
     print(f"Errors: {len(results['errors'])}")
+
+    if filter_mode and results["errors"]:
+        valid_examples = []
+        error_lines = set()
+        for err in results["errors"]:
+            if "Line " in err:
+                line_num = int(err.split("Line ")[1].split(":")[0])
+                error_lines.add(line_num)
+
+        with open(filepath, "r", encoding="utf-8") as f:
+            for line_num, line in enumerate(f, 1):
+                if line_num not in error_lines:
+                    valid_examples.append(line)
+
+        clean_path = filepath.parent / f"{filepath.stem}_valid{filepath.suffix}"
+        with open(clean_path, "w", encoding="utf-8") as f:
+            f.writelines(valid_examples)
+
+        print(f"\n✓ Created filtered file: {clean_path}")
+        print(f"  Removed {len(error_lines)} invalid examples")
+        sys.exit(0)
 
     if results["errors"]:
         print("\nErrors:")
