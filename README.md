@@ -12,7 +12,7 @@ Fine-tuning pipeline para um LLM especialista em OCI usando Apple Silicon, MLX e
 
 </div>
 
-> **Idioma**: [PT-BR](#visao-geral) | [EN-US](#overview) (padrão: PT-BR)
+> **Idioma**: [PT-BR](#visao-geral)
 
 ---
 
@@ -20,7 +20,7 @@ Fine-tuning pipeline para um LLM especialista em OCI usando Apple Silicon, MLX e
 
 Este projeto constrói um LLM especializado em Oracle Cloud Infrastructure (OCI). O pipeline prioriza qualidade do dataset, baixo custo, validação rigorosa e segue regras de qualidade rigorosas para garantir respostas precisas e úteis.
 
-O modelo foi diseñado para ajudar com:
+O modelo foi projetado para ajudar com:
 - Explicar serviços OCI, arquitetura e melhores práticas
 - Solucionar problemas de cargas de trabalho OCI
 - Guiar migração de AWS, Azure, GCP e on-premises para OCI
