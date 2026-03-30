@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-BASE_MODEL=${BASE_MODEL:-"mlx-community/Llama-3.2-3B-Instruct-4bit"}
+BASE_MODEL=${BASE_MODEL:-$MODEL}
 ADAPTER_DIR=${ADAPTER_DIR:-"outputs/adapters"}
 MAX_TOKENS=${MAX_TOKENS:-512}
 TEMPERATURE=${TEMPERATURE:-0.7}

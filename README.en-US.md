@@ -139,8 +139,9 @@ python3 scripts/build_dataset_fixed.py -i data/all_curated.jsonl -o data/
 
 # ========== 2. TRAINING ==========
 
-# 2.1 Select base model (default: mlx-community/Llama-3.2-3B-Instruct-4bit)
-export MODEL="mlx-community/Llama-3.2-3B-Instruct-4bit"
+# ⚠️ NOTE: Validate variables in config/cycle-1.env before running
+# 2.1 Load cycle configuration
+source config/cycle-1.env
 
 # 2.2 Fine-Tune LoRA
 bash training/train_mlx.sh
@@ -157,10 +158,30 @@ bash training/run_inference.sh
 python scripts/evaluate_model.py outputs/adapters data/eval.jsonl outputs/benchmarks
 ```
 
+### Cycle Configuration (`config/cycle-1.env`)
+
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `MODEL` | MLX base model (HuggingFace) | `mlx-community/Llama-3.2-3B-Instruct-4bit` |
+| `TRAIN_DATA | Training data file | `data/train.jsonl` |
+| `VALID_DATA` | Validation data file | `data/valid.jsonl` |
+| `OUTPUT_DIR` | Folder to save LoRA adapters | `outputs/cycle-1` |
+| `EPOCHS` | Number of training epochs | `2` |
+| `BATCH_SIZE` | Batch size | `4` |
+| `LEARNING_RATE` | Learning rate | `5e-5` |
+| `LORA_RANK` | LoRA matrix rank (higher = more parameters) | `16` |
+| `LORA_ALPHA` | LoRA scale (usually 2x rank) | `32` |
+| `LORA_DROPOUT` | Dropout rate for regularization | `0.05` |
+| `GRADIENT_ACCUMULATION` | Gradient steps before update | `2` |
+
+> 💡 **Tip**: To create a new training cycle, copy `config/cycle-1.env` to `config/cycle-2.env` and adjust values.
+
+> ⚠️ **Note**: This is a **local** training pipeline (LoRA with small dataset ~710 examples). For **production**, just increase the dataset to ~10k+ examples and follow the same steps - the rest of the pipeline remains identical.
+
 ### Pipeline Flow
 
 ```mermaid
-flowchart TB
+flowchart LR
     subgraph DataPrep["1. Data Preparation"]
         DP1[Generate Prompts] --> DP2{Send to LLM}
         DP2 -->|Manual| DP3[Gemini/Claude/GPT]
@@ -168,23 +189,22 @@ flowchart TB
         DP4 --> DP5[Validate]
         DP5 --> DP6[Deduplicate]
         DP6 --> DP7[Create Splits]
+        DP7 --> Train[train.jsonl]
+        DP7 --> Valid[valid.jsonl]
+        DP7 --> Eval[eval.jsonl]
     end
     
     subgraph Training["2. Training"]
-        DP7 --> T1[Select Base Model]
-        T1 --> T2[Configure Hyperparameters]
-        T2 --> T3[Fine-Tune LoRA]
+        Train --> T1[Select Base Model]
+        Valid --> T1
+        T1 --> T2[Fine-Tune LoRA]
     end
     
     subgraph PostProcess["3. Post-Training"]
-        T3 --> P1[Export/Merge Adapter]
+        T2 --> P1[Export/Merge Adapter]
         P1 --> P2[Test Inference]
-        P2 --> P3[Evaluate]
+        P2 --> P3[Evaluate with eval.jsonl]
     end
-    
-    DP7 -.->|75%| Train[train.jsonl]
-    DP7 -.->|15%| Valid[valid.jsonl]
-    DP7 -.->|10%| Eval[eval.jsonl]
     
     P1 --> outputs/adapters
     P3 --> outputs/benchmarks
@@ -192,16 +212,12 @@ flowchart TB
     style DP2 fill:#e1f5fe,stroke:#01579b
     style DP3 fill:#fff3e0,stroke:#e65100
     style DP4 fill:#fff3e0,stroke:#e65100
+    style Train fill:#e8f5e9,stroke:#2e7d32
+    style Valid fill:#e8f5e9,stroke:#2e7d32
+    style Eval fill:#e8f5e9,stroke:#2e7d32
 ```
-    B --> C{Send to LLM}
-    C -->|Manual| D[Gemini/Claude/GPT]
-    D --> E[Save JSONL]
-    E --> F[Concatenate]
-    F --> G[Validate]
-    G --> H[Deduplicate]
-    H --> I[Create Splits]
-    I --> J[Train]
-    J --> K[Evaluate]
+
+---
     
     I -.->|75%| L[train]
     I -.->|15%| M[valid]

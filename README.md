@@ -139,8 +139,9 @@ python3 scripts/build_dataset_fixed.py -i data/all_curated.jsonl -o data/
 
 # ========== 2. TREINAMENTO ==========
 
-# 2.1 Selecionar base model (padrão: mlx-community/Llama-3.2-3B-Instruct-4bit)
-export MODEL="mlx-community/Llama-3.2-3B-Instruct-4bit"
+# ⚠️ ATENÇÃO: Valide as variáveis em config/cycle-1.env antes de executar
+# 2.1 Carregar configuração do ciclo
+source config/cycle-1.env
 
 # 2.2 Fine-Tune LoRA
 bash training/train_mlx.sh
@@ -157,10 +158,32 @@ bash training/run_inference.sh
 python scripts/evaluate_model.py outputs/adapters data/eval.jsonl outputs/benchmarks
 ```
 
+### Configuração do Ciclo (`config/cycle-1.env`)
+
+| Variável | Descrição | Padrão |
+|----------|-----------|--------|
+| `MODEL` | Modelo base do MLX (HuggingFace) | `mlx-community/Llama-3.2-3B-Instruct-4bit` |
+| `TRAIN_DATA` | Arquivo de dados para treinamento | `data/train.jsonl` |
+| `VALID_DATA` | Arquivo de dados para validação | `data/valid.jsonl` |
+| `OUTPUT_DIR` | Pasta para salvar os adapters LoRA | `outputs/cycle-1` |
+| `EPOCHS` | Número de épocas de treinamento | `2` |
+| `BATCH_SIZE` | Tamanho do batch | `4` |
+| `LEARNING_RATE` | Taxa de aprendizado | `5e-5` |
+| `LORA_RANK` | Rank da matriz LoRA (maior = mais parâmetros) | `16` |
+| `LORA_ALPHA` | Escala do LoRA (geralmente 2x o rank) | `32` |
+| `LORA_DROPOUT` | Taxa de dropout para regularização | `0.05` |
+| `GRADIENT_ACCUMULATION` | Passos de gradiente antes do update | `2` |
+
+> ⚠️ **Nota**: Este pipeline usa LoRA (fine-tuning). Para produção com modelo full-weight (base model + adapters fundidos), basta aumentar o dataset seguindo os mesmos passos.
+
+> 💡 **Dica**: Para criar um novo ciclo de treinamento, copie `config/cycle-1.env` para `config/cycle-2.env` e ajuste os valores.
+
+> ⚠️ **Nota**: Este é um pipeline para treinamento **local** (LoRA com dataset pequeno ~710 exemplos). Para **produção**, basta aumentar o dataset para ~10k+ exemplos e seguir os mesmos passos - o restante do pipeline permanece idêntico.
+
 ### Fluxo do Pipeline
 
 ```mermaid
-flowchart TB
+flowchart LR
     subgraph DataPrep["1. Preparação de Dados"]
         DP1[Gerar Prompts] --> DP2{Enviar p/ LLM}
         DP2 -->|Manual| DP3[Gemini/Claude/GPT]
@@ -168,23 +191,22 @@ flowchart TB
         DP4 --> DP5[Validar]
         DP5 --> DP6[Deduplicar]
         DP6 --> DP7[Criar Splits]
+        DP7 --> Train[train.jsonl]
+        DP7 --> Valid[valid.jsonl]
+        DP7 --> Eval[eval.jsonl]
     end
     
     subgraph Training["2. Treinamento"]
-        DP7 --> T1[Selecionar Base Model]
-        T1 --> T2[Configurar Hyperparameters]
-        T2 --> T3[Fine-Tune LoRA]
+        Train --> T1[Selecionar Base Model]
+        Valid --> T1
+        T1 --> T2[Fine-Tune LoRA]
     end
     
     subgraph PostProcess["3. Pós-Treinamento"]
-        T3 --> P1[Export/Merge Adapter]
+        T2 --> P1[Export/Merge Adapter]
         P1 --> P2[Testar Inference]
-        P2 --> P3[Avaliar]
+        P2 --> P3[Avaliar com eval.jsonl]
     end
-    
-    DP7 -.->|75%| Train[train.jsonl]
-    DP7 -.->|15%| Valid[valid.jsonl]
-    DP7 -.->|10%| Eval[eval.jsonl]
     
     P1 --> outputs/adapters
     P3 --> outputs/benchmarks
@@ -192,7 +214,12 @@ flowchart TB
     style DP2 fill:#e1f5fe,stroke:#01579b
     style DP3 fill:#fff3e0,stroke:#e65100
     style DP4 fill:#fff3e0,stroke:#e65100
+    style Train fill:#e8f5e9,stroke:#2e7d32
+    style Valid fill:#e8f5e9,stroke:#2e7d32
+    style Eval fill:#e8f5e9,stroke:#2e7d32
 ```
+
+---
 
 ---
 
