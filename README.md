@@ -3,7 +3,7 @@
 
 # OCI Specialist LLM
 
-Fine-tuning pipeline for an OCI specialist LLM using Apple Silicon, MLX, and LoRA.
+Pipeline de fine-tuning para um LLM especialista em OCI usando Apple Silicon, MLX e LoRA.
 
 [![License](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.12-blue?style=flat-square&logo=python&logoColor=white)](https://www.python.org)
@@ -11,45 +11,49 @@ Fine-tuning pipeline for an OCI specialist LLM using Apple Silicon, MLX, and LoR
 
 </div>
 
-## Overview
+> **Idioma / Language**: PT-BR | EN-US (padrão: PT-BR)
 
-This project builds a fine-tuned LLM specialized in Oracle Cloud Infrastructure (OCI). The pipeline prioritizes dataset quality, low cost, rigorous validation, and follows strict quality rules to ensure accurate and helpful responses.
+---
 
-> **Note**: This is a reference implementation for building an OCI specialist model. The current dataset is small (~500 examples) to keep training fast and cheap on Apple Silicon. For production use, you should scale the dataset to 10,000+ examples following the same quality rules and taxonomy structure.
+## Visão Geral
 
-The model is designed to assist with:
-- Explaining OCI services, architecture, and best practices
-- Troubleshooting OCI workloads
-- Guiding migration from AWS, Azure, GCP, and on-premises to OCI
-- Writing OCI Terraform configurations
-- Providing security and IAM guidance
+Este projeto constrói um LLM especializado em Oracle Cloud Infrastructure (OCI). O pipeline prioriza qualidade do dataset, baixo custo, validação rigorosa e segue regras de qualidade rigorosas para garantir respostas precisas e úteis.
 
-## Architecture
+> **Nota**: Esta é uma implementação de referência para construir um modelo especialista em OCI. O dataset atual é pequeno (~500 exemplos) para manter o treinamento rápido e barato no Apple Silicon. Para uso em produção, você deve escalar o dataset para 10.000+ exemplos seguindo as mesmas regras de qualidade e estrutura de taxonomia.
+
+O modelo foi diseñado para ajudar com:
+- Explicar serviços OCI, arquitetura e melhores práticas
+- Solucionar problemas de cargas de trabalho OCI
+- Guiar migração de AWS, Azure, GCP e on-premises para OCI
+- Escrever configurações OCI Terraform
+- Fornecer orientação de segurança e IAM
+
+## Arquitetura
 
 ```
-data/curated/      → human-reviewed examples (generated via MASTER_PROMPT)
-data/TEMPLATE.jsonl → correct format example
+data/curated/      → exemplos revisados (gerados via MASTER_PROMPT)
+data/TEMPLATE.jsonl → exemplo do formato correto
 ```
 
 ## Dataset
 
-Dataset contains examples generated via MASTER_PROMPT. See `docs/taxonomy.md` for all categories (43 categories available).
+O dataset contém exemplos gerados via MASTER_PROMPT. Veja `docs/taxonomy.md` para todos os topics (71 topics disponíveis).
 
-| Category | Examples Suggested |
-|-----------|-------------------|
-| oci-core/compute | 30 |
-| oci-core/storage | 25 |
-| oci-core/networking | 25 |
-| oci-security/iam | 30 |
-| oci-migration/* | ~160 |
-| oci-terraform/* | ~70 |
-| oci-troubleshooting/* | ~135 |
+| Categoria | Exemplos |
+|-----------|----------|
+| OCI Core (compute, storage, networking, lb, database, container, serverless) | 20 topics |
+| Security (iam-basics, policies, dynamic-groups, federation, vault, encryption, cloud-guard, waf) | 9 topics |
+| Migration (AWS/Azure/GCP/On-prem → OCI) | 14 topics |
+| Terraform (provider, compute, storage, networking, lb, database, container, serverless, security, observability, devops, state) | 12 topics |
+| Observability (logging, monitoring, stack-monitoring, apm) | 4 topics |
+| Troubleshooting (connectivity, performance, authentication, database, compute, storage, oke, functions) | 8 topics |
+| DevOps (ci-cd, resource-manager, artifacts, secrets) | 4 topics |
 
-**Total recommended: 660-710 examples**
+**Total: 71 topics × 10 exemplos = 710 exemplos**
 
-### Data Format
+### Formato dos Dados
 
-Each example follows the OpenAI chat format:
+Cada exemplo segue o formato OpenAI chat:
 
 ```json
 {
@@ -59,254 +63,218 @@ Each example follows the OpenAI chat format:
     {"role": "assistant", "content": "## Solution\n\n### Steps..."}
   ],
   "metadata": {
-    "category": "oci-core/networking/vcn",
+    "category": "compute/instances",
     "difficulty": "intermediate",
-    "source": "curated"
+    "source": "generated"
   }
 }
 ```
 
-## Quality Rules
+## Regras de Qualidade
 
-We enforce strict quality rules to ensure dataset accuracy:
+Aplicamos regras de qualidade rigorosas para garantir precisão do dataset:
 
-- **NEVER** copy OCI documentation verbatim
-- **NEVER** invent non-existent Oracle services
-- **NEVER** use prices or limits without marking as mutable
-- **NEVER** create vague examples like "use best practices"
-- **NEVER** generate architectural responses without steps, risks, or justifications
+- **NUNCA** copiar documentação OCI verbatim
+- **NUNCA** inventar serviços Oracle inexistentes
+- **NUNCA** usar preços ou limites sem marcar como mutável
+- **NUNCA** criar exemplos vagos como "usar melhores práticas"
+- **NUNCA** gerar respostas arquiteturais sem passos, riscos ou justificativas
 
-## Prerequisites
+## Pré-requisitos
 
-- **Apple Silicon Mac** (M1/M2/M3/M4) for MLX training
-- **Python 3.12** (recommended via venv)
+- **Apple Silicon Mac** (M1/M2/M3/M4) para treinamento MLX
+- **Python 3.12** (recomendado via venv)
 
-### Setup Virtual Environment
+### Configurar Ambiente Virtual
 
 ```bash
-# Create venv with Python 3.12
+# Criar venv com Python 3.12
 python3.12 -m venv venv
 
-# Activate
+# Ativar
 source venv/bin/activate
 
-# Install dependencies
+# Instalar dependências
 pip install -r requirements.txt
 ```
 
-## Quick Start
+## Início Rápido
 
-### 0. Generate Curated Data
+### 0. Gerar Dados Curados
 
-Use the **MASTER_PROMPT** with any external LLM (Gemini, GPT-4, Claude, Perplexity):
+Use o **MASTER_PROMPT** com qualquer LLM externo (Gemini, GPT-4, Claude, Perplexity):
 
 ```
-.agents/skills/generate-oci-dataset/MASTER_PROMPT.md
-├── @docs/taxonomy.md                          ← choose category
-├── @docs/quality-rules.md                     ← quality rules
+.agents/skills/generate-oci-dataset/MASTER_FORMAT.md
+├── docs/taxonomy.md              ← escolher topic
+├── docs/quality-rules.md         ← regras de qualidade
 └── .agents/skills/generate-oci-dataset/prompts/
-    └── [category].md                         ← category-specific topics
+    └── [topic].md                ← topic específico
 ```
 
-> **Note**: The `@` references above are for you (the human) to know which files to include.
-> When sending to the LLM, you must manually combine:
-> - `.agents/skills/generate-oci-dataset/MASTER_PROMPT.md` (format instructions)
-> - Relevant sections from `docs/taxonomy.md` (category and topics)
-> - `docs/quality-rules.md` (quality rules)
-> - The specific category prompt from `.agents/skills/generate-oci-dataset/prompts/[category].md`
->
-> **Tip**: Generate one category at a time to stay within token limits.
+#### Passo a Passo
 
-#### Step by Step
+1. **Escolha um topic** - veja `docs/taxonomy.md`
 
-1. **Choose a category** - see `docs/taxonomy.md`
-
-2. **Read the category prompt**:
+2. **Liste os topics disponíveis**:
    ```bash
-   cat .agents/skills/generate-oci-dataset/prompts/oci-core/compute.md
+   python scripts/generate_prompt.py --list
    ```
 
-3. **Combine the prompt**:
-   - `.agents/skills/generate-oci-dataset/MASTER_PROMPT.md` (format instructions)
-   - Category from `docs/taxonomy.md`
-   - Topics from category prompt
-   - Rules from `docs/quality-rules.md`
+3. **Gere o prompt para um topic**:
+   ```bash
+   python scripts/generate_prompt.py compute/instances
+   ```
 
-4. **Send to an LLM** (Gemini, GPT-4, Claude)
+4. **Envie para um LLM** (Gemini, GPT-4, Claude)
 
-5. **Save result** to `data/curated/[category]-[nnn].jsonl`
+5. **Salve o resultado** em `data/curated/[topic]-001.jsonl`
 
-#### Usage Example
-
-```bash
-# 1. List available categories
-cat docs/taxonomy.md | grep "^#### "
-
-# 2. Read category prompt
-cat .agents/skills/generate-oci-dataset/prompts/oci-core/compute.md
-
-# 3. Read MASTER_PROMPT
-cat .agents/skills/generate-oci-dataset/MASTER_PROMPT.md
-```
-
-4. Combine: MASTER_PROMPT + category + category prompt
-5. Send to Gemini/GPT-4
-6. Save to: `data/curated/oci-core/compute-001.jsonl`
-
-#### File Structure
+#### Estrutura de Arquivos
 
 ```
 data/
-├── curated/                    # Generated examples (one file = one example)
-│   └── oci-core/compute-001.jsonl
-└── TEMPLATE.jsonl             # Correct format example
+├── curated/                      # Exemplos gerados
+│   └── compute/instances-001.jsonl
+└── TEMPLATE.jsonl               # Exemplo do formato correto
 ```
 
-#### Template (expected format)
+#### Template (formato esperado)
 
 ```json
-{"messages": [{"role": "system", "content": "You are an OCI specialist..."}, {"role": "user", "content": "Your question here"}, {"role": "assistant", "content": "Answer with steps, risks, alternatives, [MUTABLE] for prices, [CHECK DOCS] for limits"}], "metadata": {"category": "oci-core/compute", "difficulty": "beginner|intermediate|advanced", "source": "generated"}}
+{"messages": [{"role": "system", "content": "You are an OCI specialist..."}, {"role": "user", "content": "Your question here"}, {"role": "assistant", "content": "Answer with steps, risks, alternatives, [MUTABLE] for prices, [CHECK DOCS] for limits"}], "metadata": {"category": "compute/instances", "difficulty": "beginner|intermediate|advanced", "source": "generated"}}
 ```
-
-#### Available Categories (43 categories)
-
-- **oci-core/** (8): compute, storage, networking, load-balancing, database, container, serverless, ai-ml
-- **oci-security/** (5): iam, vault, encryption, cloud-guard, waf
-- **oci-migration/** (9): aws-to-oci, azure-to-oci, gcp-to-oci, onprem-to-oci, database-migration, data-migration, storage-migration, oracle-to-oci, applications
-- **oci-terraform/** (5): provider, resources, modules, best-practices, oke
-- **oci-observability/** (4): logging, monitoring, stack-monitoring, apm
-- **oci-troubleshooting/** (8): connectivity, performance, authentication, database, compute, storage, oke, functions-api-gateway
-- **oci-devops/** (4): ci-cd, resource-manager, artifacts-registry, secrets
 
 ---
 
-### 1. Activate Virtual Environment
+### 1. Ativar Ambiente Virtual
 
 ```bash
 source venv/bin/activate
 ```
 
-### 2. Concatenate all curated files
+### 2. Concatenar todos os arquivos curados
 
 ```bash
-# Creates a single file with all examples from curated/
+# Cria um arquivo único com todos os exemplos de curated/
 cat data/curated/*.jsonl > data/all_curated.jsonl
 ```
 
-### 3. Validate Dataset
+### 3. Validar Dataset
 
 ```bash
 python3 scripts/validate_jsonl.py data/all_curated.jsonl --filter
 mv data/all_curated_valid.jsonl data/all_curated.jsonl
 ```
 
-### 4. Deduplicate
+### 4. Deduplicar
 
 ```bash
-python3 scripts/dedupe_dataset.py data/curated/ --remove
-mv data/curated_deduped data/all_curated_clean.jsonl
+python3 scripts/dedupe_dataset.py data/all_curated.jsonl --remove
 ```
 
-### 5. Build Dataset Splits
+### 5. Criar Divisões do Dataset
 
-The script reads `data/all_curated_clean.jsonl` and generates:
+O script lê `data/all_curated.jsonl` e gera:
 
 - `data/train.jsonl` (~75%)
 - `data/valid.jsonl` (~15%)
 - `data/eval.jsonl` (~10%)
 
 ```bash
-python3 scripts/build_dataset_fixed.py -i data/all_curated_clean.jsonl -o data/
+python3 scripts/build_dataset_fixed.py -i data/all_curated.jsonl -o data/
 ```
 
-### 6. Train Model
+### 6. Treinar Modelo
 
 ```bash
 source config/cycle-1.env && bash training/train_mlx.sh
 ```
 
-Or with custom parameters:
+Ou com parâmetros personalizados:
 ```bash
 MODEL="mlx-community/Llama-3.2-3B-Instruct-4bit" EPOCHS=2 bash training/train_mlx.sh
 ```
 
-> **Note:** The training script sets `KMP_DUPLICATE_LIB_OK=TRUE` to handle OpenMP conflicts on macOS.
+> **Nota:** O script de treinamento define `KMP_DUPLICATE_LIB_OK=TRUE` para lidar com conflitos de OpenMP no macOS.
 
-### 7. Run Inference
+### 7. Executar Inferência
 
 ```bash
 bash training/run_inference.sh
 ```
 
-### 8. Evaluate
+### 8. Avaliar
 
 ```bash
 python scripts/evaluate_model.py outputs/adapters data/eval.jsonl outputs/benchmarks
 ```
 
-## Evaluation Rubric
+## Rubrica de Avaliação
 
-The benchmark evaluates responses on:
+A avaliação verifica respostas em:
 
-| Criterion | Weight |
-|-----------|--------|
-| Technical Correctness | 1-5 |
-| Depth of Knowledge | 1-5 |
-| Structural Clarity | 1-5 |
-| Hallucination | 1-5 |
-| Clarity | 1-5 |
-| Multi-Cloud Comparison | 1-5 |
+| Critério | Peso |
+|----------|------|
+| Correção Técnica | 1-5 |
+| Profundidade do Conhecimento | 1-5 |
+| Clareza Estrutural | 1-5 |
+| Alucinação | 1-5 |
+| Clareza | 1-5 |
+| Comparação Multi-Cloud | 1-5 |
 
-**Minimum passing**: 3.5 overall average.
+**Mínimo para passar**: 3.5 média geral.
 
-## Project Structure
+## Estrutura do Projeto
 
 ```
 olia-2-oci/
-├── AGENTS.md                    # Agent guidelines
-├── README.md                    # This file
-├── requirements.txt             # Python dependencies
+├── AGENTS.md                    # Diretrizes do agente
+├── README.md                    # Este arquivo
+├── CONTRIBUTING.md              # Guia de contribuição
+├── requirements.txt             # Dependências Python
 ├── docs/
-│   ├── scope.md                # Model scope definition
-│   ├── taxonomy.md             # Knowledge categories
-│   ├── quality-rules.md        # Dataset quality rules
-│   └── eval-rubric.md          # Evaluation criteria
+│   ├── scope.md                # Definição de escopo do modelo
+│   ├── taxonomy.md             # Categorias de conhecimento
+│   ├── quality-rules.md        # Regras de qualidade do dataset
+│   └── eval-rubric.md          # Critérios de avaliação
 ├── data/
-│   ├── curated/                # Human-reviewed examples (generated via MASTER_PROMPT)
-│   └── TEMPLATE.jsonl          # Correct format example
+│   ├── curated/                # Exemplos revisados (gerados via MASTER_PROMPT)
+│   └── TEMPLATE.jsonl          # Exemplo do formato correto
 ├── scripts/
-│   ├── validate_jsonl.py       # Validate JSONL format
-│   ├── dedupe_dataset.py       # Remove duplicates
-│   ├── build_dataset.py        # Build train/valid/eval splits
-│   ├── split_dataset.py        # Split by category
-│   └── evaluate_model.py        # Run benchmarks
+│   ├── generate_prompt.py      # Gerar prompts para LLM
+│   ├── validate_jsonl.py       # Validar formato JSONL
+│   ├── dedupe_dataset.py       # Remover duplicatas
+│   ├── build_dataset_fixed.py  # Criar splits train/valid/eval
+│   └── evaluate_model.py        # Executar benchmarks
 ├── .agents/skills/
-│   └── generate-oci-dataset/   # Generation prompts
-│       ├── MASTER_PROMPT.md
-│       └── prompts/            # Prompts por categoria
+│   └── generate-oci-dataset/   # Prompts de geração
+│       ├── MASTER_FORMAT.md
+│       ├── SKILL.md
+│       └── prompts/            # Prompts por topic
 └── training/
-    ├── train_mlx.sh            # MLX LoRA training
-    ├── export_adapter.sh       # Export merged model
-    └── run_inference.sh        # Test inference
+    ├── train_mlx.sh            # Treinamento MLX LoRA
+    ├── export_adapter.sh       # Exportar modelo mesclado
+    └── run_inference.sh        # Testar inferência
 ```
 
-## Output Artifacts
+## Artefatos de Saída
 
-After training, the following artifacts are generated:
+Após o treinamento, os seguintes artefatos são gerados:
 
-- `outputs/adapters/` - Trained LoRA adapters
-- `outputs/benchmarks/` - Evaluation reports
-- `outputs/logs/` - Training logs
+- `outputs/adapters/` - Adaptadores LoRA treinados
+- `outputs/benchmarks/` - Relatórios de avaliação
+- `outputs/logs/` - Logs de treinamento
 
-## Pipeline Stages
+## Pipeline
 
-1. **Documentation** → Scope, taxonomy, quality rules, eval rubric
-2. **Data Generation** → Use MASTER_PROMPT com LLM externo → curated/[categoria].jsonl
-3. **Validation** → JSONL validator, deduplication
-4. **Dataset Building** → Build train/valid/eval splits
-5. **Training** → MLX LoRA fine-tuning
-6. **Evaluation** → Benchmark base vs fine-tuned
+1. **Documentação** → Escopo, taxonomia, regras de qualidade, rubrica de avaliação
+2. **Geração de Dados** → Use MASTER_PROMPT com LLM externo → curated/[topic].jsonl
+3. **Validação** → Validador JSONL, deduplicação
+4. **Construção do Dataset** → Criar splits train/valid/eval
+5. **Treinamento** → Fine-tuning MLX LoRA
+6. **Avaliação** → Comparar base vs fine-tuned
 
-## License
+## Licença
 
-This project is for educational and research purposes.
+Este projeto é para fins educacionais e de pesquisa.
