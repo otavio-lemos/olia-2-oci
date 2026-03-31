@@ -1,5 +1,1 @@
 venv/
-tmp/
-data/curated/
-data/*.jsonl
-!data/TEMPLATE.jsonl
