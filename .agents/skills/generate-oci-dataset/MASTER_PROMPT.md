@@ -1,14 +1,14 @@
 # Master Prompt para Geração de Dataset OCI
 
-Use este master prompt com qualquer LLM online (Gemini, GPT-4, Claude, Perplexity).
+Use este master prompt para gerar dados de treinamento.
 
 ## Como Usar
 
 1. Escolha uma categoria do @docs/taxonomy.md
 2. Leia o prompt da categoria em `.agents/skills/generate-oci-dataset/prompts/[categoria].md`
 3. Monte o prompt final com as referências abaixo
-4. Envie para o LLM
-5. Salve em `data/curated/[categoria]-[nnn].jsonl`
+4. Execute o prompt
+5. Salve em `data/curated/[categoria].jsonl`
 
 ---
 
@@ -54,6 +54,6 @@ Exemplo: .agents/skills/generate-oci-dataset/prompts/oci-core/compute.md
 1. **Escolha categoria** → @docs/taxonomy.md
 2. **Leia prompt específico** → .agents/skills/generate-oci-dataset/prompts/[categoria].md
 3. **Monte prompt** → MASTER_PROMPT + categoria + prompt específico
-4. **Envie para LLM**
-5. **Salve resultado** → data/curated/[categoria]-[nnn].jsonl
+4. **Execute o prompt**
+5. **Salve resultado** → data/curated/[categoria].jsonl
 6. **Valide** → validate_jsonl.py --filter

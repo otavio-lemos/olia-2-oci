@@ -14,7 +14,7 @@ This project builds a fine-tuned LLM specialist in Oracle Cloud Infrastructure (
 ## Pipeline Stages
 
 1. **Documentation** → scope, taxonomy, quality rules, eval rubric
-2. **Data Generation** → generate examples using online LLMs
+2. **Data Generation** → generate examples using prompts
 3. **Data Collection** → raw → sanitized → curated
 4. **Validation** → JSONL validator, deduplication
 5. **Dataset Building** → build, split, export
@@ -41,7 +41,7 @@ Execute prompts exactly as requested in each `tmp/prompt_*.md` file:
 ## Data Flow
 
 ```
-data/curated/        → LLM-generated examples (one file per example)
+data/curated/        → Generated examples (one file per example)
                       format: [category]-[nnn].jsonl
 data/all_curated.jsonl → concatenated examples
 data/all_curated_clean.jsonl → validated and deduplicated
@@ -97,7 +97,7 @@ data/eval.jsonl      → evaluation set (~10%)
 ## Provider Strategy
 
 - **OpenCode Zen**: Critical project engineering and review
-- **LLM execution**: Prompts are executed as specified in each tmp/prompt_*.md file
+- **Prompt execution**: Prompts are executed as specified in each tmp/prompt_*.md file
 
 ## Checkpoints
 
