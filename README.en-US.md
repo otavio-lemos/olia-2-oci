@@ -120,10 +120,10 @@ source venv/bin/activate
 python scripts/generate_prompt.py --all
 
 # 1.2 In your LLM of choice, execute the prompt and save to data/curated/
-# For each file in tmp/prompt_*.md:
-#   1. Execute tmp/prompt_*.md
-#   2. Save result to data/curated/[topic]-001.jsonl to [topic]-010.jsonl
-# Format: 10 files per topic (001 to 010), 1 example per file
+ For each file in tmp/prompt_*.md:
+   1. Execute tmp/prompt_*.md
+   2. Save result to data/curated/[topic]-001.jsonl to [topic]-010.jsonl
+ Format: 10 files per topic (001 to 010), 1 example per file
 
 # 1.3 Concatenate all JSONL
 cat data/curated/*.jsonl > data/all_curated.jsonl
