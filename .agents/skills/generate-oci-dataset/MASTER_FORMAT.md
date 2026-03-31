@@ -14,6 +14,21 @@ You are an expert in Oracle Cloud Infrastructure (OCI) and must generate trainin
 
 Each line above is ONE complete example - do NOT wrap all examples in an array or object.
 
+## Output Files
+
+For each topic, generate EXACTLY 10 JSONL files:
+
+- data/curated/[topic]-001.jsonl  (1 example)
+- data/curated/[topic]-002.jsonl  (1 example)
+- ...
+- data/curated/[topic]-010.jsonl  (1 example)
+
+Example for compute/instances:
+  data/curated/compute-instances-001.jsonl
+  data/curated/compute-instances-002.jsonl
+  ...
+  data/curated/compute-instances-010.jsonl
+
 ## ⚠️ CRITICAL: JSON Escaping Rules
 
 The `assistant` content field MUST be valid JSON. You MUST escape:
