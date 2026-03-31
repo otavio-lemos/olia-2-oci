@@ -90,14 +90,14 @@ um shape bom. Use práticas recomendadas de segurança.
 
 ### Validation Checklist
 
-- [ ] No copied documentation sentences
-- [ ] No made-up services
-- [ ] Prices marked as mutable or removed
-- [ ] Limits marked to verify in console
-- [ ] Answers have specific steps
-- [ ] Architecture answers include trade-offs
-- [ ] All OCI terms are correct
-- [ ] Documentation references included when relevant
+- No copied documentation sentences
+- No made-up services
+- Prices marked as mutable or removed
+- Limits marked to verify in console
+- Answers have specific steps
+- Architecture answers include trade-offs
+- All OCI terms are correct
+- Documentation references included when relevant
 
 ### Deduplication Rules
 

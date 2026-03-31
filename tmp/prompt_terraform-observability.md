@@ -94,14 +94,14 @@ um shape bom. Use práticas recomendadas de segurança.
 
 ### Validation Checklist
 
-- [ ] No copied documentation sentences
-- [ ] No made-up services
-- [ ] Prices marked as mutable or removed
-- [ ] Limits marked to verify in console
-- [ ] Answers have specific steps
-- [ ] Architecture answers include trade-offs
-- [ ] All OCI terms are correct
-- [ ] Documentation references included when relevant
+- No copied documentation sentences
+- No made-up services
+- Prices marked as mutable or removed
+- Limits marked to verify in console
+- Answers have specific steps
+- Architecture answers include trade-offs
+- All OCI terms are correct
+- Documentation references included when relevant
 
 ### Deduplication Rules
 
@@ -143,6 +143,31 @@ You are an OCI Terraform specialist with expertise in observability resources. P
 
 ---
 
+## EXAMPLE QUESTIONS (para inspiração - gere questões originais)
+
+- Como configurar Logging com Terraform?
+- Como criar alarms de Monitoring com Terraform?
+- Como configurar APM com Terraform?
+- Como resolver erro de log group não criado?
+- Como troubleshootar alarm não disparando?
+- Como importar observability resources?
+- Como configurar notificações com Terraform?
+- Como criar métricas customizadas?
+- Como gerenciar retention policies?
+- Como configurar Stack Monitoring?
+
+---
+
+## DIVERSITY REQUIREMENTS (OBRIGATÓRIO)
+
+Varie os exemplos entre:
+- Diferentes resources (compute, storage, networking, database)
+- Diferentes cenários (greenfield, import, migration)
+- Diferentes personas (DevOps, infrastructure engineer, architect)
+- Diferentes problemas (state management, dependencies, errors)
+
+---
+
 ## SUAS REGRAS DE EXECUÇÃO
 
 1. Você DEVE seguir OBRIGATORIAMENTE todas as regras em "QUALITY RULES" acima
@@ -150,6 +175,9 @@ You are an OCI Terraform specialist with expertise in observability resources. P
 3. Use APENAS as informações presentes em "TOPIC: terraform/observability"
 4. Não invente informações que não estão nos docs OCI
 5. Não use preços ou limites sem marcar [MUTABLE] ou [CHECK DOCS]
+6. Se EXAMPLE QUESTIONS estiver presente, use como INSPIRAÇÃO para criar questões DIVERSAS e ORIGINAIS (não copie verbatim)
+7. Cada exemplo DEVE ter um cenário diferente - NÃO repita o mesmo caso de uso
+8. Varie os contextos: diferentes personas, diferentes níveis de complexidade, diferentes casos de uso reais
 
 ---
 
@@ -167,16 +195,16 @@ Gere EXATAMENTE 10 exemplos em formato JSONL.
 
 ---
 
-## JSONL RULES (CRÍTICO)
+## JSONL RULES (CRÍTICO - SIGA EXATAMENTE)
 
-1. **UM objeto JSON por linha** - sem arrays, sem wrapper
-2. **Escape todas as aspas dentro de strings**: " -> \"
-3. **Escape newlines dentro de strings**: newline real -> \n
-4. **Escape backslashes**: \ -> \\
+1. **UM objeto JSON por linha** - sem arrays, sem wrapper, sem markdown
+2. **Escape todas as aspas dentro de strings**: " (aspas) → \" (backslash aspas)
+3. **Escape newlines dentro de strings**: quebra de linha → \n
+4. **Escape backslashes**: \ (backslash) → \\
 5. **metadata é OBRIGATÓRIO** em cada objeto
 6. **metadata deve ficar FORA do array messages!**
 
-**ESTRUTURA CORRETA:**
+**ESTRUTURA CORRETA (faça exatamente assim!):**
 ```json
 {"messages": [
   {"role": "system", "content": "..."},
@@ -185,23 +213,24 @@ Gere EXATAMENTE 10 exemplos em formato JSONL.
 ], "metadata": {"category": "...", "difficulty": "...", "source": "generated"}}
 ```
 
-**ESTRUTURA ERRADA (não faça assim!):**
+**ESTRUTURA ERRADA (NUNCA faça assim!):**
 ```json
 {"messages": [
   {"role": "system", "content": "..."},
   {"role": "user", "content": "..."},
   {"role": "assistant", "content": "..."},
-  {"metadata": {"category": "..."}}  <-- ERRADO!
-]
-}
+  {"metadata": {"category": "..."}}
+]}
 ```
+
+⚠️ **ATENÇÃO**: O metadata DEVE ficar na mesma linha que o messages, como um sibling key, NUNCA dentro do array messages!
 
 ---
 
 ## DISTRIBUIÇÃO DE DIFICULDADE
-- beginner: ~30% dos exemplos
-- intermediate: ~50% dos exemplos
-- advanced: ~20% dos exemplos
+- beginner: ~30% dos exemplos (3 exemplos)
+- intermediate: ~50% dos exemplos (5 exemplos)
+- advanced: ~20% dos exemplos (2 exemplos)
 
 ---
 
@@ -223,8 +252,9 @@ Gere EXATAMENTE 10 exemplos em formato JSONL.
 
 Gere EXATAMENTE 10 exemplos diversos para o topic: **terraform/observability**
 
-- Mistura de dificuldades beginner, intermediate, advanced
-- Cenários reais de OCI
+- Mistura de dificuldades: 3 beginner, 5 intermediate, 2 advanced
+- Cenários reais de OCI - cada exemplo com um caso de uso diferente
 - Use Português (BR) para perguntas do usuário
 - Formato JSONL, uma linha por exemplo
 - SIGA TODAS as regras de qualidade acima
+- NÃO repita cenários - cada exemplo deve ser único

@@ -431,27 +431,31 @@
 ### oci-devops (Priority: Medium)
 
 #### devops/ci-cd (10)
-- OCI DevOps build pipelines
-- Deploy pipelines
-- Artifacts
+- Build pipeline creation and configuration
+- Deploy pipeline setup with environments
+- Pipeline triggers (manual, automatic)
+- Artifact management between stages
 - **Docs**: https://docs.oracle.com/en-us/iaas/Content/DevOps/Concepts/devopsoverview.htm
 
 #### devops/resource-manager (10)
-- Terraform stacks
-- Job execution
-- Drift detection
+- Stack creation from Terraform configurations
+- Job execution and monitoring
+- Drift detection and remediation
+- State management and versioning
 - **Docs**: https://docs.oracle.com/en-us/iaas/Content/ResourceManager/Con/resourcemanager.htm
 
 #### devops/artifacts (10)
-- OCIR (Container Registry)
-- Artifacts service
-- Image signing
+- OCIR (Container Registry) repositories
+- Artifacts service for Helm charts, binaries
+- Image signing and security scanning
+- Repository access control and policies
 - **Docs**: https://docs.oracle.com/en-us/iaas/Content/Artifacts/Concepts/artifactsoverview.htm
 
 #### devops/secrets (10)
-- Vault integration
-- Secret injection
-- Pipeline parameters
+- Vault secret creation and management
+- Pipeline secret injection
+- Parameter store configuration
+- Secret rotation and lifecycle
 - **Docs**: https://docs.oracle.com/en-us/iaas/Content/KeyManagement/Concepts/keyoverview.htm
 
 ---
