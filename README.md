@@ -119,11 +119,13 @@ source venv/bin/activate
 # 1.1 Gerar TODOS os prompts
 python scripts/generate_prompt.py --all
 
-# 1.2 Execute o prompt e salve em data/curated/
- Para cada arquivo em tmp/prompt_*.md:
-   1. Execute o tmp/prompt_*.md
-   2. Salve o resultado em data/curated/[topic].jsonl
- Formato: 1 arquivo por tópico (71 topics = 71 arquivos), 10 exemplos por arquivo
+# 1.2 Execute os prompts e salve em data/curated/
+# IMPORTANTE: O AGENTE DEVE EXECUTAR CADA prompt_*.md E GERAR O JSONL
+# Para cada arquivo em tmp/prompt_*.md:
+#   1. Ler o conteúdo do prompt
+#   2. Gerar 10 exemplos JSONL conforme instruções do prompt
+#   3. Salvar o resultado em data/curated/[topic].jsonl
+# Resultado: 71 arquivos JSONL (1 por topic), 10 exemplos por arquivo
 
 # 1.3 Concatenar todos os JSONL
 cat data/curated/*.jsonl > data/all_curated.jsonl
