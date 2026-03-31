@@ -119,11 +119,10 @@ source venv/bin/activate
 # 1.1 Gerar TODOS os prompts
 python scripts/generate_prompt.py --all
 
-# 1.2 Enviar para LLM e salvar em data/curated/
+# 1.2 Na sua LLM de escolha, solicite execução do prompt e salvar em data/curated/
 # Para cada arquivo em tmp/prompt_*.md:
-#   1. Copie o conteúdo
-#   2. Envie para qualquer LLM (Claude, GPT, Gemini, etc)
-#   3. Salve o resultado em data/curated/[topic]-001.jsonl até [topic]-010.jsonl
+#   1. Execute o tmp/prompt_*.md
+#   2. Salve o resultado em data/curated/[topic]-001.jsonl até [topic]-010.jsonl
 # Formato: 10 arquivos por tópico (001 a 010), 1 exemplo por arquivo
 
 # 1.3 Concatenar todos os JSONL
