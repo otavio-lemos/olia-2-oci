@@ -464,4 +464,4 @@
 
 ## Total
 
-- 64 topics × 10 examples = 640 examples total
+- 71 topics × 10 examples = 710 examples total
