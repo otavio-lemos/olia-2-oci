@@ -170,14 +170,30 @@ Gere EXATAMENTE 10 exemplos em formato JSONL.
 ## JSONL RULES (CRÍTICO)
 
 1. **UM objeto JSON por linha** - sem arrays, sem wrapper
-2. **Escape todas as aspas dentro de strings**: `"` → `\"`
-3. **Escape newlines dentro de strings**: newline real → `\n`
-4. **Escape backslashes**: `\` → `\\`
+2. **Escape todas as aspas dentro de strings**: " -> \"
+3. **Escape newlines dentro de strings**: newline real -> \n
+4. **Escape backslashes**: \ -> \\
 5. **metadata é OBRIGATÓRIO** em cada objeto
+6. **metadata deve ficar FORA do array messages!**
 
-Exemplo de content de assistant CORRETO com newlines:
+**ESTRUTURA CORRETA:**
+```json
+{"messages": [
+  {"role": "system", "content": "..."},
+  {"role": "user", "content": "..."},
+  {"role": "assistant", "content": "..."}
+], "metadata": {"category": "...", "difficulty": "...", "source": "generated"}}
 ```
-"content": "1. First step\n2. Second step\n3. Third step"
+
+**ESTRUTURA ERRADA (não faça assim!):**
+```json
+{"messages": [
+  {"role": "system", "content": "..."},
+  {"role": "user", "content": "..."},
+  {"role": "assistant", "content": "..."},
+  {"metadata": {"category": "..."}}  <-- ERRADO!
+]
+}
 ```
 
 ---
@@ -193,11 +209,13 @@ Exemplo de content de assistant CORRETO com newlines:
 
 ```json
 {"messages": [
-  {"role": "system", "content": "You are an OCI specialist."},
+  {"role": "system", "content": "You are an OCI specialist..."},
   {"role": "user", "content": "Como configurar..."},
   {"role": "assistant", "content": "Para configurar...\n\n1. Step one\n2. Step two\n\n[MUTABLE] Note about prices."}
-], "metadata": {"category": "migration/azure-storage", "difficulty": "intermediate", "source": "generated"}}
+], "metadata": {"category": "example/topic", "difficulty": "intermediate", "source": "generated"}}
 ```
+
+⚠️ **ERRO COMUM**: O metadata deve ficar FORA do array messages, não dentro!
 
 ---
 
