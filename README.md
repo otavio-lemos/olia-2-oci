@@ -106,7 +106,7 @@ python scripts/generate_prompt.py compute/instances
 python scripts/generate_prompt.py --all
 ```
 
-O prompt gerado deve ser enviado para um LLM, e o resultado salvo em `data/curated/[topic]-001.jsonl`.
+O prompt gerado deve ser enviado para um LLM, e o resultado salvo em `data/curated/[topic].jsonl`.
 
 ### Pipeline Completo
 
@@ -122,8 +122,8 @@ python scripts/generate_prompt.py --all
 # 1.2 Na sua LLM de escolha, solicite execução do prompt e salvar em data/curated/
  Para cada arquivo em tmp/prompt_*.md:
    1. Execute o tmp/prompt_*.md
-   2. Salve o resultado em data/curated/[topic]-001.jsonl até [topic]-010.jsonl
- Formato: 10 arquivos por tópico (001 a 010), 1 exemplo por arquivo
+   2. Salve o resultado em data/curated/[topic].jsonl
+ Formato: 1 arquivo por tópico (71 topics = 71 arquivos), 10 exemplos por arquivo
 
 # 1.3 Concatenar todos os JSONL
 cat data/curated/*.jsonl > data/all_curated.jsonl

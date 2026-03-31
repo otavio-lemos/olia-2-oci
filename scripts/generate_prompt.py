@@ -1,22 +1,19 @@
 #!/usr/bin/env python3
 """
-Generate ready-to-use prompts for LLM data generation.
+Gerar prompts prontos para uso na geração de dados.
 
-Usage:
-    # Generate ALL prompts
+Uso:
+    # Gerar TODOS os prompts
     python scripts/generate_prompt.py --all
 
-    # Generate prompt for a specific topic
+    # Gerar prompt para topic específico
     python scripts/generate_prompt.py compute/instances
 
-    # List available topics
+    # Listar topics disponíveis
     python scripts/generate_prompt.py --list
 
-    # Show this help
-    python scripts/generate_prompt.py --help
-
-Output:
-    Each prompt generates EXACTLY 10 examples in JSONL format.
+Saída:
+    Um arquivo por topic contendo 10 exemplos em JSONL.
 """
 
 import sys
@@ -27,12 +24,8 @@ PROJECT_ROOT = Path(__file__).parent.parent
 TMP_DIR = PROJECT_ROOT / "tmp"
 TMP_DIR.mkdir(exist_ok=True)
 
-MASTER_FORMAT_PATH = (
-    PROJECT_ROOT / ".agents/skills/generate-oci-dataset/MASTER_FORMAT.md"
-)
-TAXONOMY_PATH = PROJECT_ROOT / "docs/taxonomy.md"
 QUALITY_RULES_PATH = PROJECT_ROOT / "docs/quality-rules.md"
-PROMPTS_DIR = PROJECT_ROOT / ".agents/skills/generate-oci-dataset/prompts"
+TAXONOMY_PATH = PROJECT_ROOT / "docs/taxonomy.md"
 
 SYSTEM_PROMPTS = {
     "compute/instances": "You are an OCI specialist with expertise in Compute instances. Provide technical guidance on instance creation, shape selection, SSH access, and lifecycle management.",
@@ -88,7 +81,6 @@ SYSTEM_PROMPTS = {
     "terraform/security": "You are an OCI Terraform specialist with expertise in security resources. Provide technical guidance on Vault, Cloud Guard, WAF, and encryption.",
     "terraform/observability": "You are an OCI Terraform specialist with expertise in observability resources. Provide technical guidance on logging, monitoring, and APM.",
     "terraform/devops": "You are an OCI Terraform specialist with expertise in DevOps resources. Provide technical guidance on DevOps, artifacts, and Resource Manager.",
-    "terraform/iam": "You are an OCI Terraform specialist with expertise in IAM resources. Provide technical guidance on policy, group, user, and dynamic group.",
     "terraform/state": "You are an OCI Terraform specialist with expertise in state management. Provide technical guidance on remote state and workspaces.",
     "observability/logging": "You are an OCI specialist with expertise in Logging. Provide technical guidance on log groups, custom logs, and audit logs.",
     "observability/monitoring": "You are an OCI specialist with expertise in Monitoring. Provide technical guidance on metrics, alarms, and notifications.",
@@ -112,36 +104,26 @@ SYSTEM_PROMPTS = {
 def get_topics_from_taxonomy(taxonomy_path: Path) -> list:
     """Extract all topics from taxonomy."""
     content = taxonomy_path.read_text()
-
     topics = []
-    lines = content.split("\n")
-
-    for line in lines:
+    for line in content.split("\n"):
         if line.startswith("#### "):
             topic = line.replace("#### ", "").strip()
-            # Remove "(10)" suffix if present
             topic = re.sub(r"\s*\(\d+\)\s*$", "", topic)
             topics.append(topic)
-
     return topics
 
 
 def get_topic_from_taxonomy(taxonomy_path: Path, topic: str) -> str:
     """Extract topic section from taxonomy."""
     content = taxonomy_path.read_text()
-
-    # Strip (10) suffix if present for matching
     topic_clean = re.sub(r"\s*\(\d+\)\s*$", "", topic)
-
     lines = content.split("\n")
     in_topic = False
     topic_lines = []
-
     for line in lines:
         if line.startswith("#### "):
             if in_topic:
                 break
-            # Also strip (10) from taxonomy line for matching
             line_clean = re.sub(r"\s*\(\d+\)\s*$", "", line)
             if topic_clean in line_clean:
                 in_topic = True
@@ -150,97 +132,130 @@ def get_topic_from_taxonomy(taxonomy_path: Path, topic: str) -> str:
             if line.startswith("### ") or line.startswith("## "):
                 break
             topic_lines.append(line)
-
     return "\n".join(topic_lines)
-
-
-def get_topic_prompt(prompts_dir: Path, topic: str) -> str:
-    """Read topic-specific prompt."""
-    topic_file = prompts_dir / f"{topic}.md"
-
-    if not topic_file.exists():
-        return ""
-
-    return topic_file.read_text()
 
 
 def generate_prompt(topic: str) -> str:
     """Generate the complete prompt for a topic."""
-
-    master_format = MASTER_FORMAT_PATH.read_text()
+    quality_rules = QUALITY_RULES_PATH.read_text()
     topic_info = get_topic_from_taxonomy(TAXONOMY_PATH, topic)
-    topic_prompt = get_topic_prompt(PROMPTS_DIR, topic)
     system_prompt = SYSTEM_PROMPTS.get(topic, "You are an OCI specialist.")
 
-    prompt = f"""{master_format}
+    prompt = f"""# OCI Dataset Generation - {topic}
+
+## QUALITY RULES (OBRIGATÓRIO - SIGA À RISCA)
+
+{quality_rules}
 
 ---
 
 ## TOPIC: {topic}
 
-### System Prompt (use this in JSONL):
-{system_prompt}
-
-### From Taxonomy (docs/taxonomy.md):
-
 {topic_info}
 
 ---
 
-### Topic-Specific Prompt (.agents/skills/generate-oci-dataset/prompts/{topic}.md):
+## SYSTEM PROMPT (para usar no JSONL)
 
-{topic_prompt}
+{system_prompt}
 
 ---
 
-## TASK
+## SUAS REGRAS DE EXECUÇÃO
 
-Generate EXACTLY 10 examples for topic: {topic}
+1. Você DEVE seguir OBRIGATORIAMENTE todas as regras em "QUALITY RULES" acima
+2. Gere APENAS exemplos para o topic "{topic}"
+3. Use APENAS as informações presentes em "TOPIC: {topic}"
+4. Não invente informações que não estão nos docs OCI
+5. Não use preços ou limites sem marcar [MUTABLE] ou [CHECK DOCS]
 
-Replace SYSTEM_PROMPT in the JSONL with: "{system_prompt}"
-Use category format: "{topic}" (e.g., "compute/instances", "security/iam-basics")
-Follow the format specified in MASTER_FORMAT above.
-Apply the quality rules strictly.
+---
+
+## OUTPUT FORMAT
+
+Gere EXATAMENTE 10 exemplos em formato JSONL.
+
+**UM objeto JSON por linha** - cada linha é um objeto JSON completo.
+
+```
+{{"messages": [...], "metadata": {{"category": "{topic}", "difficulty": "beginner|intermediate|advanced", "source": "generated"}}}}
+{{"messages": [...], "metadata": {{"category": "{topic}", "difficulty": "beginner|intermediate|advanced", "source": "generated"}}}}
+... (10 linhas total)
+```
+
+---
+
+## JSONL RULES (CRÍTICO)
+
+1. **UM objeto JSON por linha** - sem arrays, sem wrapper
+2. **Escape todas as aspas dentro de strings**: `"` → `\\"`
+3. **Escape newlines dentro de strings**: newline real → `\\n`
+4. **Escape backslashes**: `\\` → `\\\\`
+5. **metadata é OBRIGATÓRIO** em cada objeto
+
+Exemplo de content de assistant CORRETO com newlines:
+```
+"content": "1. First step\\n2. Second step\\n3. Third step"
+```
+
+---
+
+## DISTRIBUIÇÃO DE DIFICULDADE
+- beginner: ~30% dos exemplos
+- intermediate: ~50% dos exemplos
+- advanced: ~20% dos exemplos
+
+---
+
+## EXEMPLO DE FORMATO DE RESPOSTA
+
+```json
+{{"messages": [
+  {{"role": "system", "content": "{system_prompt}"}},
+  {{"role": "user", "content": "Como configurar..."}},
+  {{"role": "assistant", "content": "Para configurar...\\n\\n1. Step one\\n2. Step two\\n\\n[MUTABLE] Note about prices."}}
+], "metadata": {{"category": "{topic}", "difficulty": "intermediate", "source": "generated"}}}}
+```
+
+---
+
+## SUA TAREFA
+
+Gere EXATAMENTE 10 exemplos diversos para o topic: **{topic}**
+
+- Mistura de dificuldades beginner, intermediate, advanced
+- Cenários reais de OCI
+- Use Português (BR) para perguntas do usuário
+- Formato JSONL, uma linha por exemplo
+- SIGA TODAS as regras de qualidade acima
 """
 
     return prompt
 
 
 def list_topics():
-    """List all available topics."""
+    """Lista todos os topics disponíveis."""
     topics = get_topics_from_taxonomy(TAXONOMY_PATH)
-    print(f"\nAvailable topics ({len(topics)} total):\n")
-
+    print(f"\nTopics disponíveis ({len(topics)} total):\n")
     for topic in topics:
         print(f"  - {topic}")
-
-    print(f"\nUsage:")
+    print(f"\nUso:")
     print(f"  python scripts/generate_prompt.py compute/instances")
     print(f"  python scripts/generate_prompt.py --all")
 
 
 def generate_all_prompts():
-    """Generate prompts for all topics."""
+    """Gera prompts para todos os topics."""
     topics = get_topics_from_taxonomy(TAXONOMY_PATH)
-
-    print(f"\nGenerating prompts for {len(topics)} topics...\n")
-
+    print(f"\nGerando prompts para {len(topics)} topics...\n")
     for i, topic in enumerate(topics, 1):
         print(f"[{i}/{len(topics)}] {topic}...", end=" ")
-
         prompt = generate_prompt(topic)
         output_file = TMP_DIR / f"prompt_{topic.replace('/', '-')}.md"
         output_file.write_text(prompt)
-
-        print(f"✓ saved to {output_file.name}")
-
-    print(f"\n✅ All prompts generated in: {TMP_DIR}/")
-    print(f"\nTo use:")
-    print(f"1. Copy content from tmp/prompt_*.md")
-    print(f"2. Send to Gemini/GPT-4/Claude")
-    print(
-        f"3. Save results to: data/curated/[topic]-001.jsonl ... [topic]-010.jsonl (10 files)"
-    )
+        print(f"✓ salvo em {output_file.name}")
+    print(f"\n✅ Todos os prompts gerados em: {TMP_DIR}/")
+    print(f"\nSaída: 1 arquivo por topic em data/curated/[topic].jsonl")
 
 
 def main():
@@ -252,23 +267,12 @@ def main():
         print(__doc__)
     elif len(sys.argv) == 2:
         topic = sys.argv[1]
-
-        print(f"Generating prompt for topic: {topic}\n")
-
+        print(f"Gerando prompt para topic: {topic}\n")
         prompt = generate_prompt(topic)
-
         output_file = TMP_DIR / f"prompt_{topic.replace('/', '-')}.md"
         output_file.write_text(prompt)
-
-        print(f"Prompt saved to: {output_file}")
-        print(f"\nTo use:")
-        print(f"1. Copy the content below")
-        print(f"2. Send to Gemini/GPT-4/Claude")
-        print(
-            f"3. Save results to: data/curated/{topic}-001.jsonl ... {topic}-010.jsonl (10 files)"
-        )
-        print(f"\n{'=' * 60}")
-        print(f"\nPROMPT CONTENT:\n")
+        print(f"Prompt salvo em: {output_file}")
+        print(f"\n{'=' * 60}\n")
         print(prompt)
     else:
         print(__doc__)
