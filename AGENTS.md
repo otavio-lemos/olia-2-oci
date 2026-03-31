@@ -26,18 +26,17 @@ This project builds a fine-tuned LLM specialist in Oracle Cloud Infrastructure (
 ### Process
 
 1. Select category from `docs/taxonomy.md`
-2. Use prompt template from `.agents/skills/generate-oci-dataset/prompts/`
-3. Send to online LLM (Gemini, GPT-4, Claude)
-4. Validate response against `docs/quality-rules.md`
-5. Save to `data/curated/[category]-[nnn].jsonl`
+2. Use prompt template from `tmp/prompt_*.md`
+3. Execute the prompt as specified in the file
+4. Validate response against quality rules
+5. Save to `data/curated/[topic]-[nnn].jsonl`
 
-### Providers for Generation
+### Execution
 
-Recommended online LLMs:
-- **Google Gemini 2.0 Flash** - fast, good quality
-- **OpenAI GPT-4o** - excellent reasoning
-- **Anthropic Claude 3.5** - clear explanations
-- **Perplexity Sonar** - up-to-date knowledge
+Execute prompts exactly as requested in each `tmp/prompt_*.md` file:
+- Generate 10 files per topic (001-010)
+- 1 example per file in JSONL format
+- Follow the output format specified in the prompt file
 
 ## Data Flow
 
@@ -98,9 +97,7 @@ data/eval.jsonl      → evaluation set (~10%)
 ## Provider Strategy
 
 - **OpenCode Zen**: Critical project engineering and review
-- **Google Gemini**: Volume generation (fast, cost-effective)
-- **OpenAI GPT-4o**: Quality generation (complex topics)
-- **OpenRouter**: Testing with other models
+- **LLM execution**: Prompts are executed as specified in each tmp/prompt_*.md file
 
 ## Checkpoints
 
