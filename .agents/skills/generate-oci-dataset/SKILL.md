@@ -20,11 +20,20 @@ data/curated/[topic].jsonl
 ```
 
 With content (1 line = 1 JSON):
+
+**Each JSON object has EXACTLY 3 messages: system + user + assistant. NEVER put multiple user/assistant pairs in the same object.**
+
+Correct format:
 ```json
-{"messages": [{"role": "system", "content": "Você é um arquiteto especialista em OCI..."}, {"role": "user", "content": "pergunta"}, {"role": "assistant", "content": "resposta"}]}
+{"messages": [{"role": "system", "content": "Você é um arquiteto especialista em OCI..."}, {"role": "user", "content": "pergunta"}, {"role": "assistant", "content": "resposta"}], "metadata": {"category": "topic/subtopic", "difficulty": "intermediate", "source": "generated"}}
 ```
 
-**Format: 1 file per topic with 10 examples each**
+WRONG format (multiple Q&A in one JSON - DO NOT DO THIS):
+```json
+{"messages": [{"role": "system", "content": "..."}, {"role": "user", "content": "pergunta 1"}, {"role": "assistant", "content": "resposta 1"}, {"role": "user", "content": "pergunta 2"}, {"role": "assistant", "content": "resposta 2"}], "metadata": {...}}
+```
+
+**Format: 1 file per topic with 10 lines (10 JSON objects, each with exactly 3 messages)**
 
 ## Generation Process
 
@@ -51,6 +60,9 @@ Execute the generated prompt using your preferred method.
 ### 4. Validate Response
 
 Check:
+- [ ] **Exactly 3 messages per JSON object (system + 1 user + 1 assistant)**
+- [ ] **No multiple user/assistant pairs in the same JSON object**
+- [ ] **10 separate JSON objects (10 lines) per file**
 - [ ] No copied OCI docs verbatim
 - [ ] No invented services
 - [ ] Specific steps included

@@ -119,12 +119,16 @@ source venv/bin/activate
 # 1.1 Gerar TODOS os prompts
 python scripts/generate_prompt.py --all
 
-# 1.2 Execute os prompts e salve em data/curated/
-# IMPORTANTE: O AGENTE DEVE EXECUTAR CADA prompt_*.md E GERAR O JSONL
+# 1.2 Gerar os dados curados (EXECUTADO PELO AGENTE AI)
+# ╔══════════════════════════════════════════════════════════════════╗
+# ║  VOCÊ (agente AI lendo isto) é quem gera o conteúdo JSONL.     ║
+# ║  Não existe script, API ou ferramenta externa para este passo. ║
+# ║  VOCÊ lê cada prompt e VOCÊ escreve os 10 exemplos JSONL.      ║
+# ╚══════════════════════════════════════════════════════════════════╝
 # Para cada arquivo em tmp/prompt_*.md:
-#   1. Ler o conteúdo do prompt
-#   2. Gerar 10 exemplos JSONL conforme instruções do prompt
-#   3. Salvar o resultado em data/curated/[topic].jsonl
+#   1. Leia o conteúdo do prompt (topic, system prompt, regras)
+#   2. Gere 10 exemplos JSONL usando seu próprio conhecimento de OCI
+#   3. Salve em data/curated/[topic].jsonl (ex: compute-instances.jsonl)
 # Resultado: 71 arquivos JSONL (1 por topic), 10 exemplos por arquivo
 
 # 1.3 Concatenar todos os JSONL
