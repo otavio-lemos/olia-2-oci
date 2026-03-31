@@ -120,9 +120,11 @@ source venv/bin/activate
 python scripts/generate_prompt.py --all
 
 # 1.2 Enviar para LLM e salvar em data/curated/
- - Ler cada arquivo em tmp/prompt_*.md
- - Enviar para Gemini/Claude/GPT
- - Salvar resultado em data/curated/[topic]-001.jsonl
+# Para cada arquivo em tmp/prompt_*.md:
+#   1. Copie o conteúdo
+#   2. Envie para qualquer LLM (Claude, GPT, Gemini, etc)
+#   3. Salve o resultado em data/curated/[topic]-001.jsonl até [topic]-010.jsonl
+# Formato: 10 arquivos por tópico (001 a 010), 1 exemplo por arquivo
 
 # 1.3 Concatenar todos os JSONL
 cat data/curated/*.jsonl > data/all_curated.jsonl

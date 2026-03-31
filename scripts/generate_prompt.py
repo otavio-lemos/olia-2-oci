@@ -238,7 +238,9 @@ def generate_all_prompts():
     print(f"\nTo use:")
     print(f"1. Copy content from tmp/prompt_*.md")
     print(f"2. Send to Gemini/GPT-4/Claude")
-    print(f"3. Save results to: data/curated/[topic]-001.jsonl")
+    print(
+        f"3. Save results to: data/curated/[topic]-001.jsonl ... [topic]-010.jsonl (10 files)"
+    )
 
 
 def main():
@@ -262,7 +264,9 @@ def main():
         print(f"\nTo use:")
         print(f"1. Copy the content below")
         print(f"2. Send to Gemini/GPT-4/Claude")
-        print(f"3. Save results to: data/curated/{topic}-001.jsonl")
+        print(
+            f"3. Save results to: data/curated/{topic}-001.jsonl ... {topic}-010.jsonl (10 files)"
+        )
         print(f"\n{'=' * 60}")
         print(f"\nPROMPT CONTENT:\n")
         print(prompt)

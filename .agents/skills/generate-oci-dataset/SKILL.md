@@ -57,7 +57,15 @@ Check:
 
 ### 5. Save File
 
-Save to `data/curated/[category]-[nnn].jsonl`
+Save to `data/curated/[category]-[001].jsonl` to `[category]-[010].jsonl`
+
+**Format: 10 files per topic (001 to 010), 1 example per file**
+
+Example for compute/instances:
+- data/curated/compute-instances-001.jsonl
+- data/curated/compute-instances-002.jsonl
+- ...
+- data/curated/compute-instances-010.jsonl
 
 ## Providers
 
