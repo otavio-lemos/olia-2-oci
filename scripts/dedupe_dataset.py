@@ -40,20 +40,30 @@ def find_near_duplicates(
 ) -> List[tuple]:
     near_dupes = []
 
-    for i in range(len(examples)):
-        key_i = get_example_key(examples[i])
-        for j in range(i + 1, len(examples)):
-            key_j = get_example_key(examples[j])
+    # Group examples by category first
+    category_groups = defaultdict(list)
+    for i, example in enumerate(examples):
+        category = example.get("metadata", {}).get("category", "unknown")
+        category_groups[category].append(i)
 
-            len_min = min(len(key_i), len(key_j))
-            if len_min == 0:
-                continue
+    # Only compare within the same category
+    for indices in category_groups.values():
+        for i_idx in range(len(indices)):
+            i = indices[i_idx]
+            key_i = get_example_key(examples[i])
+            for j_idx in range(i_idx + 1, len(indices)):
+                j = indices[j_idx]
+                key_j = get_example_key(examples[j])
 
-            matches = sum(1 for a, b in zip(key_i, key_j) if a == b)
-            similarity = matches / len_min
+                len_min = min(len(key_i), len(key_j))
+                if len_min == 0:
+                    continue
 
-            if similarity >= threshold:
-                near_dupes.append((i, j, similarity))
+                matches = sum(1 for a, b in zip(key_i, key_j) if a == b)
+                similarity = matches / len_min
+
+                if similarity >= threshold:
+                    near_dupes.append((i, j, similarity))
 
     return near_dupes
 
