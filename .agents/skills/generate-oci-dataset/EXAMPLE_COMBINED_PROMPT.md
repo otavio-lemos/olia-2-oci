@@ -1,6 +1,6 @@
-# Exemplo: Prompt Completo para Enviar ao LLM
+# Exemplo: Prompt Completo para Geração
 
-Este é o prompt completo que você enviaria para o Gemini/GPT-4/Claude para gerar exemplos da categoria `oci-core/compute`.
+Este é o prompt completo para gerar exemplos da categoria `oci-core/compute`.
 
 ---
 

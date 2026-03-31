@@ -47,7 +47,7 @@ O dataset contém exemplos gerados via MASTER_PROMPT. Veja `docs/taxonomy.md` pa
 
 ### Formato dos Dados
 
-Cada exemplo segue o formato OpenAI chat:
+Cada exemplo segue o formato JSON chat:
 
 ```json
 {
@@ -93,7 +93,7 @@ pip install -r requirements.txt
 
 ### Gerar Dados Curados
 
-Use o **MASTER_PROMPT** com qualquer LLM externo (Gemini, Claude, GPT):
+Use o **MASTER_PROMPT** para gerar os dados:
 
 ```bash
 # Listar topics disponíveis
@@ -106,7 +106,7 @@ python scripts/generate_prompt.py compute/instances
 python scripts/generate_prompt.py --all
 ```
 
-O prompt gerado deve ser enviado para um LLM, e o resultado salvo em `data/curated/[topic].jsonl`.
+O prompt gerado deve ser executado, e o resultado salvo em `data/curated/[topic].jsonl`.
 
 ### Pipeline Completo
 
@@ -119,7 +119,7 @@ source venv/bin/activate
 # 1.1 Gerar TODOS os prompts
 python scripts/generate_prompt.py --all
 
-# 1.2 Na sua LLM de escolha, solicite execução do prompt e salvar em data/curated/
+# 1.2 Execute o prompt e salve em data/curated/
  Para cada arquivo em tmp/prompt_*.md:
    1. Execute o tmp/prompt_*.md
    2. Salve o resultado em data/curated/[topic].jsonl
@@ -186,8 +186,8 @@ python scripts/evaluate_model.py outputs/adapters data/eval.jsonl outputs/benchm
 ```mermaid
 flowchart LR
     subgraph DataPrep["1. Preparação de Dados"]
-        DP1[Gerar Prompts] --> DP2{Enviar p/ LLM}
-        DP2 -->|Manual| DP3[Gemini/Claude/GPT]
+        DP1[Gerar Prompts] --> DP2{Executar Prompts}
+        DP2 -->|Generate| DP3[JSONL Data]
         DP3 --> DP4[Salvar JSONL]
         DP4 --> DP5[Validar]
         DP5 --> DP6[Deduplicar]
@@ -237,7 +237,7 @@ olia-2-oci/
 │   ├── quality-rules.md          # Regras de qualidade
 │   └── eval-rubric.md            # Critérios de avaliação
 ├── scripts/                      # Scripts de pipeline
-│   ├── generate_prompt.py       # Gerar prompts para LLM
+│   ├── generate_prompt.py       # Gerar prompts
 │   ├── validate_jsonl.py         # Validar formato JSONL
 │   ├── dedupe_dataset.py         # Remover duplicatas
 │   ├── build_dataset_fixed.py    # Criar splits train/valid/eval
@@ -256,7 +256,7 @@ olia-2-oci/
 ## Pipeline
 
 1. **Documentação** → Escopo, taxonomia, regras de qualidade
-2. **Geração de Dados** → MASTER_PROMPT + LLM externo → curated/
+2. **Geração de Dados** → MASTER_PROMPT → curated/
 3. **Validação** → JSONL validator, deduplicação
 4. **Construção do Dataset** → train (~75%), valid (~15%), eval (~10%)
 5. **Treinamento** → Fine-tuning MLX LoRA no Apple Silicon

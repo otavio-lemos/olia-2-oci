@@ -47,7 +47,7 @@ The dataset contains examples generated via MASTER_PROMPT. See `docs/taxonomy.md
 
 ### Data Format
 
-Each example follows the OpenAI chat format:
+Each example follows the JSON chat format:
 
 ```json
 {
@@ -93,7 +93,7 @@ pip install -r requirements.txt
 
 ### Generate Curated Data
 
-Use **MASTER_PROMPT** with any external LLM (Gemini, Claude, GPT):
+Use **MASTER_PROMPT** to generate data:
 
 ```bash
 # List available topics
@@ -106,7 +106,7 @@ python scripts/generate_prompt.py compute/instances
 python scripts/generate_prompt.py --all
 ```
 
-The generated prompt should be sent to an LLM, and the result saved to `data/curated/[topic].jsonl`.
+The generated prompt should be executed, and the result saved to `data/curated/[topic].jsonl`.
 
 ### Complete Pipeline
 
@@ -119,7 +119,7 @@ source venv/bin/activate
 # 1.1 Generate ALL prompts
 python scripts/generate_prompt.py --all
 
-# 1.2 In your LLM of choice, execute the prompt and save to data/curated/
+# 1.2 Execute the prompt and save to data/curated/
  For each file in tmp/prompt_*.md:
    1. Execute tmp/prompt_*.md
    2. Save result to data/curated/[topic].jsonl
@@ -184,8 +184,8 @@ python scripts/evaluate_model.py outputs/adapters data/eval.jsonl outputs/benchm
 ```mermaid
 flowchart LR
     subgraph DataPrep["1. Data Preparation"]
-        DP1[Generate Prompts] --> DP2{Send to LLM}
-        DP2 -->|Manual| DP3[Gemini/Claude/GPT]
+        DP1[Generate Prompts] --> DP2{Execute Prompts}
+        DP2 -->|Generate| DP3[JSONL Data]
         DP3 --> DP4[Save JSONL]
         DP4 --> DP5[Validate]
         DP5 --> DP6[Deduplicate]
@@ -263,7 +263,7 @@ olia-2-oci/
 ## Pipeline
 
 1. **Documentation** → Scope, taxonomy, quality rules
-2. **Data Generation** → MASTER_PROMPT + external LLM → curated/
+2. **Data Generation** → MASTER_PROMPT → curated/
 3. **Validation** → JSONL validator, deduplication
 4. **Dataset Building** → train (~75%), valid (~15%), eval (~10%)
 5. **Training** → MLX LoRA fine-tuning on Apple Silicon

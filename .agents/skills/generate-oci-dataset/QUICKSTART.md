@@ -24,8 +24,7 @@ Combine:
 - Tópicos da categoria
 - Exemplos de perguntas
 
-### 5. Envie para LLM
-Use Gemini, GPT-4, Claude, ou Perplexity.
+### 5. Execute o prompt
 
 ### 6. Salve o resultado
 ```
@@ -62,5 +61,5 @@ python3 scripts/validate_jsonl.py data/all_curated.jsonl --filter
 1. Abra `MASTER_PROMPT.md`
 2. Copie o conteúdo
 3. Adicione os tópicos de `prompts/oci-core/networking.md`
-4. Envie para o Gemini
-5. Salve em `data/curated/oci-core/networking-001.jsonl`
+4. Execute o prompt
+5. Salve em `data/curated/oci-core/networking.jsonl`
