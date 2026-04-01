@@ -1,18 +1,25 @@
 #!/bin/bash
 set -e
 
-BASE_MODEL=${BASE_MODEL:-$MODEL}
-ADAPTER_DIR=${ADAPTER_DIR:-"outputs/adapters"}
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+VENV_DIR="${PROJECT_DIR}/venv"
+
+source "${VENV_DIR}/bin/activate"
+
+BASE_MODEL=${BASE_MODEL:-"mlx-community/Llama-3.2-3B-Instruct-4bit"}
+ADAPTER_DIR=${ADAPTER_DIR:-"outputs/cycle-2"}
+MERGED_MODEL=${MERGED_MODEL:-"outputs/merged-model"}
 MAX_TOKENS=${MAX_TOKENS:-512}
 TEMPERATURE=${TEMPERATURE:-0.7}
 
-SYSTEM_PROMPT="You are an Oracle Cloud Infrastructure (OCI) specialist. You provide accurate, practical guidance on OCI services, architecture, migration, and troubleshooting."
+SYSTEM_PROMPT="Você é um arquiteto especialista em Oracle Cloud Infrastructure (OCI). Forneça respostas técnicas precisas, específicas e práticas em português (Brasil)."
 
 EXAMPLE_PROMPTS=(
-    "How do I create a VCN with private subnets in OCI?"
-    "What's the equivalent of AWS S3 in OCI and how do I migrate?"
-    "How do I configure IAM policies for cross-compartment access?"
-    "What's the process to migrate an EC2 instance to OCI Compute?"
+    "Como criar uma VCN com subnets privadas no OCI?"
+    "Qual o equivalente do AWS S3 no OCI e como migrar?"
+    "Como configurar políticas IAM para acesso cross-compartment?"
+    "Qual o processo para migrar uma instância EC2 para OCI Compute?"
 )
 
 echo "=========================================="
@@ -20,6 +27,7 @@ echo "OCI Specialist LLM - Inference Test"
 echo "=========================================="
 echo "Base Model: $BASE_MODEL"
 echo "Adapter: $ADAPTER_DIR"
+echo "Merged Model: $MERGED_MODEL"
 echo "=========================================="
 
 for prompt in "${EXAMPLE_PROMPTS[@]}"; do
@@ -27,9 +35,17 @@ for prompt in "${EXAMPLE_PROMPTS[@]}"; do
     echo "=========================================="
     echo "Prompt: $prompt"
     echo "=========================================="
-    
-    if [ -d "$ADAPTER_DIR" ]; then
-        python -m mlx_lm.generate \
+
+    if [ -d "$MERGED_MODEL" ]; then
+        echo "Using merged model..."
+        mlx_lm.generate \
+            --model "$MERGED_MODEL" \
+            --prompt "$SYSTEM_PROMPT\n\nUser: $prompt\nAssistant:" \
+            --max-tokens "$MAX_TOKENS" \
+            --temp "$TEMPERATURE"
+    elif [ -f "$ADAPTER_DIR/adapters.safetensors" ]; then
+        echo "Using LoRA adapter..."
+        mlx_lm.generate \
             --model "$BASE_MODEL" \
             --adapter-path "$ADAPTER_DIR" \
             --prompt "$SYSTEM_PROMPT\n\nUser: $prompt\nAssistant:" \
@@ -37,7 +53,7 @@ for prompt in "${EXAMPLE_PROMPTS[@]}"; do
             --temp "$TEMPERATURE"
     else
         echo "No adapter found, using base model"
-        python -m mlx_lm.generate \
+        mlx_lm.generate \
             --model "$BASE_MODEL" \
             --prompt "$SYSTEM_PROMPT\n\nUser: $prompt\nAssistant:" \
             --max-tokens "$MAX_TOKENS" \
