@@ -1,6 +1,10 @@
 #!/bin/bash
 set -e
 
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
+VENV_DIR="${PROJECT_DIR}/venv"
+
 BASE_MODEL=${BASE_MODEL:-${MODEL:-"mlx-community/Llama-3.2-3B-Instruct-4bit"}}
 ADAPTER_DIR=${ADAPTER_DIR:-${OUTPUT_DIR:-"outputs/adapters"}}
 MERGED_MODEL=${MERGED_MODEL:-"outputs/merged-model"}
@@ -12,10 +16,12 @@ echo "Adapter: $ADAPTER_DIR"
 echo "Output: $MERGED_MODEL"
 echo "=========================================="
 
-python -m mlx_lm.lora \
+source "${VENV_DIR}/bin/activate"
+
+python -m mlx_lm fuse \
     --model "$BASE_MODEL" \
     --adapter-path "$ADAPTER_DIR" \
-    --merge-weights "$MERGED_MODEL"
+    --save-path "$MERGED_MODEL"
 
 echo "Export complete!"
 echo "Merged model saved to: $MERGED_MODEL"
