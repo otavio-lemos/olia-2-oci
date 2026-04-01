@@ -1,6 +1,10 @@
 #!/bin/bash
 set -e
 
+# Load configuration
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+source "${SCRIPT_DIR}/../config/cycle-1.env"
+
 MODEL=${MODEL:-"mlx-community/Llama-3.2-3B-Instruct-4bit"}
 TRAIN_DATA=${TRAIN_DATA:-"data/train.jsonl"}
 VALID_DATA=${VALID_DATA:-"data/valid.jsonl"}
@@ -30,20 +34,21 @@ mkdir -p "$OUTPUT_DIR"
 
 export KMP_DUPLICATE_LIB_OK=TRUE
 
-python -m mlx_lm.lora \
+python -m mlx_lm lora \
     --model "$MODEL" \
-    --train "$TRAIN_DATA" \
-    --valid "$VALID_DATA" \
-    --epochs "$EPOCHS" \
+    --train \
+    --data "$(dirname "$TRAIN_DATA")" \
+    --fine-tune-type lora \
+    --num-layers 16 \
     --batch-size "$BATCH_SIZE" \
+    --iters 200 \
     --learning-rate "$LEARNING_RATE" \
-    --lora-rank "$LORA_RANK" \
-    --lora-alpha "$LORA_ALPHA" \
-    --lora-dropout "$LORA_DROPOUT" \
-    --gradient-accumulation "$GRADIENT_ACCUMULATION" \
+    --grad-accumulation-steps "$GRADIENT_ACCUMULATION" \
     --adapter-path "$OUTPUT_DIR" \
-    --save-every 1 \
-    --train-adapters
+    --save-every 50 \
+    --steps-per-report 10 \
+    --steps-per-eval 50 \
+    --max-seq-length 1024
 
 echo "Training complete!"
 echo "Adapters saved to: $OUTPUT_DIR"
