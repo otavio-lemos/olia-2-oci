@@ -34,11 +34,11 @@ O modelo foi projetado para ajudar com:
 
 Treinamento multi-cycle com learning rate decrescente completado com sucesso:
 
-| Ciclo | LR | Iters | Val Loss | Train Loss | Status |
-|-------|-----|-------|----------|------------|--------|
-| cycle-1 | 5e-5 | 200 | 0.163 | 0.161 | ✅ From scratch |
-| cycle-2 | 1e-5 | 200 | 0.119 | 0.104 | ✅ Resume cycle-1 |
-| cycle-3 | 5e-6 | 200 | **0.114** | **0.089** | ✅ Melhor (resume cycle-2) |
+| Ciclo | LR | Iters | Val Loss | Train Loss | Modo |
+|-------|-----|-------|----------|------------|------|
+| cycle-1 | 5e-5 | 200 | 0.163 | 0.161 | Do zero |
+| cycle-2 | 1e-5 | 200 | 0.119 | 0.104 | Continua cycle-1 |
+| cycle-3 | 5e-6 | 200 | **0.114** | **0.089** | Continua cycle-2 (melhor) |
 
 **Melhor adapter**: `outputs/cycle-3/adapters.safetensors` (menor val loss: 0.114)
 **Modelo fundido**: `outputs/merged-model/` (~1.8GB)
