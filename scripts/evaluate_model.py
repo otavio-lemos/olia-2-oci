@@ -368,6 +368,7 @@ def generate_comparison_report(
     report = f"""# OCI Specialist LLM - Model Comparison Report
 
 **Date:** {datetime.now().strftime("%Y-%m-%d %H:%M")}
+**Progress:** {n}/9,940 examples ({n / 9940 * 100:.1f}%)
 **Evaluation Set:** {n} examples across {len(categories)} categories
 
 ## Executive Summary
@@ -634,7 +635,13 @@ def main():
 
         if (i + 1) % 50 == 0 or (i + 1) == len(eval_data):
             save_checkpoint(checkpoint_path, base_results, ft_results, i + 1)
-            print(f"  Checkpoint saved at {i + 1}/{len(eval_data)}")
+            pct = (i + 1) / len(eval_data) * 100
+            print(f"  Checkpoint saved at {i + 1}/{len(eval_data)} ({pct:.1f}%)")
+
+            # Generate incremental report at each checkpoint
+            incr_path = output_dir / f"eval-progress-{i + 1:05d}.md"
+            generate_comparison_report(base_results, ft_results, incr_path)
+            print(f"  Progress report: {incr_path}")
 
     output_path = (
         output_dir / f"eval-comparison-{datetime.now().strftime('%Y%m%d-%H%M%S')}.md"
