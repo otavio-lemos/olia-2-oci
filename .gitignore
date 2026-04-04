@@ -1,27 +1,27 @@
+# Environment
 venv/
 __pycache__/
 *.pyc
+
+# OS
 .DS_Store
+
+# IDE/Tool caches
 .qwen/
 .ruff_cache/
 
-# Backups
-backup_*/
+# Large model files (too big for Git)
+outputs/cycle-*/
+outputs/merged-model*/
+outputs/adapters/
 
-# Derived data files (generated from curated/)
-data/all_curated_clean.jsonl
-data/all_curated_clean.jsonl.bak
-data/all_curated_filtered.jsonl
+# Generated data (reproducible from curated/)
+data/all_curated*.jsonl
 data/train.jsonl
 data/valid.jsonl
 data/eval.jsonl
 data/eval_sample_*.jsonl
-data/v2/
 
-# Training outputs (large files)
-outputs/cycle-*/
-outputs/merged-model*/
-outputs/logs/
-outputs/adapters/
-outputs/pdca-*.md
+# Temp/diagnostic logs
 outputs/benchmarks/eval-run.log
+backup_*/
