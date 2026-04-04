@@ -1,14 +1,14 @@
 # Core MLX
-mlx
-mlx-lm
+mlx==0.31.1
+mlx-lm==0.31.1
 
 # Transformers & Tokenizers
-transformers>=4.40.0
-tokenizers>=0.15.0
+transformers==5.4.0
+tokenizers==0.22.2
 
 # Image processing (required by transformers)
-pillow>=10.0.0
+pillow==12.1.1
 
 # Utilities
-numpy>=1.24.0
-tqdm
+numpy==1.26.4
+tqdm==4.67.3

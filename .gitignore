@@ -3,13 +3,24 @@ __pycache__/
 *.pyc
 .DS_Store
 .qwen/
-backup_pre_expansao/
+.ruff_cache/
+
+# Backups
+backup_*/
+
+# Derived data files (generated from curated/)
 data/all_curated_clean.jsonl
+data/all_curated_clean.jsonl.bak
+data/all_curated_filtered.jsonl
 data/train.jsonl
 data/valid.jsonl
 data/eval.jsonl
+data/eval_sample_*.jsonl
+data/v2/
+
+# Training outputs (large files)
 outputs/cycle-*/
-outputs/merged-model/
+outputs/merged-model*/
 outputs/logs/
 outputs/adapters/
-outputs/benchmarks/
+outputs/pdca-*.md

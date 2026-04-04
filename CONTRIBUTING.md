@@ -60,9 +60,8 @@
 
 ### Dataset/Prompts
 
-- Usar `scripts/generate_prompt.py` para gerar template
 - Seguir taxonomy em `docs/taxonomy.md`
-- 10 exemplos por topic
+- 140 exemplos por topic
 - Validar com `python scripts/validate_jsonl.py`
 - Incluir diagrama Mermaid se arquitetura
 

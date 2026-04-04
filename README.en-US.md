@@ -8,11 +8,12 @@ Fine-tuning pipeline for an OCI specialist LLM using Apple Silicon, MLX, and LoR
 [![License](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.12-blue?style=flat-square&logo=python&logoColor=white)](https://www.python.org)
 [![MLX](https://img.shields.io/badge/MLX-Apple%20Silicon-orange?style=flat-square)](https://mlx.ai)
-[![Dataset](https://img.shields.io/badge/Dataset-710_examples-green?style=flat-square)](docs/taxonomy.md)
+[![Model](https://img.shields.io/badge/Base%20Model-Llama--3.2--3B--Instruct--4bit-purple?style=flat-square)](https://huggingface.co/mlx-community/Llama-3.2-3B-Instruct-4bit)
+[![Dataset](https://img.shields.io/badge/Dataset-9940_examples-green?style=flat-square)](docs/taxonomy.md)
 
 </div>
 
-> **Language**: [🇧🇷 PT-BR](README.md) | 🇺🇸 EN-US (secundário)
+> **Language**: [🇧🇷 PT-BR](README.md) | 🇺🇸 EN-US (secondary)
 
 ---
 
@@ -29,21 +30,70 @@ The model is designed to assist with:
 
 ---
 
+## Training Results
+
+Multi-cycle training with decreasing learning rate completed successfully:
+
+| Cycle | LR | Iters | Val Loss | Train Loss | Status |
+|-------|-----|-------|----------|------------|--------|
+| cycle-1 | 5e-5 | 200 | 0.163 | 0.161 | ✅ From scratch |
+| cycle-2 | 1e-5 | 200 | 0.119 | 0.104 | ✅ Resume cycle-1 |
+| cycle-3 | 5e-6 | 200 | **0.114** | **0.089** | ✅ Best (resume cycle-2) |
+
+**Best adapter**: `outputs/cycle-3/adapters.safetensors` (lowest val loss: 0.114)
+**Merged model**: `outputs/merged-model/` (~1.8GB)
+
+### Training Progression
+
+```
+Val Loss:  0.163 → 0.119 → 0.114  (30% improvement)
+Train Loss: 0.161 → 0.104 → 0.089  (45% improvement)
+```
+
+---
+
 ## Dataset
 
-The dataset contains examples generated via MASTER_PROMPT. See `docs/taxonomy.md` for all topics.
+The dataset contains 9,940 unique examples generated with structural diversity and rigorous validation.
 
-| Category | Topics |
-|----------|--------|
-| OCI Core (compute, storage, networking, lb, database, container, serverless) | 20 |
-| Security (iam-basics, policies, vault, encryption, cloud-guard, waf) | 9 |
-| Migration (AWS/Azure/GCP/On-prem → OCI) | 14 |
-| Terraform (provider, compute, storage, networking, lb, database, container, serverless, security, observability, devops, state) | 12 |
-| Observability | 4 |
-| Troubleshooting | 8 |
-| DevOps | 4 |
+| Metric | Value |
+|--------|-------|
+| **Total Examples** | 9,940 |
+| **Categories** | 71 OCI topics |
+| **Examples per Category** | 140 |
+| **Duplicates** | 0 (exact + near) |
+| **Fake CLI Commands** | 0 |
+| **Fake SDK Classes** | 0 |
+| **Fake TF Resources** | 0 |
 
-> **Total: 71 topics × 10 examples = 710 examples**
+### Split Distribution
+
+| Split | Examples | Percentage |
+|-------|----------|------------|
+| Train | 7,455 | 75.0% |
+| Valid | 1,491 | 15.0% |
+| Eval | 994 | 10.0% |
+| **Total** | **9,940** | **100%** |
+
+### Difficulty Distribution (Train)
+
+| Difficulty | Count | Percentage |
+|------------|-------|------------|
+| Beginner | 2,223 | 29.8% |
+| Intermediate | 3,731 | 50.0% |
+| Advanced | 1,501 | 20.1% |
+
+### Categories by Group
+
+| Group | Topics | Examples |
+|-------|--------|----------|
+| OCI Core (compute, storage, networking, lb, database, container, serverless) | 20 | 2,800 |
+| Security (iam-basics, policies, vault, encryption, cloud-guard, waf) | 9 | 1,260 |
+| Migration (AWS/Azure/GCP/On-prem → OCI) | 14 | 1,960 |
+| Terraform (provider, compute, storage, networking, lb, database, container, serverless, security, observability, devops, state) | 12 | 1,680 |
+| Observability | 4 | 560 |
+| Troubleshooting | 8 | 1,120 |
+| DevOps | 4 | 560 |
 
 ### Data Format
 
@@ -71,6 +121,8 @@ We enforce strict quality rules to ensure dataset accuracy:
 - **NEVER** use prices or limits without marking as mutable
 - **NEVER** create vague examples like "use best practices"
 - **NEVER** generate architectural responses without steps, risks, or justifications
+- **ALWAYS** validate JSONL before export
+- **ALWAYS** use verified CLI, SDK, and Terraform commands
 
 ---
 
@@ -91,23 +143,6 @@ pip install -r requirements.txt
 
 ## Quick Start
 
-### Generate Curated Data
-
-Use **MASTER_PROMPT** to generate data:
-
-```bash
-# List available topics
-python scripts/generate_prompt.py --list
-
-# Generate prompt for a specific topic
-python scripts/generate_prompt.py compute/instances
-
-# Generate ALL prompts at once
-python scripts/generate_prompt.py --all
-```
-
-The generated prompt should be executed, and the result saved to `data/curated/[topic].jsonl`.
-
 ### Complete Pipeline
 
 ```bash
@@ -116,47 +151,54 @@ source venv/bin/activate
 
 # ========== 1. DATA PREPARATION ==========
 
-# 1.1 Generate ALL prompts
-python scripts/generate_prompt.py --all
-
-# 1.2 Execute the prompt and save to data/curated/
- For each file in tmp/prompt_*.md:
-   1. Execute tmp/prompt_*.md
-   2. Save result to data/curated/[topic].jsonl
- Format: 1 file per topic (71 topics = 71 files), 10 examples per file
-
-# 1.3 Concatenate all JSONL
+# 1.1 Concatenate all curated JSONL files
 cat data/curated/*.jsonl > data/all_curated.jsonl
 
-# 1.4 Validate dataset
-python3 scripts/validate_jsonl.py data/all_curated.jsonl --filter
-mv data/all_curated_valid.jsonl data/all_curated.jsonl
+# 1.2 Validate dataset
+python scripts/validate_jsonl.py data/all_curated.jsonl
 
-# 1.5 Deduplicate
-python3 scripts/dedupe_dataset.py data/all_curated.jsonl --remove
+# 1.3 Deduplicate
+python scripts/dedupe_dataset.py data/all_curated.jsonl --remove
 
-# 1.6 Create splits (train/valid/eval)
-python3 scripts/build_dataset_fixed.py -i data/all_curated.jsonl -o data/
+# 1.4 Create splits (train/valid/eval)
+python scripts/build_dataset_fixed.py --input data/all_curated.jsonl
+
+# Or use the complete script that does all of the above:
+# bash scripts/prepare_data.sh
 
 # ========== 2. TRAINING ==========
 
-# ⚠️ NOTE: Validate variables in config/cycle-1.env before running
-# 2.1 Load cycle configuration
-source config/cycle-1.env
-
-# 2.2 Fine-Tune LoRA
-bash training/train_mlx.sh
+# 2.1 Multi-cycle training (recommended)
+bash training/run_all_cycles.sh
 
 # ========== 3. POST-TRAINING ==========
 
-# 3.1 Export/Merge adapter
-bash training/export_adapter.sh
+# 3.1 Export/Merge adapter (uses venv automatically)
+ADAPTER_DIR=outputs/cycle-3 bash training/export_adapter.sh
 
 # 3.2 Test inference
 bash training/run_inference.sh
 
 # 3.3 Evaluate
-python scripts/evaluate_model.py outputs/adapters data/eval.jsonl outputs/benchmarks
+python scripts/evaluate_model.py "mlx-community/Llama-3.2-3B-Instruct-4bit" "outputs/merged-model" data/eval.jsonl outputs/benchmarks
+```
+
+### Multi-Cycle Training
+
+The pipeline supports multi-cycle training with decreasing learning rate:
+
+| Variable | cycle-1 | cycle-2 | cycle-3 |
+|----------|---------|---------|---------|
+| `LEARNING_RATE` | 5e-5 | 1e-5 | 5e-6 |
+| `ITERS` | 200 | 200 | 200 |
+| `RESUME` | scratch | cycle-1 | cycle-2 |
+
+> ⚠️ **Note**: The script `training/run_all_cycles.sh` uses smaller iterations (200/100/50) by default.
+> The values above reflect the actual training executed. To reproduce, adjust `ITERS` in `config/cycle-*.env` files.
+
+```bash
+# Run all cycles sequentially
+bash training/run_all_cycles.sh
 ```
 
 ### Cycle Configuration (`config/cycle-1.env`)
@@ -164,20 +206,18 @@ python scripts/evaluate_model.py outputs/adapters data/eval.jsonl outputs/benchm
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `MODEL` | MLX base model (HuggingFace) | `mlx-community/Llama-3.2-3B-Instruct-4bit` |
-| `TRAIN_DATA | Training data file | `data/train.jsonl` |
+| `TRAIN_DATA` | Training data file | `data/train.jsonl` |
 | `VALID_DATA` | Validation data file | `data/valid.jsonl` |
 | `OUTPUT_DIR` | Folder to save LoRA adapters | `outputs/cycle-1` |
 | `EPOCHS` | Number of training epochs | `2` |
-| `BATCH_SIZE` | Batch size | `4` |
+| `BATCH_SIZE` | Batch size | `1` |
 | `LEARNING_RATE` | Learning rate | `5e-5` |
-| `LORA_RANK` | LoRA matrix rank (higher = more parameters) | `16` |
-| `LORA_ALPHA` | LoRA scale (usually 2x rank) | `32` |
+| `LORA_RANK` | LoRA matrix rank | `8` |
+| `LORA_ALPHA` | LoRA scale | `16` |
 | `LORA_DROPOUT` | Dropout rate for regularization | `0.05` |
-| `GRADIENT_ACCUMULATION` | Gradient steps before update | `2` |
+| `GRADIENT_ACCUMULATION` | Gradient steps before update | `4` |
 
-> 💡 **Tip**: To create a new training cycle, copy `config/cycle-1.env` to `config/cycle-2.env` and adjust values.
-
-> ⚠️ **Note**: This is a **local** training pipeline (LoRA with small dataset ~710 examples). For **production**, just increase the dataset to ~10k+ examples and follow the same steps - the rest of the pipeline remains identical.
+> 💡 **Tip**: To create a new training cycle, copy `config/cycle-1.env` to `config/cycle-N.env` and adjust values.
 
 ### Pipeline Flow
 
@@ -195,19 +235,21 @@ flowchart LR
         DP7 --> Eval[eval.jsonl]
     end
     
-    subgraph Training["2. Training"]
+    subgraph Training["2. Multi-Cycle Training"]
         Train --> T1[Select Base Model]
         Valid --> T1
-        T1 --> T2[Fine-Tune LoRA]
+        T1 --> T2[Cycle 1: LR=5e-5]
+        T2 --> T3[Cycle 2: LR=1e-5]
+        T3 --> T4[Cycle 3: LR=5e-6]
     end
     
     subgraph PostProcess["3. Post-Training"]
-        T2 --> P1[Export/Merge Adapter]
+        T4 --> P1[Export/Merge Adapter]
         P1 --> P2[Test Inference]
         P2 --> P3[Evaluate with eval.jsonl]
     end
     
-    P1 --> outputs/adapters
+    P1 --> outputs/merged-model
     P3 --> outputs/benchmarks
     
     style DP2 fill:#e1f5fe,stroke:#01579b
@@ -216,17 +258,7 @@ flowchart LR
     style Train fill:#e8f5e9,stroke:#2e7d32
     style Valid fill:#e8f5e9,stroke:#2e7d32
     style Eval fill:#e8f5e9,stroke:#2e7d32
-```
-
----
-    
-    I -.->|75%| L[train]
-    I -.->|15%| M[valid]
-    I -.->|10%| N[eval]
-    
-    style C fill:#e1f5fe,stroke:#01579b
-    style D fill:#fff3e0,stroke:#e65100
-    style E fill:#fff3e0,stroke:#e65100
+    style T4 fill:#c8e6c9,stroke:#1b5e20
 ```
 
 ---
@@ -242,20 +274,39 @@ olia-2-oci/
 ├── docs/                          # Project documentation
 │   ├── taxonomy.md               # Dataset topics
 │   ├── quality-rules.md          # Quality rules
-│   └── eval-rubric.md            # Evaluation criteria
-├── scripts/                      # Pipeline scripts
-│   ├── generate_prompt.py       # Generate prompts for LLM
+│   ├── eval-rubric.md            # Evaluation criteria
+│   └── scope.md                  # Scope v1 vs v2
+├── config/                        # Training configurations
+│   ├── cycle-1.env               # Cycle 1: LR=5e-5
+│   ├── cycle-2.env               # Cycle 2: LR=1e-5 (resume)
+│   └── cycle-3.env               # Cycle 3: LR=5e-6 (resume)
+├── data/                          # Dataset
+│   ├── curated/                  # 71 topic files (140 examples each)
+│   ├── all_curated.jsonl         # Combined dataset (9,940)
+│   ├── train.jsonl               # Training split (7,455)
+│   ├── valid.jsonl               # Validation split (1,491)
+│   ├── eval.jsonl                # Evaluation split (994)
+│   └── TEMPLATE.jsonl            # Reference format
+├── scripts/                       # Pipeline scripts
+│   ├── generate_diverse_v2.py    # Dataset generator (9,940 examples)
 │   ├── validate_jsonl.py         # Validate JSONL format
 │   ├── dedupe_dataset.py         # Remove duplicates
 │   ├── build_dataset_fixed.py    # Create train/valid/eval splits
+│   ├── prepare_data.sh           # Pipeline orchestrator
 │   └── evaluate_model.py         # Run benchmarks
-├── .agents/skills/               # Data generation skills
-│   └── generate-oci-dataset/
-│       ├── MASTER_FORMAT.md
-│       └── prompts/              # Prompts per topic
-└── training/                     # MLX training scripts
-    ├── train_mlx.sh
-    └── run_inference.sh
+├── training/                      # MLX training scripts
+│   ├── train_mlx_v2.sh           # Training with logging and resume
+│   ├── run_all_cycles.sh         # Multi-cycle orchestrator
+│   ├── export_adapter.sh         # Merge adapter with base model
+│   ├── run_inference.sh          # Test inference
+│   └── log_metrics.py            # Capture metrics to CSV
+└── outputs/                       # Output artifacts
+    ├── cycle-1/                  # Adapter cycle 1
+    ├── cycle-2/                  # Adapter cycle 2
+    ├── cycle-3/                  # Adapter cycle 3 (BEST)
+    ├── merged-model/             # Final merged model (~1.8GB)
+    ├── logs/                     # Logs and metrics CSV per cycle
+    └── benchmarks/               # Evaluation reports
 ```
 
 ---
@@ -263,10 +314,10 @@ olia-2-oci/
 ## Pipeline
 
 1. **Documentation** → Scope, taxonomy, quality rules
-2. **Data Generation** → MASTER_PROMPT → curated/
+2. **Data Generation** → MASTER_PROMPT → curated/ (9,940 examples)
 3. **Validation** → JSONL validator, deduplication
 4. **Dataset Building** → train (~75%), valid (~15%), eval (~10%)
-5. **Training** → MLX LoRA fine-tuning on Apple Silicon
+5. **Training** → MLX LoRA fine-tuning on Apple Silicon (multi-cycle, LR decay)
 6. **Evaluation** → Benchmark comparing base vs fine-tuned
 
 ---
@@ -275,6 +326,18 @@ olia-2-oci/
 
 After training:
 
-- `outputs/adapters/` - Trained LoRA adapters
+- `outputs/cycle-{1,2,3}/` - LoRA adapters per cycle
+- `outputs/merged-model/` - Merged model (base + adapter)
+- `outputs/logs/cycle-{1,2,3}/` - Logs and metrics CSV per cycle
 - `outputs/benchmarks/` - Evaluation reports
-- `outputs/logs/` - Training logs
+- `backup_pre_expansao/` - Dataset backup before expansions
+
+---
+
+## Future Improvements
+
+1. **RAG Layer**: For factual accuracy in CLI commands, SDK classes, and Terraform resources, add a RAG layer with real-time documentation.
+2. **Response Diversity**: Expand from 8 to 20+ response structures.
+3. **Larger Model**: Consider Llama-3.1-8B for better reasoning in architectural scenarios.
+4. **Human Evaluation**: Human review of generated responses for nuanced quality assessment.
+5. **Continuous Training**: Pipeline supports adding new examples and retraining.

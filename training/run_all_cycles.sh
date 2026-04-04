@@ -53,9 +53,10 @@ for i in "${!CYCLES[@]}"; do
             echo "Cannot resume training. Aborting."
             exit 1
         fi
+        echo "Resuming from: $PREV_ADAPTER"
     fi
 
-    CYCLE="$CYCLE" ITERS="$ITERS" bash "${SCRIPT_DIR}/train_mlx_v2.sh"
+    CYCLE="$CYCLE" ITERS="$ITERS" PREV_ADAPTER="${PREV_ADAPTER:-}" bash "${SCRIPT_DIR}/train_mlx_v2.sh"
     EXIT_CODE=$?
 
     if [ $EXIT_CODE -ne 0 ]; then
