@@ -204,6 +204,9 @@ O pipeline suporta treinamento em múltiplos ciclos com learning rate decrescent
 ```bash
 # Executar todos os ciclos sequencialmente
 bash training/run_all_cycles.sh
+
+# Acompanhar progresso do treinamento (push para GitHub)
+bash scripts/push_training_progress.sh cycle-1  # ou cycle-2, cycle-3
 ```
 
 ### Configuração do Ciclo (`config/cycle-1.env`)
