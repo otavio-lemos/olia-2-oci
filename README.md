@@ -174,6 +174,8 @@ bash training/run_all_cycles.sh
 # ========== 3. PÓS-TREINAMENTO ==========
 
 # 3.1 Exportar/Merge adapter (usa venv automaticamente)
+# Verifique qual ciclo tem menor val loss em outputs/logs/cycle-*/metrics.csv
+# O cycle-3 é o melhor do treinamento atual (val loss: 0.114)
 ADAPTER_DIR=outputs/cycle-3 bash training/export_adapter.sh
 
 # 3.2 Testar inference
