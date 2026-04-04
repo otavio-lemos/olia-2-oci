@@ -74,7 +74,7 @@ Durante o treinamento e avaliação, o progresso é enviado automaticamente para
 
 ## Dataset
 
-O dataset contém 9.940 exemplos únicos gerados com diversidade estrutural e validação rigorosa.
+O dataset contém 9,940 exemplos únicos gerados com diversidade estrutural e validação rigorosa.
 
 | Métrica | Valor |
 |---------|-------|
@@ -93,15 +93,15 @@ O dataset contém 9.940 exemplos únicos gerados com diversidade estrutural e va
 | Train | 7,455 | 75.0% |
 | Valid | 1,491 | 15.0% |
 | Eval | 994 | 10.0% |
-| **Total** | **9,940** | **100%** |
+| **Total** | **9,940** | **100.0%** |
 
 ### Difficulty Distribution (Train)
 
 | Dificuldade | Count | Percentual |
 |-------------|-------|------------|
-| Beginner | 2,223 | 29.8% |
-| Intermediate | 3,731 | 50.0% |
-| Advanced | 1,501 | 20.1% |
+| Beginner | 2,199 | 29.5% |
+| Intermediate | 3,789 | 50.8% |
+| Advanced | 1,467 | 19.7% |
 
 ### Categorias por Grupo
 
@@ -115,20 +115,6 @@ O dataset contém 9.940 exemplos únicos gerados com diversidade estrutural e va
 | Troubleshooting | 8 | 1,120 |
 | DevOps | 4 | 560 |
 
-### Formato dos Dados
-
-Cada exemplo segue o formato JSON chat:
-
-```json
-{
-  "messages": [
-    {"role": "system", "content": "You are an OCI specialist..."},
-    {"role": "user", "content": "How do I configure..."},
-    {"role": "assistant", "content": "## Solution\n\n### Steps..."}
-  ],
-  "metadata": {"category": "compute/instances", "difficulty": "intermediate", "source": "generated"}
-}
-```
 
 ---
 
