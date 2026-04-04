@@ -15,13 +15,6 @@ outputs/cycle-*/
 outputs/merged-model*/
 outputs/adapters/
 
-# Generated data (reproducible from curated/)
-data/all_curated*.jsonl
-data/train.jsonl
-data/valid.jsonl
-data/eval.jsonl
-data/eval_sample_*.jsonl
-
 # Temp/diagnostic logs
 outputs/benchmarks/eval-run.log
 backup_*/
