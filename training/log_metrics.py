@@ -82,6 +82,19 @@ def main():
         metrics = parse_metrics(line, timestamp)
         if metrics:
             all_metrics.append(metrics)
+            # Auto-push to GitHub every 50 steps
+            step = metrics.get("step", 0)
+            if step > 0 and step % 50 == 0:
+                try:
+                    subprocess.run(
+                        ["bash", "scripts/push_training_progress.sh", cycle_name],
+                        capture_output=True,
+                        text=True,
+                        timeout=60,
+                    )
+                    print(f"[log_metrics] Progress pushed to GitHub (step {step})")
+                except Exception as e:
+                    print(f"[log_metrics] Push failed (will retry): {e}")
 
     return_code = process.wait()
 
