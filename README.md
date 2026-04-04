@@ -50,6 +50,26 @@ Val Loss:  0.163 → 0.119 → 0.114  (30% improvement)
 Train Loss: 0.161 → 0.104 → 0.089  (45% improvement)
 ```
 
+> **Nota**: Os resultados acima são do último treinamento executado.
+> Após cada novo treinamento e avaliação, esta seção é atualizada automaticamente com os dados reais.
+
+### Monitoramento em Tempo Real
+
+Durante o treinamento e avaliação, o progresso é enviado automaticamente para o GitHub a cada 50 steps/exemplos:
+
+**Durante treinamento:**
+- [`outputs/logs/cycle-N/training-progress.md`](outputs/logs/) — resumo formatado
+- [`outputs/logs/cycle-N/metrics.csv`](outputs/logs/) — métricas brutas (step, train_loss, val_loss)
+
+**Durante avaliação:**
+- [`outputs/benchmarks/eval-progress-NNNNN.md`](outputs/benchmarks/) — relatório comparativo base vs fine-tuned
+
+**Links diretos:**
+- [outputs/benchmarks/](https://github.com/otavio-lemos/olia-2-oci/tree/main/outputs/benchmarks/)
+- [outputs/logs/](https://github.com/otavio-lemos/olia-2-oci/tree/main/outputs/logs/)
+
+> Após finalização do treinamento e avaliação, o README é atualizado com os resultados finais.
+
 ---
 
 ## Dataset
