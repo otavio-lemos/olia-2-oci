@@ -179,8 +179,12 @@ ADAPTER_DIR=outputs/cycle-3 bash training/export_adapter.sh
 # 3.2 Testar inference
 bash training/run_inference.sh
 
-# 2.1 Avaliar
+# 3.3 Avaliar (rápido — 994 exemplos do split eval)
 python scripts/evaluate_model.py "mlx-community/Llama-3.2-3B-Instruct-4bit" "outputs/merged-model" data/eval.jsonl outputs/benchmarks
+
+# 3.3 Avaliar (completo — 9,940 exemplos, recomendado para release)
+# python scripts/evaluate_model.py "mlx-community/Llama-3.2-3B-Instruct-4bit" "outputs/merged-model" data/all_curated_clean.jsonl outputs/benchmarks
+# Inclui checkpoint/resume automático, ETA, análise por dificuldade e ranking de categorias
 ```
 
 ### Treinamento Multi-Cycle

@@ -128,7 +128,7 @@ Example categories:
 
 ## TOPIC: compute/instances
 
-#### compute/instances (10)
+#### compute/instances (140)
 - Instance creation, shapes (Ampere A1, VM.Standard)
 - SSH access, boot volume management
 - Instance lifecycle (start, stop, terminate)
@@ -140,21 +140,6 @@ Example categories:
 ## SYSTEM PROMPT (para usar no JSONL)
 
 You are an OCI specialist with expertise in Compute instances. Provide technical guidance on instance creation, shape selection, SSH access, and lifecycle management.
-
----
-
-## EXAMPLE QUESTIONS (para inspiração - gere questões originais)
-
-- Como criar uma instância VM.Standard.E4.Flex no OCI usando o console?
-- Qual a diferença entre shapes Ampere A1 e Intel Xeon no OCI Compute?
-- Como configurar acesso SSH com chave pública em uma instância OCI?
-- Como redimensionar uma instância de VM.Standard.E2 para VM.Standard.E4?
-- Como parar e iniciar uma instância sem perder dados do boot volume?
-- Como criar múltiplas instâncias usando instance configuration?
-- Como resolver erro de 'Out of Host Capacity' ao criar instâncias?
-- Como configurar cloud-init para automatizar setup pós-criação?
-- Como attaching secondary VNICs em uma instância existente?
-- Como fazer backup e restore de boot volumes no OCI?
 
 ---
 
@@ -175,22 +160,21 @@ Varie os exemplos entre:
 3. Use APENAS as informações presentes em "TOPIC: compute/instances"
 4. Não invente informações que não estão nos docs OCI
 5. Não use preços ou limites sem marcar [MUTABLE] ou [CHECK DOCS]
-6. Se EXAMPLE QUESTIONS estiver presente, use como INSPIRAÇÃO para criar questões DIVERSAS e ORIGINAIS (não copie verbatim)
-7. Cada exemplo DEVE ter um cenário diferente - NÃO repita o mesmo caso de uso
-8. Varie os contextos: diferentes personas, diferentes níveis de complexidade, diferentes casos de uso reais
+6. Cada exemplo DEVE ter um cenário diferente - NÃO repita o mesmo caso de uso
+7. Varie os contextos: diferentes personas, diferentes níveis de complexidade, diferentes casos de uso reais
 
 ---
 
 ## OUTPUT FORMAT
 
-Gere EXATAMENTE 10 exemplos em formato JSONL.
+Gere EXATAMENTE 140 exemplos em formato JSONL.
 
 **UM objeto JSON por linha** - cada linha é um objeto JSON completo.
 
 ```
 {"messages": [...], "metadata": {"category": "compute/instances", "difficulty": "beginner|intermediate|advanced", "source": "generated"}}
 {"messages": [...], "metadata": {"category": "compute/instances", "difficulty": "beginner|intermediate|advanced", "source": "generated"}}
-... (10 linhas total)
+... (140 linhas total)
 ```
 
 ---
@@ -228,9 +212,9 @@ Gere EXATAMENTE 10 exemplos em formato JSONL.
 ---
 
 ## DISTRIBUIÇÃO DE DIFICULDADE
-- beginner: ~30% dos exemplos (3 exemplos)
-- intermediate: ~50% dos exemplos (5 exemplos)
-- advanced: ~20% dos exemplos (2 exemplos)
+- beginner: ~30% dos exemplos (42 exemplos)
+- intermediate: ~50% dos exemplos (70 exemplos)
+- advanced: ~20% dos exemplos (28 exemplos)
 
 ---
 
@@ -250,9 +234,9 @@ Gere EXATAMENTE 10 exemplos em formato JSONL.
 
 ## SUA TAREFA
 
-Gere EXATAMENTE 10 exemplos diversos para o topic: **compute/instances**
+Gere EXATAMENTE 140 exemplos diversos para o topic: **compute/instances**
 
-- Mistura de dificuldades: 3 beginner, 5 intermediate, 2 advanced
+- Mistura de dificuldades: 42 beginner, 70 intermediate, 28 advanced
 - Cenários reais de OCI - cada exemplo com um caso de uso diferente
 - Use Português (BR) para perguntas do usuário
 - Formato JSONL, uma linha por exemplo

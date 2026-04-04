@@ -4,8 +4,9 @@
 import json
 import re
 import sys
+import time
 from pathlib import Path
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import List, Dict, Any, Optional
 
 import mlx.core as mx
@@ -20,6 +21,42 @@ def load_eval_data(filepath: Path) -> List[Dict[str, Any]]:
             if line.strip():
                 examples.append(json.loads(line))
     return examples
+
+
+def load_checkpoint(checkpoint_path: Path) -> tuple:
+    if checkpoint_path.exists():
+        with open(checkpoint_path, "r", encoding="utf-8") as f:
+            data = json.load(f)
+        return (
+            data.get("base_results", []),
+            data.get("ft_results", []),
+            data.get("completed", 0),
+        )
+    return [], [], 0
+
+
+def save_checkpoint(
+    checkpoint_path: Path, base_results: List, ft_results: List, completed: int
+):
+    with open(checkpoint_path, "w", encoding="utf-8") as f:
+        json.dump(
+            {
+                "base_results": base_results,
+                "ft_results": ft_results,
+                "completed": completed,
+                "timestamp": datetime.now().isoformat(),
+            },
+            f,
+            indent=2,
+            ensure_ascii=False,
+        )
+
+
+def format_eta(seconds_per_item: float, remaining: int) -> str:
+    if remaining <= 0 or seconds_per_item <= 0:
+        return "calculating..."
+    total_seconds = int(seconds_per_item * remaining)
+    return str(timedelta(seconds=total_seconds))
 
 
 def get_user_prompt(example: Dict[str, Any]) -> str:
@@ -37,9 +74,12 @@ def get_reference_answer(example: Dict[str, Any]) -> str:
 
 
 class ModelEvaluator:
-    def __init__(self, base_model_id: str, adapter_path: str = ""):
+    def __init__(
+        self, base_model_id: str, adapter_path: str = "", merged_model_path: str = ""
+    ):
         self.base_model_id = base_model_id
         self.adapter_path = adapter_path
+        self.merged_model_path = merged_model_path
         self.model = None
         self.tokenizer = None
         self._loaded = False
@@ -47,18 +87,23 @@ class ModelEvaluator:
     def load_model(self):
         if self._loaded:
             return
-        print(f"Loading model: {self.base_model_id}")
-        if self.adapter_path:
-            print(f"  With adapter: {self.adapter_path}")
-        self.model, self.tokenizer = load(
-            path_or_hf_repo=self.base_model_id,
-            adapter_path=self.adapter_path if self.adapter_path else None,
-        )
+        if self.merged_model_path:
+            print(f"Loading merged model: {self.merged_model_path}")
+            self.model, self.tokenizer = load(path_or_hf_repo=self.merged_model_path)
+        else:
+            print(f"Loading model: {self.base_model_id}")
+            if self.adapter_path:
+                print(f"  With adapter: {self.adapter_path}")
+            self.model, self.tokenizer = load(
+                path_or_hf_repo=self.base_model_id,
+                adapter_path=self.adapter_path if self.adapter_path else None,
+            )
+        self.sampler = make_sampler(temp=0.5, top_p=0.9, min_p=0.0, top_k=50)
         self._loaded = True
         print("Model loaded successfully")
 
     def generate_response(
-        self, prompt: str, system_prompt: str = "", max_tokens: int = 1024
+        self, prompt: str, system_prompt: str = "", max_tokens: int = 512
     ) -> str:
         if not self._loaded:
             self.load_model()
@@ -72,14 +117,12 @@ class ModelEvaluator:
             messages, add_generation_prompt=True
         )
 
-        sampler = make_sampler(temp=0.7, top_p=1.0, min_p=0.0, top_k=0)
-
         response = generate(
             self.model,
             self.tokenizer,
             prompt=prompt_tokens,
             max_tokens=max_tokens,
-            sampler=sampler,
+            sampler=self.sampler,
             verbose=False,
         )
 
@@ -401,6 +444,95 @@ def generate_comparison_report(
     print(f"Improvement: {improvement:+.2f} ({improvement_pct:+.1f}%)")
 
 
+def generate_difficulty_report(
+    base_results: List[Dict[str, Any]],
+    ft_results: List[Dict[str, Any]],
+    output_dir: Path,
+) -> Path:
+    difficulties = {}
+    for br, fr in zip(base_results, ft_results):
+        diff = br.get("difficulty", "unknown")
+        if diff not in difficulties:
+            difficulties[diff] = {"base": [], "ft": []}
+        difficulties[diff]["base"].append(br["scores"]["overall"])
+        difficulties[diff]["ft"].append(fr["scores"]["overall"])
+
+    n = len(base_results)
+    base_avg = sum(r["scores"]["overall"] for r in base_results) / n
+    ft_avg = sum(r["scores"]["overall"] for r in ft_results) / n
+
+    report = f"""# OCI Specialist LLM - Difficulty Analysis Report
+
+**Date:** {datetime.now().strftime("%Y-%m-%d %H:%M")}
+**Total Examples:** {n}
+
+## Overall
+
+| Metric | Base | Fine-Tuned | Delta |
+|--------|------|------------|-------|
+| **Overall** | **{base_avg:.2f}/5** | **{ft_avg:.2f}/5** | **{ft_avg - base_avg:+.2f}** |
+
+## By Difficulty
+
+| Difficulty | Base | Fine-Tuned | Delta | Count |
+|------------|------|------------|-------|-------|
+"""
+    for diff in ["beginner", "intermediate", "advanced"]:
+        if diff in difficulties:
+            d_base = sum(difficulties[diff]["base"]) / len(difficulties[diff]["base"])
+            d_ft = sum(difficulties[diff]["ft"]) / len(difficulties[diff]["ft"])
+            count = len(difficulties[diff]["base"])
+            report += f"| {diff} | {d_base:.2f} | {d_ft:.2f} | {d_ft - d_base:+.2f} | {count} |\n"
+
+    report += "\n## Hallucination Analysis\n\n"
+    base_hall = sum(r["scores"]["hallucination"] for r in base_results) / n
+    ft_hall = sum(r["scores"]["hallucination"] for r in ft_results) / n
+    report += f"| Metric | Base | Fine-Tuned |\n|--------|------|------------|\n"
+    report += f"| Hallucination Score | {base_hall:.2f} | {ft_hall:.2f} |\n"
+
+    base_hall_count = sum(1 for r in base_results if r["scores"]["hallucination"] < 4.0)
+    ft_hall_count = sum(1 for r in ft_results if r["scores"]["hallucination"] < 4.0)
+    report += f"| Responses with hallucination | {base_hall_count} ({base_hall_count / n * 100:.1f}%) | {ft_hall_count} ({ft_hall_count / n * 100:.1f}%) |\n"
+
+    report += "\n## Worst Performing Categories (Fine-Tuned)\n\n"
+    cat_scores = {}
+    for br, fr in zip(base_results, ft_results):
+        cat = br.get("category", "unknown")
+        if cat not in cat_scores:
+            cat_scores[cat] = {"base": [], "ft": []}
+        cat_scores[cat]["base"].append(br["scores"]["overall"])
+        cat_scores[cat]["ft"].append(fr["scores"]["overall"])
+
+    cat_avgs = [
+        (
+            cat,
+            sum(scores["ft"]) / len(scores["ft"]),
+            sum(scores["base"]) / len(scores["base"]),
+        )
+        for cat, scores in cat_scores.items()
+    ]
+    cat_avgs.sort(key=lambda x: x[1])
+
+    report += "| Category | Base | Fine-Tuned | Delta | Count |\n|----------|------|------------|-------|-------|\n"
+    for cat, ft_avg_cat, base_avg_cat in cat_avgs[:10]:
+        count = len(cat_scores[cat]["ft"])
+        report += f"| {cat} | {base_avg_cat:.2f} | {ft_avg_cat:.2f} | {ft_avg_cat - base_avg_cat:+.2f} | {count} |\n"
+
+    report += "\n## Best Performing Categories (Fine-Tuned)\n\n"
+    report += "| Category | Base | Fine-Tuned | Delta | Count |\n|----------|------|------------|-------|-------|\n"
+    for cat, ft_avg_cat, base_avg_cat in cat_avgs[-10:]:
+        count = len(cat_scores[cat]["ft"])
+        report += f"| {cat} | {base_avg_cat:.2f} | {ft_avg_cat:.2f} | {ft_avg_cat - base_avg_cat:+.2f} | {count} |\n"
+
+    output_path = (
+        output_dir
+        / f"difficulty-analysis-{datetime.now().strftime('%Y%m%d-%H%M%S')}.md"
+    )
+    with open(output_path, "w", encoding="utf-8") as f:
+        f.write(report)
+    return output_path
+
+
 def main():
     if len(sys.argv) < 4:
         print(
@@ -413,41 +545,60 @@ def main():
     eval_file = Path(sys.argv[3])
     output_dir = Path(sys.argv[4]) if len(sys.argv) > 4 else Path("outputs/benchmarks")
 
-    base_model_id = "mlx-community/Llama-3.2-3B-Instruct-4bit"
-
     ft_model_path = Path(ft_model_dir)
-    if ft_model_path.is_file() and ft_model_path.suffix == ".safetensors":
+    if ft_model_path.is_dir() and (ft_model_path / "model.safetensors").exists():
+        merged_model_path = str(ft_model_path)
+        adapter_path = None
+        print(f"Detected merged model: {merged_model_path}")
+    elif ft_model_path.is_file() and ft_model_path.suffix == ".safetensors":
         adapter_path = str(ft_model_path.parent)
-    elif ft_model_path.is_dir():
+        merged_model_path = None
+    elif ft_model_path.is_dir() and (ft_model_path / "adapters.safetensors").exists():
         adapter_path = str(ft_model_path)
+        merged_model_path = None
     else:
         adapter_path = ft_model_dir
+        merged_model_path = None
 
     eval_data = load_eval_data(eval_file)
     print(f"Loaded {len(eval_data)} eval examples")
-    print(f"Base model: {base_model_id}")
-    print(f"Adapter: {adapter_path}")
+    print(f"Base model: {base_model_path}")
+    print(f"FT model: {merged_model_path or adapter_path}")
 
-    base_evaluator = ModelEvaluator(base_model_id)
-    ft_evaluator = ModelEvaluator(base_model_id, adapter_path)
+    checkpoint_path = output_dir / "eval-checkpoint.json"
+    output_dir.mkdir(parents=True, exist_ok=True)
 
+    base_results, ft_results, completed = load_checkpoint(checkpoint_path)
+    if completed > 0:
+        print(f"Resuming from checkpoint: {completed}/{len(eval_data)} examples done")
+
+    base_evaluator = ModelEvaluator(base_model_path)
+    ft_evaluator = ModelEvaluator(
+        base_model_path, adapter_path or "", merged_model_path or ""
+    )
+
+    print("\nLoading models (one-time)...")
     base_evaluator.load_model()
     ft_evaluator.load_model()
+    print("Both models loaded. Starting evaluation...\n")
 
-    base_results = []
-    ft_results = []
+    start_time = time.time()
+    eval_times = []
 
-    for i, example in enumerate(eval_data):
+    for i in range(completed, len(eval_data)):
+        example = eval_data[i]
         question = get_user_prompt(example)
         reference = get_reference_answer(example)
         category = example.get("metadata", {}).get("category", "unknown")
+        difficulty = example.get("metadata", {}).get("difficulty", "unknown")
         system_msg = ""
         for msg in example.get("messages", []):
             if msg.get("role") == "system":
                 system_msg = msg.get("content", "")
                 break
 
-        print(f"[{i + 1}/{len(eval_data)}] Evaluating {category}...")
+        item_start = time.time()
+        print(f"[{i + 1}/{len(eval_data)}] Evaluating {category} ({difficulty})...")
 
         base_response = base_evaluator.generate_response(question, system_msg)
         ft_response = ft_evaluator.generate_response(question, system_msg)
@@ -461,6 +612,7 @@ def main():
                 "response": base_response,
                 "scores": base_scores,
                 "category": category,
+                "difficulty": difficulty,
             }
         )
         ft_results.append(
@@ -469,13 +621,28 @@ def main():
                 "response": ft_response,
                 "scores": ft_scores,
                 "category": category,
+                "difficulty": difficulty,
             }
         )
+
+        item_time = time.time() - item_start
+        eval_times.append(item_time)
+        avg_time = sum(eval_times) / len(eval_times)
+        remaining = len(eval_data) - (i + 1)
+        eta = format_eta(avg_time, remaining)
+        print(f"  Done in {item_time:.1f}s | Avg: {avg_time:.1f}s | ETA: {eta}")
+
+        if (i + 1) % 50 == 0 or (i + 1) == len(eval_data):
+            save_checkpoint(checkpoint_path, base_results, ft_results, i + 1)
+            print(f"  Checkpoint saved at {i + 1}/{len(eval_data)}")
 
     output_path = (
         output_dir / f"eval-comparison-{datetime.now().strftime('%Y%m%d-%H%M%S')}.md"
     )
     generate_comparison_report(base_results, ft_results, output_path)
+
+    difficulty_report = generate_difficulty_report(base_results, ft_results, output_dir)
+    print(f"\nDifficulty report saved to {difficulty_report}")
 
 
 if __name__ == "__main__":
