@@ -33,7 +33,7 @@ WRONG format (multiple Q&A in one JSON - DO NOT DO THIS):
 {"messages": [{"role": "system", "content": "..."}, {"role": "user", "content": "pergunta 1"}, {"role": "assistant", "content": "resposta 1"}, {"role": "user", "content": "pergunta 2"}, {"role": "assistant", "content": "resposta 2"}], "metadata": {...}}
 ```
 
-**Format: 1 file per topic with 10 lines (10 JSON objects, each with exactly 3 messages)**
+**Format: 1 file per topic with 140 lines (140 JSON objects, each with exactly 3 messages)**
 
 ## Generation Process
 
@@ -46,14 +46,7 @@ Use taxonomy to select category. Example categories:
 - oci-terraform/provider, oci-terraform/resources
 - oci-troubleshooting/connectivity, oci-troubleshooting/performance
 
-### 2. Generate Prompt
-
-Use `scripts/generate_prompt.py` to generate prompts based on:
-- Category topic from taxonomy.md
-- Quality rules from quality-rules.md
-- Difficulty: beginner/intermediate/advanced
-
-### 3. Execute Prompt
+### 2. Execute Prompt
 
 Execute the generated prompt using your preferred method.
 
@@ -73,11 +66,11 @@ Check:
 
 Save to `data/curated/[topic].jsonl`
 
-**Format: 1 file per topic with 10 examples each**
+**Format: 1 file per topic with 140 examples each**
 
 ## Quantity Guidelines
 
-**10 examples per topic** (71 topics × 10 = 710 examples total)
+**140 examples per topic** (71 topics × 140 = 9,940 examples total)
 
 Quick reference:
 - compute: 3 topics (instances, scaling, custom-images)
