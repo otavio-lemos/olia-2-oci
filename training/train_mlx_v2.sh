@@ -18,15 +18,7 @@ TRAIN_DATA=${TRAIN_DATA:-"data/train.jsonl"}
 VALID_DATA=${VALID_DATA:-"data/valid.jsonl"}
 OUTPUT_DIR=${OUTPUT_DIR:-"outputs/${CYCLE}"}
 PREV_ADAPTER=${PREV_ADAPTER:-""}
-EPOCHS=${EPOCHS:-2}
-BATCH_SIZE=${BATCH_SIZE:-1}
-LEARNING_RATE=${LEARNING_RATE:-5e-5}
-LORA_RANK=${LORA_RANK:-8}
-LORA_ALPHA=${LORA_ALPHA:-16}
-LORA_DROPOUT=${LORA_DROPOUT:-0.05}
-GRADIENT_ACCUMULATION=${GRADIENT_ACCUMULATION:-4}
-
-ITERS=${ITERS:-200}
+ITERS=${ITERS:-2485}
 MAX_SEQ_LENGTH=${MAX_SEQ_LENGTH:-1024}
 NUM_LAYERS=${NUM_LAYERS:-16}
 
@@ -39,10 +31,10 @@ echo "Train: $TRAIN_DATA"
 echo "Valid: $VALID_DATA"
 echo "Output: $OUTPUT_DIR"
 echo "Resume: ${PREV_ADAPTER:-(none, training from scratch)}"
-echo "Epochs: $EPOCHS"
-echo "Batch Size: $BATCH_SIZE"
-echo "Learning Rate: $LEARNING_RATE"
-echo "LoRA Rank: $LORA_RANK"
+echo "Epochs: ${EPOCHS:-N/A}"
+echo "Batch Size: ${BATCH_SIZE:-N/A}"
+echo "Learning Rate: ${LEARNING_RATE:-N/A}"
+echo "LoRA Rank: ${LORA_RANK:-N/A}"
 echo "Iters: $ITERS"
 echo "Max Seq Length: $MAX_SEQ_LENGTH"
 echo "=========================================="
@@ -52,8 +44,37 @@ mkdir -p "outputs/logs/$CYCLE"
 
 export KMP_DUPLICATE_LIB_OK=TRUE
 
+# Generate YAML config for this cycle (mlx_lm requires lora_parameters via YAML config)
+YAML_CONFIG="${OUTPUT_DIR}/train_config.yaml"
+cat > "$YAML_CONFIG" <<YAML_EOF
+model: $MODEL
+train: true
+fine_tune_type: lora
+data: "$(dirname "$TRAIN_DATA")"
+num_layers: $NUM_LAYERS
+batch_size: $BATCH_SIZE
+iters: $ITERS
+learning_rate: $LEARNING_RATE
+grad_accumulation_steps: $GRADIENT_ACCUMULATION
+adapter_path: "$OUTPUT_DIR"
+save_every: 50
+steps_per_report: 10
+steps_per_eval: 50
+max_seq_length: $MAX_SEQ_LENGTH
+lora_parameters:
+  rank: ${LORA_RANK:-8}
+  alpha: ${LORA_ALPHA:-16}
+  dropout: ${LORA_DROPOUT:-0.05}
+  scale: 2.0
+YAML_EOF
+
+echo "YAML config written to: $YAML_CONFIG"
+
 RESUME_FLAG=""
-if [ -n "$PREV_ADAPTER" ] && [ -f "$PREV_ADAPTER" ]; then
+if [ -n "$PREV_ADAPTER" ] && [ -f "$PREV_ADAPTER/adapters.safetensors" ]; then
+    RESUME_FLAG="--resume-adapter-file $PREV_ADAPTER/adapters.safetensors"
+    echo "Resuming from: $PREV_ADAPTER/adapters.safetensors"
+elif [ -n "$PREV_ADAPTER" ] && [ -f "$PREV_ADAPTER" ]; then
     RESUME_FLAG="--resume-adapter-file $PREV_ADAPTER"
     echo "Resuming from: $PREV_ADAPTER"
 elif [ -n "$PREV_ADAPTER" ]; then
@@ -61,20 +82,7 @@ elif [ -n "$PREV_ADAPTER" ]; then
 fi
 
 CMD="python -m mlx_lm lora \
-    --model \"$MODEL\" \
-    --train \
-    --data \"$(dirname "$TRAIN_DATA")\" \
-    --fine-tune-type lora \
-    --num-layers $NUM_LAYERS \
-    --batch-size $BATCH_SIZE \
-    --iters $ITERS \
-    --learning-rate $LEARNING_RATE \
-    --grad-accumulation-steps $GRADIENT_ACCUMULATION \
-    --adapter-path \"$OUTPUT_DIR\" \
-    --save-every 50 \
-    --steps-per-report 10 \
-    --steps-per-eval 50 \
-    --max-seq-length $MAX_SEQ_LENGTH \
+    -c \"$YAML_CONFIG\" \
     $RESUME_FLAG"
 
 echo ""

@@ -34,15 +34,15 @@ This project builds a fine-tuned LLM specialist in Oracle Cloud Infrastructure (
 ### Execution
 
 Execute prompts exactly as requested in each `tmp/prompt_*.md` file:
-- Generate 10 files per topic (001-010)
-- 1 example per file in JSONL format
+- Generate 1 file per topic in JSONL format
+- 140 examples per file
 - Follow the output format specified in the prompt file
 
 ## Data Flow
 
 ```
-data/curated/        → Generated examples (one file per example)
-                      format: [category]-[nnn].jsonl
+data/curated/        → Generated examples (one file per topic, 140 examples each)
+                      format: [topic].jsonl
 data/all_curated.jsonl → concatenated examples
 data/all_curated_clean.jsonl → validated and deduplicated
 data/train.jsonl     → training set (~75%)

@@ -36,7 +36,7 @@ def find_exact_duplicates(examples: List[Dict[str, Any]]) -> Dict[str, List[int]
 
 
 def find_near_duplicates(
-    examples: List[Dict[str, Any]], threshold: float = 0.9
+    examples: List[Dict[str, Any]], threshold: float = 0.95
 ) -> List[tuple]:
     near_dupes = []
 
@@ -123,10 +123,11 @@ def main():
 
         examples = [ex for i, ex in enumerate(examples) if i not in indices_to_remove]
 
-        # Save in place (overwrite original)
-        save_jsonl(examples, filepath)
+        # Save deduplicated file (new file, don't overwrite input)
+        output_path = filepath.with_name(filepath.stem + "_deduped" + filepath.suffix)
+        save_jsonl(examples, output_path)
         print(f"\nRemoved {len(indices_to_remove)} duplicates")
-        print(f"Saved deduplicated file: {filepath}")
+        print(f"Saved deduplicated file: {output_path}")
 
     if not remove:
         print("\nRun with --remove to deduplicate the file")

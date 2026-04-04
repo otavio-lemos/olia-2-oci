@@ -216,12 +216,12 @@ DOC_LINKS = {
     "database/autonomous": "https://docs.oracle.com/en-us/iaas/Content/Database/Concepts/databaseoverview.htm",
     "database/mysql": "https://docs.oracle.com/en-us/iaas/Content/MySQL/Concepts/overview.htm",
     "database/postgresql": "https://docs.oracle.com/en-us/iaas/Content/Database/Concepts/databaseoverview.htm",
-    "database/nosql": "https://docs.oracle.com/en-us/iaas/Content/nosql/-nosql.htm",
+    "database/nosql": "https://docs.oracle.com/en-us/iaas/Content/NoSQL/Concepts/nosqloverview.htm",
     "database/autonomous-json": "https://docs.oracle.com/en-us/iaas/Content/Database/Concepts/databaseoverview.htm",
     "database/exadata": "https://docs.oracle.com/en-us/iaas/Content/Database/Concepts/databaseoverview.htm",
     "container/oke": "https://docs.oracle.com/en-us/iaas/Content/ContEng/Concepts/contengoverview.htm",
     "container/instances": "https://docs.oracle.com/en-us/iaas/Content/ContEng/Concepts/contengoverview.htm",
-    "serverless/functions": "https://docs.oracle.com/en-us/iaas/Content/Functions/Con/functionsoverview.htm",
+    "serverless/functions": "https://docs.oracle.com/en-us/iaas/Content/Functions/Concepts/functionsoverview.htm",
     "serverless/api-gateway": "https://docs.oracle.com/en-us/iaas/Content/ApiGateway/Concepts/apigatewayoverview.htm",
     "security/iam-basics": "https://docs.oracle.com/en-us/iaas/Content/Identity/Concepts/overview.htm",
     "security/policies": "https://docs.oracle.com/en-us/iaas/Content/Identity/Concepts/overview.htm",
@@ -269,12 +269,982 @@ DOC_LINKS = {
     "troubleshooting/compute": "https://docs.oracle.com/en-us/iaas/Content/Compute/known-issues.htm",
     "troubleshooting/storage": "https://docs.oracle.com/en-us/iaas/Content/Storage/Concepts/storageoverview.htm",
     "troubleshooting/oke": "https://docs.oracle.com/en-us/iaas/Content/ContEng/Concepts/contengoverview.htm",
-    "troubleshooting/functions": "https://docs.oracle.com/en-us/iaas/Content/Functions/Con/functionsoverview.htm",
+    "troubleshooting/functions": "https://docs.oracle.com/en-us/iaas/Content/Functions/Concepts/functionsoverview.htm",
     "devops/ci-cd": "https://docs.oracle.com/en-us/iaas/Content/DevOps/Concepts/devopsoverview.htm",
-    "devops/resource-manager": "https://docs.oracle.com/en-us/iaas/Content/ResourceManager/Con/resourcemanager.htm",
+    "devops/resource-manager": "https://docs.oracle.com/en-us/iaas/Content/ResourceManager/Concepts/resourcemanager.htm",
     "devops/artifacts": "https://docs.oracle.com/en-us/iaas/Content/Artifacts/Concepts/artifactsoverview.htm",
     "devops/secrets": "https://docs.oracle.com/en-us/iaas/Content/KeyManagement/Concepts/keyoverview.htm",
 }
+
+# ============================================================================
+# CORRECT OCI CLI, PYTHON SDK, AND TERRAFORM LOOKUP TABLES
+# ============================================================================
+
+OCI_CLI_COMMANDS = {
+    # Compute
+    "compute/instances": {
+        "create": "oci compute instance launch",
+        "list": "oci compute instance list",
+        "get": "oci compute instance get",
+        "update": "oci compute instance update",
+        "delete": "oci compute instance terminate",
+        "id_param": "--instance-id",
+        "list_query": 'data[?"lifecycle-state"==\'RUNNING\'].{name:"display-name",shape:"shape"}',
+    },
+    "compute/scaling": {
+        "create": "oci autoscaling auto-scaling-configuration create",
+        "list": "oci autoscaling auto-scaling-configuration list",
+        "get": "oci autoscaling auto-scaling-configuration get",
+        "update": "oci autoscaling auto-scaling-configuration update",
+        "delete": "oci autoscaling auto-scaling-configuration delete",
+        "id_param": "--auto-scaling-configuration-id",
+        "list_query": 'data[?"lifecycle-state"==\'ENABLED\'].{name:"display-name",policies:"policies"}',
+    },
+    "compute/custom-images": {
+        "create": "oci compute image create",
+        "list": "oci compute image list",
+        "get": "oci compute image get",
+        "delete": "oci compute image delete",
+        "id_param": "--image-id",
+        "list_query": 'data[?"lifecycle-state"==\'AVAILABLE\'].{name:"display-name",os:"operating-system"}',
+    },
+    # Storage
+    "storage/block": {
+        "create": "oci bv volume create",
+        "list": "oci bv volume list",
+        "get": "oci bv volume get",
+        "update": "oci bv volume update",
+        "delete": "oci bv volume delete",
+        "id_param": "--volume-id",
+        "list_query": 'data[?"lifecycle-state"==\'AVAILABLE\'].{name:"display-name",size:"size-in-gbs"}',
+    },
+    "storage/object": {
+        "create": "oci os bucket create",
+        "list": "oci os bucket list",
+        "get": "oci os bucket get",
+        "update": "oci os bucket update",
+        "delete": "oci os bucket delete",
+        "id_param": "--bucket-name",
+        "list_query": 'data[?"lifecycle-state"==\'ACTIVE\'].{name:"name",tier:"storage-tier"}',
+    },
+    "storage/file": {
+        "create": "oci fs file-system create",
+        "list": "oci fs file-system list",
+        "get": "oci fs file-system get",
+        "update": "oci fs file-system update",
+        "delete": "oci fs file-system delete",
+        "id_param": "--file-system-id",
+        "list_query": 'data[?"lifecycle-state"==\'ACTIVE\'].{name:"display-name",state:"lifecycle-state"}',
+    },
+    # Networking
+    "networking/vcn": {
+        "create": "oci network vcn create",
+        "list": "oci network vcn list",
+        "get": "oci network vcn get",
+        "update": "oci network vcn update",
+        "delete": "oci network vcn delete",
+        "id_param": "--vcn-id",
+        "list_query": 'data[?"lifecycle-state"==\'AVAILABLE\'].{name:"display-name",cidr:"cidr-block"}',
+    },
+    "networking/security": {
+        "create": "oci network security-list create",
+        "list": "oci network security-list list",
+        "get": "oci network security-list get",
+        "update": "oci network security-list update",
+        "delete": "oci network security-list delete",
+        "id_param": "--security-list-id",
+        "list_query": 'data[?"lifecycle-state"==\'AVAILABLE\'].{name:"display-name",rules:"ingress-security-rules"}',
+    },
+    "networking/connectivity": {
+        "create": "oci network drg create",
+        "list": "oci network drg list",
+        "get": "oci network drg get",
+        "update": "oci network drg update",
+        "delete": "oci network drg delete",
+        "id_param": "--drg-id",
+        "list_query": 'data[?"lifecycle-state"==\'AVAILABLE\'].{name:"display-name",state:"lifecycle-state"}',
+    },
+    # Load Balancer
+    "lb/load-balancer": {
+        "create": "oci lb load-balancer create",
+        "list": "oci lb load-balancer list",
+        "get": "oci lb load-balancer get",
+        "update": "oci lb load-balancer update",
+        "delete": "oci lb load-balancer delete",
+        "id_param": "--load-balancer-id",
+        "list_query": 'data[?"lifecycle-state"==\'ACTIVE\'].{name:"display-name",shape:"shape-name"}',
+    },
+    # Database
+    "database/autonomous": {
+        "create": "oci db autonomous-database create",
+        "list": "oci db autonomous-database list",
+        "get": "oci db autonomous-database get",
+        "update": "oci db autonomous-database update",
+        "delete": "oci db autonomous-database delete",
+        "id_param": "--autonomous-database-id",
+        "list_query": 'data[?"lifecycle-state"==\'AVAILABLE\'].{name:"display-name",db:"db-name"}',
+    },
+    "database/mysql": {
+        "create": "oci mysql db-system create",
+        "list": "oci mysql db-system list",
+        "get": "oci mysql db-system get",
+        "update": "oci mysql db-system update",
+        "delete": "oci mysql db-system delete",
+        "id_param": "--db-system-id",
+        "list_query": 'data[?"lifecycle-state"==\'ACTIVE\'].{name:"display-name",shape:"shape-name"}',
+    },
+    "database/postgresql": {
+        "create": "oci database db-system create",
+        "list": "oci database db-system list",
+        "get": "oci database db-system get",
+        "update": "oci database db-system update",
+        "delete": "oci database db-system delete",
+        "id_param": "--db-system-id",
+        "list_query": 'data[?"lifecycle-state"==\'AVAILABLE\'].{name:"display-name",shape:"shape"}',
+    },
+    "database/nosql": {
+        "create": "oci nosql table create",
+        "list": "oci nosql table list",
+        "get": "oci nosql table get",
+        "update": "oci nosql table update",
+        "delete": "oci nosql table delete",
+        "id_param": "--table-name-or-id",
+        "list_query": 'data[?"lifecycle-state"==\'ACTIVE\'].{name:"name",state:"lifecycle-state"}',
+    },
+    "database/autonomous-json": {
+        "create": "oci db autonomous-database create",
+        "list": "oci db autonomous-database list",
+        "get": "oci db autonomous-database get",
+        "update": "oci db autonomous-database update",
+        "delete": "oci db autonomous-database delete",
+        "id_param": "--autonomous-database-id",
+        "list_query": 'data[?"lifecycle-state"==\'AVAILABLE\'].{name:"display-name",db:"db-workload"}',
+    },
+    "database/exadata": {
+        "create": "oci db system create",
+        "list": "oci db system list",
+        "get": "oci db system get",
+        "update": "oci db system update",
+        "delete": "oci db system delete",
+        "id_param": "--db-system-id",
+        "list_query": 'data[?"lifecycle-state"==\'AVAILABLE\'].{name:"display-name",shape:"shape"}',
+    },
+    # Container
+    "container/oke": {
+        "create": "oci ce cluster create",
+        "list": "oci ce cluster list",
+        "get": "oci ce cluster get",
+        "update": "oci ce cluster update",
+        "delete": "oci ce cluster delete",
+        "id_param": "--cluster-id",
+        "list_query": 'data[?"lifecycle-state"==\'ACTIVE\'].{name:"name",k8s:"kubernetes-version"}',
+    },
+    "container/instances": {
+        "create": "oci container-instance container-instance create",
+        "list": "oci container-instance container-instance list",
+        "get": "oci container-instance container-instance get",
+        "update": "oci container-instance container-instance update",
+        "delete": "oci container-instance container-instance delete",
+        "id_param": "--container-instance-id",
+        "list_query": 'data[?"lifecycle-state"==\'ACTIVE\'].{name:"display-name",state:"lifecycle-state"}',
+    },
+    # Serverless
+    "serverless/functions": {
+        "create": "oci fn application create",
+        "list": "oci fn application list",
+        "get": "oci fn application get",
+        "update": "oci fn application update",
+        "delete": "oci fn application delete",
+        "id_param": "--application-id",
+        "list_query": 'data[?"lifecycle-state"==\'ACTIVE\'].{name:"display-name",state:"lifecycle-state"}',
+    },
+    "serverless/api-gateway": {
+        "create": "oci api-gateway gateway create",
+        "list": "oci api-gateway gateway list",
+        "get": "oci api-gateway gateway get",
+        "update": "oci api-gateway gateway update",
+        "delete": "oci api-gateway gateway delete",
+        "id_param": "--gateway-id",
+        "list_query": 'data[?"lifecycle-state"==\'ACTIVE\'].{name:"display-name",state:"lifecycle-state"}',
+    },
+    # Security
+    "security/iam-basics": {
+        "create": "oci iam compartment create",
+        "list": "oci iam compartment list",
+        "get": "oci iam user get",
+        "update": "oci iam user update",
+        "delete": "oci iam user delete",
+        "id_param": "--compartment-id",
+        "list_query": 'data[?"lifecycle-state"==\'ACTIVE\'].{name:"name",state:"lifecycle-state"}',
+    },
+    "security/policies": {
+        "create": "oci iam policy create",
+        "list": "oci iam policy list",
+        "get": "oci iam policy get",
+        "update": "oci iam policy update",
+        "delete": "oci iam policy delete",
+        "id_param": "--policy-id",
+        "list_query": 'data[?"lifecycle-state"==\'ACTIVE\'].{name:"name",state:"lifecycle-state"}',
+    },
+    "security/dynamic-groups": {
+        "create": "oci iam dynamic-group create",
+        "list": "oci iam dynamic-group list",
+        "get": "oci iam dynamic-group get",
+        "update": "oci iam dynamic-group update",
+        "delete": "oci iam dynamic-group delete",
+        "id_param": "--dynamic-group-id",
+        "list_query": 'data[?"lifecycle-state"==\'ACTIVE\'].{name:"name",state:"lifecycle-state"}',
+    },
+    "security/federation": {
+        "create": "oci iam identity-provider create",
+        "list": "oci iam identity-provider list",
+        "get": "oci iam identity-provider get",
+        "update": "oci iam identity-provider update",
+        "delete": "oci iam identity-provider delete",
+        "id_param": "--identity-provider-id",
+        "list_query": 'data[?"lifecycle-state"==\'ACTIVE\'].{name:"name",protocol:"protocol"}',
+    },
+    "security/vault-secrets": {
+        "create": "oci vault secret create",
+        "list": "oci vault secret list",
+        "get": "oci vault secret get",
+        "delete": "oci vault secret schedule-secret-deletion",
+        "id_param": "--secret-id",
+        "list_query": 'data[?"lifecycle-state"==\'ACTIVE\'].{name:"secret-name",state:"lifecycle-state"}',
+    },
+    "security/vault-keys": {
+        "create": "oci kms key create",
+        "list": "oci kms key list",
+        "get": "oci kms key get",
+        "update": "oci kms key update",
+        "delete": "oci kms key schedule-key-deletion",
+        "id_param": "--key-id",
+        "list_query": 'data[?"lifecycle-state"==\'ENABLED\'].{name:"display-name",shape:"protection-mode"}',
+    },
+    "security/encryption": {
+        "create": "oci kms key create",
+        "list": "oci kms key list",
+        "get": "oci kms key get",
+        "id_param": "--key-id",
+        "list_query": 'data[?"lifecycle-state"==\'ENABLED\'].{name:"display-name",mode:"protection-mode"}',
+    },
+    "security/cloud-guard": {
+        "create": "oci cloud-guard target create",
+        "list": "oci cloud-guard target list",
+        "get": "oci cloud-guard target get",
+        "update": "oci cloud-guard target update",
+        "delete": "oci cloud-guard target delete",
+        "id_param": "--target-id",
+        "list_query": 'data[?"lifecycle-state"==\'ENABLED\'].{name:"display-name",state:"lifecycle-state"}',
+    },
+    "security/waf": {
+        "create": "oci waas waas-policy create",
+        "list": "oci waas waas-policy list",
+        "get": "oci waas waas-policy get",
+        "update": "oci waas waas-policy update",
+        "delete": "oci waas waas-policy delete",
+        "id_param": "--waas-policy-id",
+        "list_query": 'data[?"lifecycle-state"==\'ACTIVE\'].{name:"display-name",state:"lifecycle-state"}',
+    },
+    # Observability
+    "observability/logging": {
+        "create": "oci logging log-group create",
+        "list": "oci logging log-group list",
+        "get": "oci logging log-group get",
+        "delete": "oci logging log-group delete",
+        "id_param": "--log-group-id",
+        "list_query": 'data[?"lifecycle-state"==\'ACTIVE\'].{name:"display-name",state:"lifecycle-state"}',
+    },
+    "observability/monitoring": {
+        "create": "oci monitoring alarm create",
+        "list": "oci monitoring alarm list",
+        "get": "oci monitoring alarm get",
+        "update": "oci monitoring alarm update",
+        "delete": "oci monitoring alarm delete",
+        "id_param": "--alarm-id",
+        "list_query": 'data[?"is-enabled"==\'true\'].{name:"display-name",metric:"metric-compartment-id"}',
+    },
+    "observability/stack-monitoring": {
+        "create": "oci stack-monitoring target create",
+        "list": "oci stack-monitoring target list",
+        "get": "oci stack-monitoring target get",
+        "update": "oci stack-monitoring target update",
+        "delete": "oci stack-monitoring target delete",
+        "id_param": "--target-id",
+        "list_query": 'data[?"lifecycle-state"==\'ACTIVE\'].{name:"display-name",type:"resource-type"}',
+    },
+    "observability/apm": {
+        "create": "oci apm domain create",
+        "list": "oci apm domain list",
+        "get": "oci apm domain get",
+        "update": "oci apm domain update",
+        "delete": "oci apm domain delete",
+        "id_param": "--apm-domain-id",
+        "list_query": 'data[?"lifecycle-state"==\'ACTIVE\'].{name:"display-name",state:"lifecycle-state"}',
+    },
+    # DevOps
+    "devops/ci-cd": {
+        "create": "oci devops project create",
+        "list": "oci devops project list",
+        "get": "oci devops project get",
+        "update": "oci devops project update",
+        "delete": "oci devops project delete",
+        "id_param": "--project-id",
+        "list_query": 'data[?"lifecycle-state"==\'ACTIVE\'].{name:"name",state:"lifecycle-state"}',
+    },
+    "devops/resource-manager": {
+        "create": "oci resource-manager stack create",
+        "list": "oci resource-manager stack list",
+        "get": "oci resource-manager stack get",
+        "update": "oci resource-manager stack update",
+        "delete": "oci resource-manager stack delete",
+        "id_param": "--stack-id",
+        "list_query": 'data[?"lifecycle-state"==\'ACTIVE\'].{name:"display-name",state:"lifecycle-state"}',
+    },
+    "devops/artifacts": {
+        "create": "oci artifacts container repository create",
+        "list": "oci artifacts container repository list",
+        "get": "oci artifacts container repository get",
+        "update": "oci artifacts container repository update",
+        "delete": "oci artifacts container repository delete",
+        "id_param": "--repository-id",
+        "list_query": 'data[?"lifecycle-state"==\'ACTIVE\'].{name:"display-name",state:"lifecycle-state"}',
+    },
+    "devops/secrets": {
+        "create": "oci vault secret create",
+        "list": "oci vault secret list",
+        "get": "oci vault secret get",
+        "delete": "oci vault secret schedule-secret-deletion",
+        "id_param": "--secret-id",
+        "list_query": 'data[?"lifecycle-state"==\'ACTIVE\'].{name:"secret-name",state:"lifecycle-state"}',
+    },
+}
+
+# Python SDK: client class, method names, model class
+OCI_PYTHON_SDK = {
+    # Compute
+    "compute/instances": {
+        "client": "oci.core.ComputeClient",
+        "create_method": "launch_instance",
+        "list_method": "list_instances",
+        "get_method": "get_instance",
+        "delete_method": "terminate_instance",
+        "model": "oci.core.models.LaunchInstanceDetails",
+    },
+    "compute/scaling": {
+        "client": "oci.autoscaling.AutoScalingClient",
+        "create_method": "create_auto_scaling_configuration",
+        "list_method": "list_auto_scaling_configurations",
+        "get_method": "get_auto_scaling_configuration",
+        "delete_method": "delete_auto_scaling_configuration",
+        "model": "oci.autoscaling.models.CreateAutoScalingConfigurationDetails",
+    },
+    "compute/custom-images": {
+        "client": "oci.core.ComputeClient",
+        "create_method": "create_image",
+        "list_method": "list_images",
+        "get_method": "get_image",
+        "delete_method": "delete_image",
+        "model": "oci.core.models.CreateImageDetails",
+    },
+    # Storage
+    "storage/block": {
+        "client": "oci.core.BlockstorageClient",
+        "create_method": "create_volume",
+        "list_method": "list_volumes",
+        "get_method": "get_volume",
+        "update_method": "update_volume",
+        "delete_method": "delete_volume",
+        "model": "oci.core.models.CreateVolumeDetails",
+    },
+    "storage/object": {
+        "client": "oci.object_storage.ObjectStorageClient",
+        "create_method": "create_bucket",
+        "list_method": "list_buckets",
+        "get_method": "get_bucket",
+        "update_method": "update_bucket",
+        "delete_method": "delete_bucket",
+        "model": "oci.object_storage.models.CreateBucketDetails",
+    },
+    "storage/file": {
+        "client": "oci.file_storage.FileStorageClient",
+        "create_method": "create_file_system",
+        "list_method": "list_file_systems",
+        "get_method": "get_file_system",
+        "update_method": "update_file_system",
+        "delete_method": "delete_file_system",
+        "model": "oci.file_storage.models.CreateFileSystemDetails",
+    },
+    # Networking
+    "networking/vcn": {
+        "client": "oci.core.VirtualNetworkClient",
+        "create_method": "create_vcn",
+        "list_method": "list_vcns",
+        "get_method": "get_vcn",
+        "update_method": "update_vcn",
+        "delete_method": "delete_vcn",
+        "model": "oci.core.models.CreateVcnDetails",
+    },
+    "networking/security": {
+        "client": "oci.core.VirtualNetworkClient",
+        "create_method": "create_security_list",
+        "list_method": "list_security_lists",
+        "get_method": "get_security_list",
+        "update_method": "update_security_list",
+        "delete_method": "delete_security_list",
+        "model": "oci.core.models.CreateSecurityListDetails",
+    },
+    "networking/connectivity": {
+        "client": "oci.core.VirtualNetworkClient",
+        "create_method": "create_drg",
+        "list_method": "list_drgs",
+        "get_method": "get_drg",
+        "update_method": "update_drg",
+        "delete_method": "delete_drg",
+        "model": "oci.core.models.CreateDrgDetails",
+    },
+    # Load Balancer
+    "lb/load-balancer": {
+        "client": "oci.load_balancer.LoadBalancerClient",
+        "create_method": "create_load_balancer",
+        "list_method": "list_load_balancers",
+        "get_method": "get_load_balancer",
+        "update_method": "update_load_balancer",
+        "delete_method": "delete_load_balancer",
+        "model": "oci.load_balancer.models.CreateLoadBalancerDetails",
+    },
+    # Database
+    "database/autonomous": {
+        "client": "oci.database.DatabaseClient",
+        "create_method": "create_autonomous_database",
+        "list_method": "list_autonomous_databases",
+        "get_method": "get_autonomous_database",
+        "update_method": "update_autonomous_database",
+        "delete_method": "delete_autonomous_database",
+        "model": "oci.database.models.CreateAutonomousDatabaseDetails",
+    },
+    "database/mysql": {
+        "client": "oci.mysql.DbSystemClient",
+        "create_method": "create_db_system",
+        "list_method": "list_db_systems",
+        "get_method": "get_db_system",
+        "update_method": "update_db_system",
+        "delete_method": "delete_db_system",
+        "model": "oci.mysql.models.CreateDbSystemDetails",
+    },
+    "database/postgresql": {
+        "client": "oci.database.DatabaseClient",
+        "create_method": "create_db_system",
+        "list_method": "list_db_systems",
+        "get_method": "get_db_system",
+        "update_method": "update_db_system",
+        "delete_method": "delete_db_system",
+        "model": "oci.database.models.CreateDbSystemDetails",
+    },
+    "database/nosql": {
+        "client": "oci.nosql.NosqlClient",
+        "create_method": "create_table",
+        "list_method": "list_tables",
+        "get_method": "get_table",
+        "update_method": "update_table",
+        "delete_method": "delete_table",
+        "model": "oci.nosql.models.CreateTableDetails",
+    },
+    "database/autonomous-json": {
+        "client": "oci.database.DatabaseClient",
+        "create_method": "create_autonomous_database",
+        "list_method": "list_autonomous_databases",
+        "get_method": "get_autonomous_database",
+        "update_method": "update_autonomous_database",
+        "delete_method": "delete_autonomous_database",
+        "model": "oci.database.models.CreateAutonomousDatabaseDetails",
+    },
+    "database/exadata": {
+        "client": "oci.database.DatabaseClient",
+        "create_method": "create_db_system",
+        "list_method": "list_db_systems",
+        "get_method": "get_db_system",
+        "update_method": "update_db_system",
+        "delete_method": "delete_db_system",
+        "model": "oci.database.models.CreateDbSystemDetails",
+    },
+    # Container
+    "container/oke": {
+        "client": "oci.container_engine.ContainerEngineClient",
+        "create_method": "create_cluster",
+        "list_method": "list_clusters",
+        "get_method": "get_cluster",
+        "update_method": "update_cluster",
+        "delete_method": "delete_cluster",
+        "model": "oci.container_engine.models.CreateClusterDetails",
+    },
+    "container/instances": {
+        "client": "oci.container_instances.ContainerInstanceClient",
+        "create_method": "create_container_instance",
+        "list_method": "list_container_instances",
+        "get_method": "get_container_instance",
+        "update_method": "update_container_instance",
+        "delete_method": "delete_container_instance",
+        "model": "oci.container_instances.models.CreateContainerInstanceDetails",
+    },
+    # Serverless
+    "serverless/functions": {
+        "client": "oci.functions.FunctionsManagementClient",
+        "create_method": "create_application",
+        "list_method": "list_applications",
+        "get_method": "get_application",
+        "update_method": "update_application",
+        "delete_method": "delete_application",
+        "model": "oci.functions.models.CreateApplicationDetails",
+    },
+    "serverless/api-gateway": {
+        "client": "oci.apigateway.GatewayClient",
+        "create_method": "create_gateway",
+        "list_method": "list_gateways",
+        "get_method": "get_gateway",
+        "update_method": "update_gateway",
+        "delete_method": "delete_gateway",
+        "model": "oci.apigateway.models.CreateGatewayDetails",
+    },
+    # Security
+    "security/iam-basics": {
+        "client": "oci.identity.IdentityClient",
+        "create_method": "create_compartment",
+        "list_method": "list_compartments",
+        "get_method": "get_user",
+        "update_method": "update_user",
+        "delete_method": "delete_user",
+        "model": "oci.identity.models.CreateCompartmentDetails",
+    },
+    "security/policies": {
+        "client": "oci.identity.IdentityClient",
+        "create_method": "create_policy",
+        "list_method": "list_policies",
+        "get_method": "get_policy",
+        "update_method": "update_policy",
+        "delete_method": "delete_policy",
+        "model": "oci.identity.models.CreatePolicyDetails",
+    },
+    "security/dynamic-groups": {
+        "client": "oci.identity.IdentityClient",
+        "create_method": "create_dynamic_group",
+        "list_method": "list_dynamic_groups",
+        "get_method": "get_dynamic_group",
+        "update_method": "update_dynamic_group",
+        "delete_method": "delete_dynamic_group",
+        "model": "oci.identity.models.CreateDynamicGroupDetails",
+    },
+    "security/federation": {
+        "client": "oci.identity.IdentityClient",
+        "create_method": "create_identity_provider",
+        "list_method": "list_identity_providers",
+        "get_method": "get_identity_provider",
+        "update_method": "update_identity_provider",
+        "delete_method": "delete_identity_provider",
+        "model": "oci.identity.models.CreateIdentityProviderDetails",
+    },
+    "security/vault-secrets": {
+        "client": "oci.vault.VaultsClient",
+        "create_method": "create_secret",
+        "list_method": "list_secrets",
+        "get_method": "get_secret",
+        "delete_method": "schedule_secret_deletion",
+        "model": "oci.vault.models.CreateSecretDetails",
+    },
+    "security/vault-keys": {
+        "client": "oci.key_management.KmsManagementClient",
+        "create_method": "create_key",
+        "list_method": "list_keys",
+        "get_method": "get_key",
+        "update_method": "update_key",
+        "delete_method": "schedule_key_deletion",
+        "model": "oci.key_management.models.CreateKeyDetails",
+    },
+    "security/encryption": {
+        "client": "oci.key_management.KmsManagementClient",
+        "create_method": "create_key",
+        "list_method": "list_keys",
+        "get_method": "get_key",
+        "model": "oci.key_management.models.CreateKeyDetails",
+    },
+    "security/cloud-guard": {
+        "client": "oci.cloud_guard.CloudGuardClient",
+        "create_method": "create_target",
+        "list_method": "list_targets",
+        "get_method": "get_target",
+        "update_method": "update_target",
+        "delete_method": "delete_target",
+        "model": "oci.cloud_guard.models.CreateTargetDetails",
+    },
+    "security/waf": {
+        "client": "oci.waas.WaasClient",
+        "create_method": "create_waas_policy",
+        "list_method": "list_waas_policies",
+        "get_method": "get_waas_policy",
+        "update_method": "update_waas_policy",
+        "delete_method": "delete_waas_policy",
+        "model": "oci.waas.models.CreateWaasPolicyDetails",
+    },
+    # Observability
+    "observability/logging": {
+        "client": "oci.logging.LoggingClient",
+        "create_method": "create_log_group",
+        "list_method": "list_log_groups",
+        "get_method": "get_log_group",
+        "delete_method": "delete_log_group",
+        "model": "oci.logging.models.CreateLogGroupDetails",
+    },
+    "observability/monitoring": {
+        "client": "oci.monitoring.MonitoringClient",
+        "create_method": "create_alarm",
+        "list_method": "list_alarms",
+        "get_method": "get_alarm",
+        "update_method": "update_alarm",
+        "delete_method": "delete_alarm",
+        "model": "oci.monitoring.models.CreateAlarmDetails",
+    },
+    "observability/stack-monitoring": {
+        "client": "oci.stack_monitoring.StackMonitoringClient",
+        "create_method": "create_target",
+        "list_method": "list_targets",
+        "get_method": "get_target",
+        "update_method": "update_target",
+        "delete_method": "delete_target",
+        "model": "oci.stack_monitoring.models.CreateTargetDetails",
+    },
+    "observability/apm": {
+        "client": "oci.apm_control_plane.ApmDomainClient",
+        "create_method": "create_apm_domain",
+        "list_method": "list_apm_domains",
+        "get_method": "get_apm_domain",
+        "update_method": "update_apm_domain",
+        "delete_method": "delete_apm_domain",
+        "model": "oci.apm_control_plane.models.CreateApmDomainDetails",
+    },
+    # DevOps
+    "devops/ci-cd": {
+        "client": "oci.devops.DevopsClient",
+        "create_method": "create_project",
+        "list_method": "list_projects",
+        "get_method": "get_project",
+        "update_method": "update_project",
+        "delete_method": "delete_project",
+        "model": "oci.devops.models.CreateProjectDetails",
+    },
+    "devops/resource-manager": {
+        "client": "oci.resource_manager.ResourceManagerClient",
+        "create_method": "create_stack",
+        "list_method": "list_stacks",
+        "get_method": "get_stack",
+        "update_method": "update_stack",
+        "delete_method": "delete_stack",
+        "model": "oci.resource_manager.models.CreateStackDetails",
+    },
+    "devops/artifacts": {
+        "client": "oci.artifacts.ContainerRepositoryClient",
+        "create_method": "create_container_repository",
+        "list_method": "list_container_repositories",
+        "get_method": "get_container_repository",
+        "update_method": "update_container_repository",
+        "delete_method": "delete_container_repository",
+        "model": "oci.artifacts.models.CreateContainerRepositoryDetails",
+    },
+    "devops/secrets": {
+        "client": "oci.vault.VaultsClient",
+        "create_method": "create_secret",
+        "list_method": "list_secrets",
+        "get_method": "get_secret",
+        "delete_method": "schedule_secret_deletion",
+        "model": "oci.vault.models.CreateSecretDetails",
+    },
+}
+
+# Terraform resource names
+OCI_TERRAFORM_RESOURCES = {
+    # Compute
+    "compute/instances": {
+        "resource": "oci_core_instance",
+        "data_source": "oci_core_instances",
+    },
+    "compute/scaling": {
+        "resource": "oci_core_instance_pool",
+        "data_source": "oci_core_instance_pools",
+    },
+    "compute/custom-images": {
+        "resource": "oci_core_image",
+        "data_source": "oci_core_images",
+    },
+    # Storage
+    "storage/block": {
+        "resource": "oci_core_volume",
+        "data_source": "oci_core_volumes",
+    },
+    "storage/object": {
+        "resource": "oci_objectstorage_bucket",
+        "data_source": "oci_objectstorage_buckets",
+    },
+    "storage/file": {
+        "resource": "oci_file_storage_file_system",
+        "data_source": "oci_file_storage_file_systems",
+    },
+    # Networking
+    "networking/vcn": {
+        "resource": "oci_core_vcn",
+        "data_source": "oci_core_vcns",
+    },
+    "networking/security": {
+        "resource": "oci_core_security_list",
+        "data_source": "oci_core_security_lists",
+    },
+    "networking/connectivity": {
+        "resource": "oci_core_drg",
+        "data_source": "oci_core_drgs",
+    },
+    # Load Balancer
+    "lb/load-balancer": {
+        "resource": "oci_load_balancer_load_balancer",
+        "data_source": "oci_load_balancer_load_balancers",
+    },
+    # Database
+    "database/autonomous": {
+        "resource": "oci_database_autonomous_database",
+        "data_source": "oci_database_autonomous_databases",
+    },
+    "database/mysql": {
+        "resource": "oci_mysql_mysql_db_system",
+        "data_source": "oci_mysql_mysql_db_systems",
+    },
+    "database/postgresql": {
+        "resource": "oci_database_db_system",
+        "data_source": "oci_database_db_systems",
+    },
+    "database/nosql": {
+        "resource": "oci_nosql_table",
+        "data_source": "oci_nosql_tables",
+    },
+    "database/autonomous-json": {
+        "resource": "oci_database_autonomous_database",
+        "data_source": "oci_database_autonomous_databases",
+    },
+    "database/exadata": {
+        "resource": "oci_database_db_system",
+        "data_source": "oci_database_db_systems",
+    },
+    # Container
+    "container/oke": {
+        "resource": "oci_containerengine_cluster",
+        "data_source": "oci_containerengine_clusters",
+    },
+    "container/instances": {
+        "resource": "oci_container_instances_container_instance",
+        "data_source": "oci_container_instances_container_instances",
+    },
+    # Serverless
+    "serverless/functions": {
+        "resource": "oci_functions_application",
+        "data_source": "oci_functions_applications",
+    },
+    "serverless/api-gateway": {
+        "resource": "oci_api_gateway_gateway",
+        "data_source": "oci_api_gateway_gateways",
+    },
+    # Security
+    "security/iam-basics": {
+        "resource": "oci_identity_compartment",
+        "data_source": "oci_identity_compartments",
+    },
+    "security/policies": {
+        "resource": "oci_identity_policy",
+        "data_source": "oci_identity_policies",
+    },
+    "security/dynamic-groups": {
+        "resource": "oci_identity_dynamic_group",
+        "data_source": "oci_identity_dynamic_groups",
+    },
+    "security/federation": {
+        "resource": "oci_identity_identity_provider",
+        "data_source": "oci_identity_identity_providers",
+    },
+    "security/vault-secrets": {
+        "resource": "oci_vault_secret",
+        "data_source": "oci_vault_secrets",
+    },
+    "security/vault-keys": {
+        "resource": "oci_kms_key",
+        "data_source": "oci_kms_keys",
+    },
+    "security/encryption": {
+        "resource": "oci_kms_key",
+        "data_source": "oci_kms_keys",
+    },
+    "security/cloud-guard": {
+        "resource": "oci_cloud_guard_target",
+        "data_source": "oci_cloud_guard_targets",
+    },
+    "security/waf": {
+        "resource": "oci_waas_waas_policy",
+        "data_source": "oci_waas_waas_policies",
+    },
+    # Observability
+    "observability/logging": {
+        "resource": "oci_logging_log_group",
+        "data_source": "oci_logging_log_groups",
+    },
+    "observability/monitoring": {
+        "resource": "oci_monitoring_alarm",
+        "data_source": "oci_monitoring_alarms",
+    },
+    "observability/stack-monitoring": {
+        "resource": "oci_stack_monitoring_target",
+        "data_source": "oci_stack_monitoring_targets",
+    },
+    "observability/apm": {
+        "resource": "oci_apm_apm_domain",
+        "data_source": "oci_apm_apm_domains",
+    },
+    # DevOps
+    "devops/ci-cd": {
+        "resource": "oci_devops_project",
+        "data_source": "oci_devops_projects",
+    },
+    "devops/resource-manager": {
+        "resource": "oci_resource_manager_stack",
+        "data_source": "oci_resource_manager_stacks",
+    },
+    "devops/artifacts": {
+        "resource": "oci_artifacts_container_repository",
+        "data_source": "oci_artifacts_container_repositories",
+    },
+    "devops/secrets": {
+        "resource": "oci_vault_secret",
+        "data_source": "oci_vault_secrets",
+    },
+    # Terraform categories (map to service resources)
+    "terraform/provider": {
+        "resource": "oci_core_compartment",
+        "data_source": "oci_core_compartments",
+    },
+    "terraform/compute": {
+        "resource": "oci_core_instance",
+        "data_source": "oci_core_instances",
+    },
+    "terraform/storage": {
+        "resource": "oci_core_volume",
+        "data_source": "oci_core_volumes",
+    },
+    "terraform/networking": {
+        "resource": "oci_core_vcn",
+        "data_source": "oci_core_vcns",
+    },
+    "terraform/load-balancer": {
+        "resource": "oci_load_balancer_load_balancer",
+        "data_source": "oci_load_balancer_load_balancers",
+    },
+    "terraform/database": {
+        "resource": "oci_database_autonomous_database",
+        "data_source": "oci_database_autonomous_databases",
+    },
+    "terraform/container": {
+        "resource": "oci_containerengine_cluster",
+        "data_source": "oci_containerengine_clusters",
+    },
+    "terraform/serverless": {
+        "resource": "oci_functions_application",
+        "data_source": "oci_functions_applications",
+    },
+    "terraform/security": {
+        "resource": "oci_vault_secret",
+        "data_source": "oci_vault_secrets",
+    },
+    "terraform/observability": {
+        "resource": "oci_monitoring_alarm",
+        "data_source": "oci_monitoring_alarms",
+    },
+    "terraform/devops": {
+        "resource": "oci_devops_project",
+        "data_source": "oci_devops_projects",
+    },
+    "terraform/state": {
+        "resource": "oci_objectstorage_bucket",
+        "data_source": "oci_objectstorage_buckets",
+    },
+    # Troubleshooting categories (map to service commands)
+    "troubleshooting/connectivity": {
+        "resource": "oci_core_vcn",
+        "data_source": "oci_core_vcns",
+    },
+    "troubleshooting/performance": {
+        "resource": "oci_core_instance",
+        "data_source": "oci_core_instances",
+    },
+    "troubleshooting/authentication": {
+        "resource": "oci_identity_policy",
+        "data_source": "oci_identity_policies",
+    },
+    "troubleshooting/database": {
+        "resource": "oci_database_autonomous_database",
+        "data_source": "oci_database_autonomous_databases",
+    },
+    "troubleshooting/compute": {
+        "resource": "oci_core_instance",
+        "data_source": "oci_core_instances",
+    },
+    "troubleshooting/storage": {
+        "resource": "oci_core_volume",
+        "data_source": "oci_core_volumes",
+    },
+    "troubleshooting/oke": {
+        "resource": "oci_containerengine_cluster",
+        "data_source": "oci_containerengine_clusters",
+    },
+    "troubleshooting/functions": {
+        "resource": "oci_functions_application",
+        "data_source": "oci_functions_applications",
+    },
+}
+
+# Category alias mapping for CLI and SDK lookups
+# Maps terraform/* and troubleshooting/* categories to their service equivalents
+CATEGORY_ALIAS = {
+    # Terraform -> service
+    "terraform/provider": "compute/instances",
+    "terraform/compute": "compute/instances",
+    "terraform/storage": "storage/block",
+    "terraform/networking": "networking/vcn",
+    "terraform/load-balancer": "lb/load-balancer",
+    "terraform/database": "database/autonomous",
+    "terraform/container": "container/oke",
+    "terraform/serverless": "serverless/functions",
+    "terraform/security": "security/vault-secrets",
+    "terraform/observability": "observability/monitoring",
+    "terraform/devops": "devops/ci-cd",
+    "terraform/state": "storage/object",
+    # Troubleshooting -> service
+    "troubleshooting/connectivity": "networking/vcn",
+    "troubleshooting/performance": "compute/instances",
+    "troubleshooting/authentication": "security/iam-basics",
+    "troubleshooting/database": "database/autonomous",
+    "troubleshooting/compute": "compute/instances",
+    "troubleshooting/storage": "storage/block",
+    "troubleshooting/oke": "container/oke",
+    "troubleshooting/functions": "serverless/functions",
+    # Migration -> related service
+    "migration/aws-compute": "compute/instances",
+    "migration/aws-storage": "storage/object",
+    "migration/aws-database": "database/autonomous",
+    "migration/azure-compute": "compute/instances",
+    "migration/azure-storage": "storage/object",
+    "migration/azure-database": "database/autonomous",
+    "migration/gcp-compute": "compute/instances",
+    "migration/gcp-storage": "storage/object",
+    "migration/gcp-database": "database/autonomous",
+    "migration/onprem-compute": "compute/instances",
+    "migration/onprem-storage": "storage/block",
+    "migration/onprem-vmware": "compute/instances",
+    "migration/onprem-database": "database/autonomous",
+    "migration/data-transfer": "storage/object",
+}
+
 
 # ============================================================================
 # QUESTION GENERATION - 140 unique questions per category
@@ -3073,7 +4043,9 @@ def _generate_answer(category: str, question: str, idx: int) -> str:
     structure_idx = idx % 8  # 8 different response structures
 
     # Generate answer based on structure
-    if structure_idx == 0:
+    if subcat in ("policies", "iam-basics", "dynamic-groups"):
+        return _answer_iam_policy(category, subcat, question, idx, scenario)
+    elif structure_idx == 0:
         return _answer_step_by_step(category, subcat, question, idx, scenario)
     elif structure_idx == 1:
         return _answer_troubleshooting(category, subcat, question, idx, scenario)
@@ -3103,28 +4075,24 @@ def _answer_step_by_step(
     doc = DOC_LINKS.get(category, "https://docs.oracle.com/en-us/iaas/")
 
     steps = [
-        f"Para implementar {subcat} no contexto da {scenario}, siga estes passos:\n\n",
-        f"**Passo 1: Preparacao do ambiente**\n",
-        f"- Acesse o Console OCI e navegue ate o compartment `{comp}`\n",
-        f"- Verifique que voce tem as permissoes necessarias na regiao `{region}`\n",
-        f"- Confirme os quotas de servico disponiveis\n\n",
-        f"**Passo 2: Configuracao inicial**\n",
-        f"- Crie o recurso com o nome `{subcat}-{comp}-{idx:03d}`\n",
-        f"- Configure os parametros:\n",
-        f"  - Shape/Type: `{shape}`\n",
-        f"  - OCPUs/Capacity: `{ocus}`\n",
-        f"  - Storage: `{storage} GB`\n",
-        f"  - Region: `{region}`\n\n",
-        f"**Passo 3: Configuracao de rede**\n",
-        f"- Associe o recurso a VCN existente ou crie uma nova\n",
-        f"- Configure Security Lists permitindo as portas necessarias\n",
-        f"- Verifique as route tables e gateways\n\n",
+        f"Para configurar {subcat} no OCI, siga estes passos:\n\n",
+        f"**Passo 1: Preparacao**\n",
+        f"- Acesse o Console OCI e navegue ate o servico correspondente\n",
+        f"- Selecione o compartment `{comp}` na regiao `{region}`\n",
+        f"- Verifique quotas e permissoes IAM necessarias\n\n",
+        f"**Passo 2: Criacao do recurso**\n",
+        f"- No Console, clique em 'Create' para o servico desejado\n",
+        f"- Defina o nome como `{subcat}-{comp}-{idx % 1000:03d}`\n",
+        f"- Configure os parametros conforme sua necessidade\n\n",
+        f"**Passo 3: Configuracao**\n",
+        f"- Ajuste as configuracoes de rede e seguranca\n",
+        f"- Aplique tags para organizacao (project={scenario.replace(' - ', '-')})\n",
+        f"- Configure monitoring e alertas\n\n",
         f"**Passo 4: Validacao**\n",
-        f"- Teste a conectividade e funcionalidade\n",
-        f"- Verifique os logs e metricas\n",
-        f"- Confirme que o recurso esta operacional\n\n",
-        f"**Dica:** Para automatizar este processo, considere usar Terraform ou OCI CLI.\n\n",
-        f"Documentacao: {doc}",
+        f"- Teste o acesso e conectividade\n",
+        f"- Verifique logs e metricas\n",
+        f"- Documente a configuracao\n\n",
+        f"**Referencia:** {doc}",
     ]
     return "".join(steps)
 
@@ -3137,12 +4105,17 @@ def _answer_troubleshooting(
     comp = COMPS[idx % len(COMPS)]
     doc = DOC_LINKS.get(category, "https://docs.oracle.com/en-us/iaas/")
 
+    svc = CATEGORY_ALIAS.get(category, category)
+    cli = OCI_CLI_COMMANDS.get(svc, {})
+    get_cmd = cli.get("get", f"oci <service> get")
+    id_param = cli.get("id_param", "--resource-id")
+
     issues = [
         f"Diagnostico e resolucao de problemas para {subcat} - {scenario}:\n\n",
         f"**Problema comum 1: Recurso nao inicia**\n",
         f"```bash\n",
         f"# Verificar estado do recurso\n",
-        f"oci {subcat.replace('/', ' ')} get --id <resource-ocid> \\\n",
+        f"{get_cmd} {id_param} <resource-ocid> \\\n",
         f"  --query \"data.{{state:'lifecycle-state', error:'fault-domain'}}\"\n\n",
         f"# Verificar eventos recentes\n",
         f"oci audit event list \\\n",
@@ -3177,6 +4150,10 @@ def _answer_comparison_table(
     shape = SHAPES[idx % len(SHAPES)]
     doc = DOC_LINKS.get(category, "https://docs.oracle.com/en-us/iaas/")
 
+    svc = CATEGORY_ALIAS.get(category, category)
+    cli = OCI_CLI_COMMANDS.get(svc, {})
+    create_cmd = cli.get("create", f"oci <service> create")
+
     return f"""Analise comparativa para {subcat} - {scenario}:
 
 | Caracteristica | Opcao A | Opcao B | Opcao C |
@@ -3201,7 +4178,7 @@ def _answer_comparison_table(
 
 **Exemplo de implementacao:**
 ```bash
-oci {subcat.replace("/", " ")} create \\
+{create_cmd} \\
   --compartment-id <ocid> \\
   --display-name "{subcat}-{comp}-{idx:03d}" \\
   --region {region}
@@ -3277,7 +4254,7 @@ Documentacao: {doc}"""
 def _answer_code_first(
     category: str, subcat: str, question: str, idx: int, scenario: str
 ) -> str:
-    """Code-first response structure."""
+    """Code-first response structure with real OCI CLI commands."""
     region = REGIONS[idx % len(REGIONS)]
     comp = COMPS[idx % len(COMPS)]
     shape = SHAPES[idx % len(SHAPES)]
@@ -3285,11 +4262,25 @@ def _answer_code_first(
     storage = STORAGE_SIZES[idx % len(STORAGE_SIZES)]
     doc = DOC_LINKS.get(category, "https://docs.oracle.com/en-us/iaas/")
 
+    svc = CATEGORY_ALIAS.get(category, category)
+    cli = OCI_CLI_COMMANDS.get(svc, {})
+    create_cmd = cli.get("create", "oci <service> create")
+    list_cmd = cli.get("list", "oci <service> list")
+    get_cmd = cli.get("get", "oci <service> get")
+    update_cmd = cli.get("update", "oci <service> update")
+    delete_cmd = cli.get("delete", "oci <service> delete")
+    id_param = cli.get("id_param", "--resource-id")
+    list_query = cli.get(
+        "list_query", "data[].{name:'display-name',state:'lifecycle-state'}"
+    )
+
+    id_flag = id_param.replace("--", "")
+
     return f"""Implementacao via OCI CLI para {subcat} - {scenario}:
 
 **Criacao do recurso:**
 ```bash
-oci {subcat.replace("/", " ")} create \\
+{create_cmd} \\
   --compartment-id $(oci iam compartment list \\
     --query "data[?name=='{comp}'].id | [0]") \\
   --display-name "{subcat}-{comp}-{idx:03d}" \\
@@ -3299,30 +4290,30 @@ oci {subcat.replace("/", " ")} create \\
 
 **Listar recursos existentes:**
 ```bash
-oci {subcat.replace("/", " ")} list \\
+{list_cmd} \\
   --compartment-id <ocid> \\
-  --query "data[].{{name:'display-name', state:'lifecycle-state'}}"
+  --query "{list_query}"
 ```
 
 **Atualizar configuracao:**
 ```bash
-oci {subcat.replace("/", " ")} update \\
-  --{subcat.replace("/", "-")}-id <resource-ocid> \\
+{update_cmd} \\
+  {id_param} <resource-ocid> \\
   --defined-tags '{{"project": {{"name": "{scenario}"}}}}' \\
   --freeform-tags '{{"environment": "{comp}", "managed-by": "cli"}}'
 ```
 
 **Monitoramento:**
 ```bash
-oci {subcat.replace("/", " ")} get \\
-  --{subcat.replace("/", "-")}-id <resource-ocid> \\
+{get_cmd} \\
+  {id_param} <resource-ocid> \\
   --query "data.{{state:'lifecycle-state', time:'time-created'}}"
 ```
 
 **Remocao (com cuidado):**
 ```bash
-oci {subcat.replace("/", " ")} delete \\
-  --{subcat.replace("/", "-")}-id <resource-ocid> \\
+{delete_cmd} \\
+  {id_param} <resource-ocid> \\
   --force
 ```
 
@@ -3339,7 +4330,7 @@ Documentacao: {doc}"""
 def _answer_terraform(
     category: str, subcat: str, question: str, idx: int, scenario: str
 ) -> str:
-    """Terraform-based response structure."""
+    """Terraform-based response structure with real OCI resources."""
     region = REGIONS[idx % len(REGIONS)]
     comp = COMPS[idx % len(COMPS)]
     shape = SHAPES[idx % len(SHAPES)]
@@ -3348,6 +4339,11 @@ def _answer_terraform(
     doc = DOC_LINKS.get(
         category, "https://registry.terraform.io/providers/oracle/oci/latest/docs"
     )
+
+    svc = CATEGORY_ALIAS.get(category, category)
+    tf = OCI_TERRAFORM_RESOURCES.get(svc, {})
+    tf_resource = tf.get("resource", f"oci_{subcat.replace('/', '_')}")
+    tf_data = tf.get("data_source", f"oci_{subcat.replace('/', '_')}s")
 
     return f"""Infraestrutura como codigo para {subcat} - {scenario}:
 
@@ -3366,13 +4362,13 @@ provider "oci" {{
   region = "{region}"
 }}
 
-resource "oci_{subcat.replace("/", "_")}" "main" {{
+resource "{tf_resource}" "main" {{
   compartment_id = var.compartment_ocid
   display_name   = "{subcat}-{comp}-{idx:03d}"
-  
+
   # Configuracao especifica
   shape          = "{shape}"
-  
+
   tags = {{
     project     = "{scenario}"
     environment = "{comp}"
@@ -3386,7 +4382,7 @@ variable "compartment_ocid" {{
 }}
 
 output "resource_id" {{
-  value = oci_{subcat.replace("/", "_")}.main.id
+  value = {tf_resource}.main.id
 }}
 ```
 
@@ -3424,13 +4420,22 @@ Documentacao: {doc}"""
 def _answer_python_sdk(
     category: str, subcat: str, question: str, idx: int, scenario: str
 ) -> str:
-    """Python SDK response structure."""
+    """Python SDK response structure with real OCI SDK classes."""
     region = REGIONS[idx % len(REGIONS)]
     comp = COMPS[idx % len(COMPS)]
     shape = SHAPES[idx % len(SHAPES)]
     ocus = OCPUS[idx % len(OCPUS)]
     storage = STORAGE_SIZES[idx % len(STORAGE_SIZES)]
     doc = DOC_LINKS.get(category, "https://docs.oracle.com/en-us/iaas/")
+
+    svc = CATEGORY_ALIAS.get(category, category)
+    sdk = OCI_PYTHON_SDK.get(svc, {})
+    sdk_client = sdk.get("client", "oci.<service>.Client")
+    create_method = sdk.get("create_method", "create_resource")
+    list_method = sdk.get("list_method", "list_resources")
+    get_method = sdk.get("get_method", "get_resource")
+    delete_method = sdk.get("delete_method", "delete_resource")
+    model_class = sdk.get("model", "oci.<service>.models.CreateDetails")
 
     return f"""Automacao com Python SDK para {subcat} - {scenario}:
 
@@ -3448,11 +4453,11 @@ config = oci.config.from_file()
 config["region"] = "{region}"
 
 # Cliente do servico
-client = oci.{subcat.replace("/", ".").title().replace("/", "")}Client(config)
+client = {sdk_client}(config)
 
 # Criar recurso
-resource = client.create_{subcat.replace("/", "_")}(
-    oci.{subcat.replace("/", ".").title().replace("/", "")}Models.Create{subcat.title().replace("/", "")}Details(
+resource = client.{create_method}(
+    {model_class}(
         compartment_id="<ocid>",
         display_name="{subcat}-{comp}-{idx:03d}",
         shape="{shape}",
@@ -3469,7 +4474,7 @@ print(f"Estado: {{resource.data.lifecycle_state}}")
 
 **Listar recursos:**
 ```python
-resources = client.list_{subcat.replace("/", "_") + "s"}(
+resources = client.{list_method}(
     compartment_id="<ocid>",
     lifecycle_state="ACTIVE"
 )
@@ -3545,6 +4550,105 @@ def _answer_best_practices(
 - Sempre valide em ambiente de teste antes de producao
 - Mantenha backups atualizados
 - Documente todas as alteracoes
+
+Documentacao: {doc}"""
+
+
+def _answer_iam_policy(
+    category: str, subcat: str, question: str, idx: int, scenario: str
+) -> str:
+    """IAM policy-specific response structure using plain text syntax."""
+    region = REGIONS[idx % len(REGIONS)]
+    comp = COMPS[idx % len(COMPS)]
+    doc = DOC_LINKS.get(
+        category,
+        "https://docs.oracle.com/en-us/iaas/Content/Identity/Concepts/overview.htm",
+    )
+
+    verbs = ["manage", "use", "read", "inspect", "create", "update", "delete"]
+    verb = verbs[idx % len(verbs)]
+    resource_types = [
+        "instance-family",
+        "volume-family",
+        "vcn-family",
+        "bucket-family",
+        "database-family",
+        "cluster-family",
+        "function-family",
+        "log-family",
+        "metric-family",
+        "vault-family",
+    ]
+    resource_type = resource_types[idx % len(resource_types)]
+    group_name = f"developers-{comp.replace('-', '')}"
+
+    return f"""Guia de IAM Policies para {subcat} - {scenario}:
+
+**Sintaxe de IAM Policies no OCI**
+
+As policies do OCI IAM usam texto simples (NOT JSON). A sintaxe correta e:
+
+```
+Allow group <group-name> to <verb> <resource-type> in compartment <compartment-name>
+```
+
+**Exemplo de policy para {comp}:**
+
+```
+Allow group {group_name} to {verb} {resource_type} in compartment {comp}
+```
+
+**Politicas comuns por servico:**
+
+1. **Compute:**
+```
+Allow group {group_name} to manage instance-family in compartment {comp}
+Allow group {group_name} to use virtual-network-family in compartment {comp}
+```
+
+2. **Storage:**
+```
+Allow group {group_name} to manage volume-family in compartment {comp}
+Allow group {group_name} to manage object-family in compartment {comp}
+```
+
+3. **Networking:**
+```
+Allow group {group_name} to manage virtual-network-family in compartment {comp}
+Allow group {group_name} to manage load-balancers in compartment {comp}
+```
+
+4. **Database:**
+```
+Allow group {group_name} to manage database-family in compartment {comp}
+```
+
+5. **Container/OKE:**
+```
+Allow group {group_name} to manage cluster-family in compartment {comp}
+Allow group {group_name} to manage repos in compartment {comp}
+```
+
+**Onde criar policies no Console OCI:**
+- Navegue para: **Identity & Security** → **IAM** → **Policies**
+- Para usuarios: **Identity & Security** → **IAM** → **Users**
+- Para grupos: **Identity & Security** → **IAM** → **Groups**
+
+**Estrutura de uma policy:**
+- **Verbs:** `inspect`, `read`, `use`, `manage`, `create`, `update`, `delete`
+- **Resource types:** `instance-family`, `volume-family`, `virtual-network-family`, `bucket-family`, `database-family`, `all-resources`
+- **Scope:** `in compartment <name>`, `in tenancy`, `in compartment id <ocid>`
+
+**Exemplo de policy para Dynamic Groups:**
+```
+Allow dynamic-group {group_name}-dg to manage instance-family in compartment {comp}
+```
+
+**Dicas importantes:**
+- Policies sao avaliadas em ordem; a primeira correspondencia decide
+- Use `manage` para acesso total, `use` para operacoes sem criar/deletar
+- `inspect` permite listar recursos sem ver conteudo
+- Sempre aplique o principio de menor privilegio
 
 Documentacao: {doc}"""
 

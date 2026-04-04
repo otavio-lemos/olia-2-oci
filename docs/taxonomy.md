@@ -1,6 +1,6 @@
 # OCI Specialist LLM - Taxonomy
 
-## Category Hierarchy (10 examples per topic)
+## Category Hierarchy (140 examples per topic)
 
 ### oci-core (Priority: High)
 
@@ -468,4 +468,4 @@
 
 ## Total
 
-- 71 topics × 10 examples = 710 examples total
+- 71 topics × 140 examples = 9,940 examples total

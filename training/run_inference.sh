@@ -38,26 +38,29 @@ for prompt in "${EXAMPLE_PROMPTS[@]}"; do
 
     if [ -d "$MERGED_MODEL" ]; then
         echo "Using merged model..."
-        mlx_lm.generate \
+        python -m mlx_lm.generate \
             --model "$MERGED_MODEL" \
-            --prompt "$SYSTEM_PROMPT\n\nUser: $prompt\nAssistant:" \
+            --prompt "$prompt" \
             --max-tokens "$MAX_TOKENS" \
-            --temp "$TEMPERATURE"
-    elif [ -f "$ADAPTER_DIR/adapters.safetensors" ]; then
+            --temperature "$TEMPERATURE" \
+            --system-prompt "$SYSTEM_PROMPT"
+    elif [ -d "$ADAPTER_DIR" ] && [ -f "$ADAPTER_DIR/adapters.safetensors" ]; then
         echo "Using LoRA adapter..."
-        mlx_lm.generate \
+        python -m mlx_lm.generate \
             --model "$BASE_MODEL" \
             --adapter-path "$ADAPTER_DIR" \
-            --prompt "$SYSTEM_PROMPT\n\nUser: $prompt\nAssistant:" \
+            --prompt "$prompt" \
             --max-tokens "$MAX_TOKENS" \
-            --temp "$TEMPERATURE"
+            --temperature "$TEMPERATURE" \
+            --system-prompt "$SYSTEM_PROMPT"
     else
         echo "No adapter found, using base model"
-        mlx_lm.generate \
+        python -m mlx_lm.generate \
             --model "$BASE_MODEL" \
-            --prompt "$SYSTEM_PROMPT\n\nUser: $prompt\nAssistant:" \
+            --prompt "$prompt" \
             --max-tokens "$MAX_TOKENS" \
-            --temp "$TEMPERATURE"
+            --temperature "$TEMPERATURE" \
+            --system-prompt "$SYSTEM_PROMPT"
     fi
 done
 
