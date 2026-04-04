@@ -3,6 +3,7 @@
 
 import json
 import re
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -642,6 +643,18 @@ def main():
             incr_path = output_dir / f"eval-progress-{i + 1:05d}.md"
             generate_comparison_report(base_results, ft_results, incr_path)
             print(f"  Progress report: {incr_path}")
+
+            # Auto-push to GitHub every checkpoint
+            try:
+                subprocess.run(
+                    ["bash", "scripts/push_progress.sh"],
+                    capture_output=True,
+                    text=True,
+                    timeout=60,
+                )
+                print(f"  Progress pushed to GitHub")
+            except Exception as e:
+                print(f"  Push failed (will retry next checkpoint): {e}")
 
     output_path = (
         output_dir / f"eval-comparison-{datetime.now().strftime('%Y%m%d-%H%M%S')}.md"

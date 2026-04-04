@@ -25,5 +25,3 @@ outputs/logs/
 outputs/adapters/
 outputs/pdca-*.md
 outputs/benchmarks/eval-run.log
-outputs/benchmarks/eval-checkpoint.json
-outputs/benchmarks/eval-progress-*.md
