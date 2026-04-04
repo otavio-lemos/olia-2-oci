@@ -179,12 +179,11 @@ ADAPTER_DIR=outputs/cycle-3 bash training/export_adapter.sh
 # 3.2 Testar inference
 bash training/run_inference.sh
 
-# 3.3 Avaliar (rápido — 994 exemplos do split eval)
-python scripts/evaluate_model.py "mlx-community/Llama-3.2-3B-Instruct-4bit" "outputs/merged-model" data/eval.jsonl outputs/benchmarks
+# 3.3 Avaliar (completo — 9,940 exemplos, recomendado)
+python scripts/evaluate_model.py "mlx-community/Llama-3.2-3B-Instruct-4bit" "outputs/merged-model" data/all_curated_clean.jsonl outputs/benchmarks
 
-# 3.3 Avaliar (completo — 9,940 exemplos, recomendado para release)
-# python scripts/evaluate_model.py "mlx-community/Llama-3.2-3B-Instruct-4bit" "outputs/merged-model" data/all_curated_clean.jsonl outputs/benchmarks
-# Inclui checkpoint/resume automático, ETA, análise por dificuldade e ranking de categorias
+# 3.3 Avaliar (rápido — 994 exemplos do split eval)
+# python scripts/evaluate_model.py "mlx-community/Llama-3.2-3B-Instruct-4bit" "outputs/merged-model" data/eval.jsonl outputs/benchmarks
 ```
 
 ### Treinamento Multi-Cycle
@@ -274,11 +273,14 @@ olia-2-oci/
 ├── AGENTS.md                      # Diretrizes do agente
 ├── README.md                      # Este arquivo
 ├── CONTRIBUTING.md                # Guia de contribuição
+├── LICENSE                        # Licença MIT
+├── requirements.txt               # Dependências pinadas
 ├── docs/                          # Documentação do projeto
-│   ├── taxonomy.md               # Topics do dataset
+│   ├── taxonomy.md               # Topics do dataset (71 categorias)
 │   ├── quality-rules.md          # Regras de qualidade
 │   ├── eval-rubric.md            # Critérios de avaliação
-│   └── scope.md                  # Escopo v1 vs v2
+│   ├── scope.md                  # Escopo v1 vs v2
+│   └── pdca-cycle1-diagnostico.md # Diagnóstico PDCA
 ├── config/                        # Configurações de treinamento
 │   ├── cycle-1.env               # Ciclo 1: LR=5e-5
 │   ├── cycle-2.env               # Ciclo 2: LR=1e-5 (resume)
@@ -286,17 +288,20 @@ olia-2-oci/
 ├── data/                          # Dataset
 │   ├── curated/                  # 71 topic files (140 examples each)
 │   ├── all_curated.jsonl         # Combined dataset (9,940)
+│   ├── all_curated_clean.jsonl   # Validated + deduplicated (9,940)
 │   ├── train.jsonl               # Training split (7,455)
 │   ├── valid.jsonl               # Validation split (1,491)
 │   ├── eval.jsonl                # Evaluation split (994)
 │   └── TEMPLATE.jsonl            # Formato de referência
 ├── scripts/                       # Scripts de pipeline
+│   ├── generate_prompt.py        # Gerar prompts a partir da taxonomy
 │   ├── generate_diverse_v2.py    # Dataset generator (9,940 examples)
 │   ├── validate_jsonl.py         # Validar formato JSONL
 │   ├── dedupe_dataset.py         # Remover duplicatas
 │   ├── build_dataset_fixed.py    # Criar splits train/valid/eval
 │   ├── prepare_data.sh           # Pipeline orchestrator
-│   └── evaluate_model.py         # Executar benchmarks
+│   ├── evaluate_model.py         # Benchmarks com checkpoint/resume
+│   └── push_progress.sh          # Push progresso para GitHub
 ├── training/                      # Scripts de treinamento MLX
 │   ├── train_mlx_v2.sh           # Treinamento com logging e resume
 │   ├── run_all_cycles.sh         # Orquestrador multi-cycle
@@ -309,7 +314,7 @@ olia-2-oci/
     ├── cycle-3/                  # Adapter cycle 3 (BEST)
     ├── merged-model/             # Modelo fundido final (~1.8GB)
     ├── logs/                     # Logs e métricas CSV por ciclo
-    └── benchmarks/               # Relatórios de avaliação
+    └── benchmarks/               # Relatórios de avaliação + progresso
 ```
 
 ---
