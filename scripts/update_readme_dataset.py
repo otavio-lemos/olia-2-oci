@@ -2,7 +2,6 @@
 """Auto-update README.md dataset section with real data from the pipeline."""
 
 import json
-import os
 import re
 import sys
 from collections import Counter
@@ -55,24 +54,6 @@ def get_difficulty_distribution(split_file="train.jsonl"):
             except json.JSONDecodeError:
                 continue
     return dict(difficulties)
-
-
-def get_category_distribution():
-    """Get distribution of categories across all curated files."""
-    curated_dir = DATA_DIR / "curated"
-    categories = {}
-    if not curated_dir.exists():
-        return categories
-    for f in sorted(curated_dir.glob("*.jsonl")):
-        with open(f, "r") as fh:
-            for line in fh:
-                try:
-                    record = json.loads(line)
-                    cat = record.get("metadata", {}).get("category", "unknown")
-                    categories[cat] = categories.get(cat, 0) + 1
-                except json.JSONDecodeError:
-                    continue
-    return categories
 
 
 def check_quality(split_file="all_curated_clean.jsonl"):
