@@ -1,0 +1,28 @@
+Detected merged model: outputs/merged-model
+Loaded 994 eval examples
+Base model: mlx-community/Llama-3.2-3B-Instruct-4bit
+FT model: outputs/merged-model
+
+============================================================
+PHASE 1: Evaluating base model
+============================================================
+Loading model: mlx-community/Llama-3.2-3B-Instruct-4bit
+Fetching 6 files:   0%|          | 0/6 [00:00<?, ?it/s]Fetching 6 files: 100%|██████████| 6/6 [00:00<00:00, 19815.61it/s]
+Model loaded successfully
+[BASE 1/994] terraform/load-balancer (beginner)...
+  Done in 14.0s | Avg: 14.0s | ETA: 3:50:55
+[BASE 2/994] terraform/load-balancer (beginner)...
+  Done in 17.2s | Avg: 15.6s | ETA: 4:17:54
+[BASE 3/994] terraform/load-balancer (intermediate)...
+  Done in 16.9s | Avg: 16.0s | ETA: 4:24:59
+[BASE 4/994] terraform/load-balancer (advanced)...
+  Done in 15.1s | Avg: 15.8s | ETA: 4:20:48
+[BASE 5/994] terraform/load-balancer (advanced)...
+  Done in 17.3s | Avg: 16.1s | ETA: 4:25:22
+[BASE 6/994] terraform/load-balancer (beginner)...
+  Done in 13.9s | Avg: 15.7s | ETA: 4:18:59
+[BASE 7/994] terraform/load-balancer (advanced)...
+  Done in 13.3s | Avg: 15.4s | ETA: 4:13:01
+[BASE 8/994] terraform/load-balancer (intermediate)...
+/opt/homebrew/Cellar/python@3.12/3.12.13/Frameworks/Python.framework/Versions/3.12/lib/python3.12/multiprocessing/resource_tracker.py:279: UserWarning: resource_tracker: There appear to be 1 leaked semaphore objects to clean up at shutdown
+  warnings.warn('resource_tracker: There appear to be %d '

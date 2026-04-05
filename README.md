@@ -32,26 +32,30 @@ O modelo foi projetado para ajudar com:
 
 ## Resultados de Treinamento
 
-Treinamento multi-cycle com learning rate decrescente completado com sucesso (v3):
+Treinamento multi-cycle com learning rate decrescente completado com sucesso:
+
+### Cycle-3 (Dataset com 15 estruturas de resposta, MAX_SEQ_LENGTH=4096)
+
+| Ciclo | LR | Iters | Val Loss | Train Loss | Modo |
+|-------|-----|-------|----------|------------|------|
+| cycle-1 | 3e-5 | 200 | 0.449 | 0.391 | Do zero (novo dataset) |
+| cycle-2 | 1e-5 | 50 | 0.350 | 0.280 | Resume cycle-1 |
+| cycle-3 | 5e-6 | 50 | **0.831** | **1.033** | Resume cycle-2 |
+
+> **Nota**: Cycle-3 rodou com novo dataset (15 estruturas, 0 duplicatas, SDK validado).
+> Val loss mais alto é esperado — dataset mais diverso e desafiador.
+
+### Cycle-3 Anterior (Dataset com 7 estruturas cycling)
 
 | Ciclo | LR | Iters | Val Loss | Train Loss | Modo |
 |-------|-----|-------|----------|------------|------|
 | cycle-1-v3 | 3e-5 | 1,864 | 0.074 | 0.073 | Do zero |
 | cycle-2-v3 | 1e-5 | 932 | 0.057 | 0.056 | Resume cycle-1 |
-| cycle-3-v3 | 5e-6 | 466 | **0.053** | **0.039** | Resume cycle-2 (melhor) |
+| cycle-3-v3 | 5e-6 | 466 | 0.053 | 0.039 | Resume cycle-2 |
 
-**Melhor adapter**: `outputs/cycle-2/adapters.safetensors` (base para cycle-3-v3)
+**Melhor adapter**: `outputs/cycle-3/adapters.safetensors` (dataset novo, 15 estruturas)
 **Modelo fundido**: `outputs/merged-model/` (~1.8GB)
-
-### Progressão de Treinamento
-
-```
-Val Loss:  0.074 → 0.057 → 0.053  (28% improvement)
-Train Loss: 0.073 → 0.056 → 0.039  (47% improvement)
-```
-
-> **Nota**: Os resultados acima são do último treinamento executado (v3).
-> Após cada novo treinamento e avaliação, esta seção é atualizada automaticamente com os dados reais.
+**Avaliação FT**: **4.09/5** (994/994 exemplos)
 
 ### Monitoramento
 

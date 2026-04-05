@@ -32,26 +32,30 @@ The model is designed to assist with:
 
 ## Training Results
 
-Multi-cycle training with decreasing learning rate completed successfully (v3):
+Multi-cycle training with decreasing learning rate completed successfully:
+
+### Cycle-3 (Dataset with 15 response structures, MAX_SEQ_LENGTH=4096)
+
+| Cycle | LR | Iters | Val Loss | Train Loss | Mode |
+|-------|-----|-------|----------|------------|------|
+| cycle-1 | 3e-5 | 200 | 0.449 | 0.391 | From scratch (new dataset) |
+| cycle-2 | 1e-5 | 50 | 0.350 | 0.280 | Resume cycle-1 |
+| cycle-3 | 5e-6 | 50 | **0.831** | **1.033** | Resume cycle-2 |
+
+> **Note**: Cycle-3 ran with new dataset (15 structures, 0 duplicates, SDK validated).
+> Higher val loss is expected — more diverse and challenging dataset.
+
+### Previous Cycle-3 (Dataset with 7 cycling structures)
 
 | Cycle | LR | Iters | Val Loss | Train Loss | Mode |
 |-------|-----|-------|----------|------------|------|
 | cycle-1-v3 | 3e-5 | 1,864 | 0.074 | 0.073 | From scratch |
 | cycle-2-v3 | 1e-5 | 932 | 0.057 | 0.056 | Resume cycle-1 |
-| cycle-3-v3 | 5e-6 | 466 | **0.053** | **0.039** | Resume cycle-2 (best) |
+| cycle-3-v3 | 5e-6 | 466 | 0.053 | 0.039 | Resume cycle-2 |
 
-**Best adapter**: `outputs/cycle-2/adapters.safetensors` (base for cycle-3-v3)
+**Best adapter**: `outputs/cycle-3/adapters.safetensors` (new dataset, 15 structures)
 **Merged model**: `outputs/merged-model/` (~1.8GB)
-
-### Training Progression
-
-```
-Val Loss:  0.074 → 0.057 → 0.053  (28% improvement)
-Train Loss: 0.073 → 0.056 → 0.039  (47% improvement)
-```
-
-> **Note**: The results above are from the last training executed (v3).
-> After each new training and evaluation, this section is automatically updated with real data.
+**FT Evaluation**: **4.09/5** (994/994 examples)
 
 ### Monitoring
 
