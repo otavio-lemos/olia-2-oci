@@ -183,7 +183,7 @@ Varie os exemplos entre:
 
 ## OUTPUT FORMAT
 
-Gere EXATAMENTE 10 exemplos em formato JSONL.
+Gere EXATAMENTE 140 exemplos em formato JSONL.
 
 **UM objeto JSON por linha** - cada linha é um objeto JSON completo.
 
@@ -250,7 +250,7 @@ Gere EXATAMENTE 10 exemplos em formato JSONL.
 
 ## SUA TAREFA
 
-Gere EXATAMENTE 10 exemplos diversos para o topic: **migration/aws-database**
+Gere EXATAMENTE 140 exemplos diversos para o topic: **migration/aws-database**
 
 - Mistura de dificuldades: 3 beginner, 5 intermediate, 2 advanced
 - Cenários reais de OCI - cada exemplo com um caso de uso diferente

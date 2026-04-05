@@ -10,7 +10,7 @@ source "${VENV_DIR}/bin/activate"
 BASE_MODEL=${BASE_MODEL:-"mlx-community/Llama-3.2-3B-Instruct-4bit"}
 ADAPTER_DIR=${ADAPTER_DIR:-"outputs/cycle-2"}
 MERGED_MODEL=${MERGED_MODEL:-"outputs/merged-model"}
-MAX_TOKENS=${MAX_TOKENS:-512}
+MAX_TOKENS=${MAX_TOKENS:-2048}
 TEMPERATURE=${TEMPERATURE:-0.7}
 
 SYSTEM_PROMPT="Você é um arquiteto especialista em Oracle Cloud Infrastructure (OCI). Forneça respostas técnicas precisas, específicas e práticas em português (Brasil)."

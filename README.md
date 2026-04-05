@@ -32,37 +32,34 @@ O modelo foi projetado para ajudar com:
 
 ## Resultados de Treinamento
 
-Treinamento multi-cycle com learning rate decrescente completado com sucesso:
+Treinamento multi-cycle com learning rate decrescente completado com sucesso (v3):
 
 | Ciclo | LR | Iters | Val Loss | Train Loss | Modo |
 |-------|-----|-------|----------|------------|------|
-| cycle-1 | 5e-5 | 200 | 0.163 | 0.161 | Do zero |
-| cycle-2 | 1e-5 | 200 | 0.119 | 0.104 | Continua cycle-1 |
-| cycle-3 | 5e-6 | 200 | **0.114** | **0.089** | Continua cycle-2 (melhor) |
+| cycle-1-v3 | 3e-5 | 1,864 | 0.074 | 0.073 | Do zero |
+| cycle-2-v3 | 1e-5 | 932 | 0.057 | 0.056 | Resume cycle-1 |
+| cycle-3-v3 | 5e-6 | 466 | **0.053** | **0.039** | Resume cycle-2 (melhor) |
 
-**Melhor adapter**: `outputs/cycle-3/adapters.safetensors` (menor val loss: 0.114)
+**Melhor adapter**: `outputs/cycle-2/adapters.safetensors` (base para cycle-3-v3)
 **Modelo fundido**: `outputs/merged-model/` (~1.8GB)
 
 ### Progressão de Treinamento
 
 ```
-Val Loss:  0.163 → 0.119 → 0.114  (30% improvement)
-Train Loss: 0.161 → 0.104 → 0.089  (45% improvement)
+Val Loss:  0.074 → 0.057 → 0.053  (28% improvement)
+Train Loss: 0.073 → 0.056 → 0.039  (47% improvement)
 ```
 
-> **Nota**: Os resultados acima são do último treinamento executado.
+> **Nota**: Os resultados acima são do último treinamento executado (v3).
 > Após cada novo treinamento e avaliação, esta seção é atualizada automaticamente com os dados reais.
 
-### Monitoramento em Tempo Real
+### Monitoramento
 
-Durante o treinamento e avaliação, o progresso é enviado automaticamente para o GitHub a cada 50 steps/exemplos:
+Durante o treinamento, métricas são capturadas automaticamente:
 
-**Durante treinamento:**
-- [`outputs/logs/cycle-N/training-progress.md`](outputs/logs/) — resumo formatado
+**Logs e métricas:**
 - [`outputs/logs/cycle-N/metrics.csv`](outputs/logs/) — métricas brutas (step, train_loss, val_loss)
-
-**Durante avaliação:**
-- [`outputs/benchmarks/eval-progress-NNNNN.md`](outputs/benchmarks/) — relatório comparativo base vs fine-tuned
+- [`outputs/logs/cycle-N/training.log`](outputs/logs/) — log completo
 
 **Links diretos:**
 - [outputs/benchmarks/](https://github.com/otavio-lemos/olia-2-oci/tree/main/outputs/benchmarks/)
@@ -79,8 +76,11 @@ O dataset contém 9,940 exemplos únicos gerados com diversidade estrutural e va
 | Métrica | Valor |
 |---------|-------|
 | **Total de Exemplos** | 9,940 |
-| **Categorias** | 71 topics OCI |
+| **Categorias** | 72 topics OCI |
 | **Exemplos por Categoria** | 140 |
+| **Estruturas de Resposta** | 15 (cost_analysis, security_audit, performance_tuning, disaster_recovery, monitoring_alerting, integration, migration, + 8 existentes) |
+| **Mapeamento por Categoria** | 5-7 estruturas relevantes por categoria |
+| **Validação SDK** | Campos validados por recurso (9 modelos SDK) |
 | **Duplicatas** | 0 (exatas + próximas) |
 | **Comandos CLI Falsos** | 0 |
 | **Classes SDK Falsas** | 0 |
@@ -99,15 +99,15 @@ O dataset contém 9,940 exemplos únicos gerados com diversidade estrutural e va
 
 | Dificuldade | Count | Percentual |
 |-------------|-------|------------|
-| Beginner | 2,199 | 29.5% |
-| Intermediate | 3,789 | 50.8% |
-| Advanced | 1,467 | 19.7% |
+| Beginner | 2,182 | 29.3% |
+| Intermediate | 3,783 | 50.7% |
+| Advanced | 1,490 | 20.0% |
 
 ### Categorias por Grupo
 
 | Grupo | Topics | Exemplos |
 |-------|--------|----------|
-| OCI Core (compute, storage, networking, lb, database, container, serverless) | 20 | 2,800 |
+| OCI Core (compute, storage, networking, lb, database, container, serverless) | 21 | 2,940 |
 | Security (iam-basics, policies, vault, encryption, cloud-guard, waf) | 9 | 1,260 |
 | Migration (AWS/Azure/GCP/On-prem → OCI) | 14 | 1,960 |
 | Terraform (provider, compute, storage, networking, lb, database, container, serverless, security, observability, devops, state) | 12 | 1,680 |
@@ -181,8 +181,9 @@ bash training/run_all_cycles.sh
 
 # 3.1 Exportar/Merge adapter (usa venv automaticamente)
 # Verifique qual ciclo tem menor val loss em outputs/logs/cycle-*/metrics.csv
-# O cycle-3 é o melhor do treinamento atual (val loss: 0.114)
-ADAPTER_DIR=outputs/cycle-3 bash training/export_adapter.sh
+# O cycle-3-v3 é o melhor do treinamento atual (val loss: 0.053)
+# Nota: cycle-3-v3 foi treinado via resume do cycle-2
+ADAPTER_DIR=outputs/cycle-2 bash training/export_adapter.sh
 
 # 3.2 Testar inference
 bash training/run_inference.sh
@@ -200,19 +201,15 @@ O pipeline suporta treinamento em múltiplos ciclos com learning rate decrescent
 
 | Variável | cycle-1 | cycle-2 | cycle-3 |
 |----------|---------|---------|---------|
-| `LEARNING_RATE` | 5e-5 | 1e-5 | 5e-6 |
-| `ITERS` | 200 | 200 | 200 |
+| `LEARNING_RATE` | 3e-5 | 1e-5 | 5e-6 |
+| `LORA_RANK` | 16 | 16 | 8 |
+| `LORA_ALPHA` | 32 | 32 | 16 |
+| `ITERS` (v3) | 1,864 | 932 | 466 |
 | `RESUME` | scratch | cycle-1 | cycle-2 |
-
-> ⚠️ **Nota**: O script `training/run_all_cycles.sh` usa iterações menores (200/100/50) por padrão.
-> Os valores acima refletem o treinamento real executado. Para reproduzir, ajuste `ITERS` nos arquivos `config/cycle-*.env`.
 
 ```bash
 # Executar todos os ciclos sequencialmente
 bash training/run_all_cycles.sh
-
-# Acompanhar progresso do treinamento (push para GitHub)
-bash scripts/push_training_progress.sh cycle-1  # ou cycle-2, cycle-3
 ```
 
 ### Configuração do Ciclo (`config/cycle-1.env`)
@@ -225,9 +222,9 @@ bash scripts/push_training_progress.sh cycle-1  # ou cycle-2, cycle-3
 | `OUTPUT_DIR` | Pasta para salvar os adapters LoRA | `outputs/cycle-1` |
 | `EPOCHS` | Número de épocas de treinamento | `2` |
 | `BATCH_SIZE` | Tamanho do batch | `1` |
-| `LEARNING_RATE` | Taxa de aprendizado | `5e-5` |
-| `LORA_RANK` | Rank da matriz LoRA | `8` |
-| `LORA_ALPHA` | Escala do LoRA | `16` |
+| `LEARNING_RATE` | Taxa de aprendizado | `3e-5` (cycle-1) |
+| `LORA_RANK` | Rank da matriz LoRA | `16` (cycle-1/2), `8` (cycle-3) |
+| `LORA_ALPHA` | Escala do LoRA | `32` (cycle-1/2), `16` (cycle-3) |
 | `LORA_DROPOUT` | Taxa de dropout para regularização | `0.05` |
 | `GRADIENT_ACCUMULATION` | Passos de gradiente antes do update | `4` |
 
@@ -249,12 +246,12 @@ flowchart LR
         DP7 --> Eval[eval.jsonl]
     end
     
-    subgraph Training["2. Treinamento Multi-Cycle"]
+    subgraph Training["2. Treinamento Multi-Cycle (v3)"]
         Train --> T1[Selecionar Base Model]
         Valid --> T1
-        T1 --> T2[Cycle 1: LR=5e-5]
-        T2 --> T3[Cycle 2: LR=1e-5]
-        T3 --> T4[Cycle 3: LR=5e-6]
+        T1 --> T2[Cycle 1: LR=3e-5, 1864 iters]
+        T2 --> T3[Cycle 2: LR=1e-5, 932 iters]
+        T3 --> T4[Cycle 3: LR=5e-6, 466 iters]
     end
     
     subgraph PostProcess["3. Pós-Treinamento"]
@@ -293,9 +290,9 @@ olia-2-oci/
 │   ├── scope.md                  # Escopo v1 vs v2
 │   └── pdca-cycle1-diagnostico.md # Diagnóstico PDCA
 ├── config/                        # Configurações de treinamento
-│   ├── cycle-1.env               # Ciclo 1: LR=5e-5
-│   ├── cycle-2.env               # Ciclo 2: LR=1e-5 (resume)
-│   └── cycle-3.env               # Ciclo 3: LR=5e-6 (resume)
+│   ├── cycle-1.env               # Ciclo 1: LR=3e-5, rank=16
+│   ├── cycle-2.env               # Ciclo 2: LR=1e-5, rank=16 (resume)
+│   └── cycle-3.env               # Ciclo 3: LR=5e-6, rank=8 (resume)
 ├── data/                          # Dataset
 │   ├── curated/                  # 71 topic files (140 examples each)
 │   ├── all_curated.jsonl         # Combined dataset (9,940)
@@ -312,7 +309,7 @@ olia-2-oci/
 │   ├── build_dataset_fixed.py    # Criar splits train/valid/eval
 │   ├── prepare_data.sh           # Pipeline orchestrator
 │   ├── evaluate_model.py         # Benchmarks com checkpoint/resume
-│   └── push_progress.sh          # Push progresso para GitHub
+│   └── push_progress.sh          # Push manual de progresso para GitHub
 ├── training/                      # Scripts de treinamento MLX
 │   ├── train_mlx_v2.sh           # Treinamento com logging e resume
 │   ├── run_all_cycles.sh         # Orquestrador multi-cycle
@@ -320,11 +317,10 @@ olia-2-oci/
 │   ├── run_inference.sh          # Testar inferência
 │   └── log_metrics.py            # Capturar métricas em CSV
 └── outputs/                       # Artefatos de saída
-    ├── cycle-1/                  # Adapter cycle 1
-    ├── cycle-2/                  # Adapter cycle 2
-    ├── cycle-3/                  # Adapter cycle 3 (BEST)
+    ├── cycle-1/                  # Adapter cycle 1 (2485 iters)
+    ├── cycle-2/                  # Adapter cycle 2 (2485 iters)
     ├── merged-model/             # Modelo fundido final (~1.8GB)
-    ├── logs/                     # Logs e métricas CSV por ciclo
+    ├── logs/                     # Logs e métricas CSV por ciclo (v3)
     └── benchmarks/               # Relatórios de avaliação + progresso
 ```
 
@@ -333,11 +329,11 @@ olia-2-oci/
 ## Pipeline
 
 1. **Documentação** → Escopo, taxonomia, regras de qualidade
-2. **Geração de Dados** → MASTER_PROMPT → curated/ (9,940 exemplos)
-3. **Validação** → JSONL validator, deduplicação
+2. **Geração de Dados** → 15 estruturas de resposta, mapeamento por categoria, validação SDK → curated/ (9,940 exemplos)
+3. **Validação** → JSONL validator, validação pós-geração (topic relevance, cross-cloud, SDK fields), deduplicação
 4. **Construção do Dataset** → train (~75%), valid (~15%), eval (~10%)
-5. **Treinamento** → Fine-tuning MLX LoRA no Apple Silicon (multi-cycle, LR decay)
-6. **Avaliação** → Benchmark comparing base vs fine-tuned
+5. **Treinamento** → Fine-tuning MLX LoRA no Apple Silicon (multi-cycle, LR decay, MAX_SEQ_LENGTH=4096)
+6. **Avaliação** → Benchmark comparing base vs fine-tuned (AWS/Azure detection, cross-cloud scoring)
 
 ---
 

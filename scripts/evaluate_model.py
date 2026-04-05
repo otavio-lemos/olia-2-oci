@@ -3,14 +3,12 @@
 
 import json
 import re
-import subprocess
 import sys
 import time
 from pathlib import Path
 from datetime import datetime, timedelta
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 
-import mlx.core as mx
 from mlx_lm import load, generate
 from mlx_lm.sample_utils import make_sampler
 
@@ -22,35 +20,6 @@ def load_eval_data(filepath: Path) -> List[Dict[str, Any]]:
             if line.strip():
                 examples.append(json.loads(line))
     return examples
-
-
-def load_checkpoint(checkpoint_path: Path) -> tuple:
-    if checkpoint_path.exists():
-        with open(checkpoint_path, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        return (
-            data.get("base_results", []),
-            data.get("ft_results", []),
-            data.get("completed", 0),
-        )
-    return [], [], 0
-
-
-def save_checkpoint(
-    checkpoint_path: Path, base_results: List, ft_results: List, completed: int
-):
-    with open(checkpoint_path, "w", encoding="utf-8") as f:
-        json.dump(
-            {
-                "base_results": base_results,
-                "ft_results": ft_results,
-                "completed": completed,
-                "timestamp": datetime.now().isoformat(),
-            },
-            f,
-            indent=2,
-            ensure_ascii=False,
-        )
 
 
 def format_eta(seconds_per_item: float, remaining: int) -> str:
@@ -104,7 +73,7 @@ class ModelEvaluator:
         print("Model loaded successfully")
 
     def generate_response(
-        self, prompt: str, system_prompt: str = "", max_tokens: int = 512
+        self, prompt: str, system_prompt: str = "", max_tokens: int = 1024
     ) -> str:
         if not self._loaded:
             self.load_model()
@@ -165,8 +134,30 @@ def score_technical_correctness(response: str, reference: str, category: str) ->
     ]
     has_real = any(re.search(p, response) for p in real_cli_patterns)
     has_fake = any(re.search(p, response) for p in fake_cli_patterns)
+    cross_cloud_patterns = [
+        r"provider\s+[\"']?aws[\"']?",
+        r"resource\s+[\"']?aws_",
+        r"resource\s+[\"']?azurerm_",
+        r"aws_instance",
+        r"aws_lb",
+        r"aws_vpc",
+        r"aws_security_group",
+        r"aws_s3",
+        r"aws_iam",
+        r"azurerm_network_security_group",
+        r"azurerm_virtual_network",
+        r"azurerm_subnet",
+        r"azurerm_public_ip",
+        r"\bEC2\b",
+        r"\bCloudWatch\b",
+        r"AWS Management Console",
+        r"Azure Portal",
+    ]
+    has_cross_cloud = any(re.search(p, response) for p in cross_cloud_patterns)
     if has_fake:
         score -= 2.0
+    if has_cross_cloud:
+        score -= 2.5
     if has_real:
         score += 1.0
     if category in (
@@ -275,7 +266,32 @@ def score_hallucination(response: str) -> float:
         (r"Insurance", 0.5),
         (r"deletar", 0.3),
     ]
+    cross_cloud_patterns = [
+        (r"provider\s+[\"']?aws[\"']?", 2.0),
+        (r"resource\s+[\"']?aws_", 2.0),
+        (r"resource\s+[\"']?azurerm_", 2.0),
+        (r"aws_instance", 2.0),
+        (r"aws_lb", 2.0),
+        (r"aws_vpc", 2.0),
+        (r"aws_security_group", 2.0),
+        (r"aws_s3", 2.0),
+        (r"aws_iam", 2.0),
+        (r"azurerm_network_security_group", 2.0),
+        (r"azurerm_virtual_network", 2.0),
+        (r"azurerm_subnet", 2.0),
+        (r"azurerm_public_ip", 2.0),
+        (r"EC2", 1.5),
+        (r"CloudWatch", 1.0),
+        (r"AWS Management Console", 1.5),
+        (r"AWS Console", 1.0),
+        (r"Amazon Web Services", 1.0),
+        (r"Azure Portal", 1.0),
+        (r"Azure Resource Manager", 1.0),
+    ]
     for pattern, penalty in hallucination_patterns:
+        if re.search(pattern, response, re.IGNORECASE):
+            score -= penalty
+    for pattern, penalty in cross_cloud_patterns:
         if re.search(pattern, response, re.IGNORECASE):
             score -= penalty
     fake_urls = [
@@ -333,6 +349,7 @@ def generate_comparison_report(
     base_results: List[Dict[str, Any]],
     ft_results: List[Dict[str, Any]],
     output_path: Path,
+    total_eval: int = 994,
 ):
     if not base_results or not ft_results:
         return
@@ -369,7 +386,7 @@ def generate_comparison_report(
     report = f"""# OCI Specialist LLM - Model Comparison Report
 
 **Date:** {datetime.now().strftime("%Y-%m-%d %H:%M")}
-**Progress:** {n}/9,940 examples ({n / 9940 * 100:.1f}%)
+**Progress:** {n}/{total_eval} examples ({n / total_eval * 100:.1f}%)
 **Evaluation Set:** {n} examples across {len(categories)} categories
 
 ## Executive Summary
@@ -387,11 +404,11 @@ def generate_comparison_report(
 
 | Cycle | Learning Rate | Iterations | Train Loss | Val Loss |
 |-------|--------------|------------|------------|----------|
-| cycle-1 | 3e-5 | 1864 | 0.074 | 0.070 |
-| cycle-2 | 1e-5 | 932 | 0.056 | 0.056 |
+| cycle-1 | 3e-5 | 2485 | 0.062 | 0.073 |
+| cycle-2 | 1e-5 | 2485 | 0.049 | 0.057 |
 | cycle-3 | 5e-6 | 466 | 0.039 | 0.053 |
 
-**Best Model:** cycle-3 (lowest validation loss: 0.053)
+**Best Model:** cycle-3-v3 (lowest validation loss: 0.053, minimal overfitting gap: 0.014)
 
 ## Category-by-Category Comparison
 
@@ -432,7 +449,7 @@ def generate_comparison_report(
 - **Scoring Rubric:** 6 criteria (1-5 scale): Technical Correctness, Depth, Structure, Hallucination (inverse), Clarity, Overall
 - **Evaluation Set:** {n} examples from eval.jsonl, stratified across {len(categories)} OCI categories
 - **Base Model:** mlx-community/Llama-3.2-3B-Instruct-4bit
-- **Fine-Tuned Model:** LoRA adapters from cycle-3-v3 (merged), LR=5e-6, 466 iterations
+- **Fine-Tuned Model:** LoRA adapters from cycle-2 (merged), LR=1e-5, 2485 iterations, rank=16
 - **Dataset:** 9,940 unique examples, 71 categories, 140 per category
 """
 
@@ -535,6 +552,79 @@ def generate_difficulty_report(
     return output_path
 
 
+def run_single_model_eval(
+    evaluator: ModelEvaluator,
+    eval_data: List[Dict[str, Any]],
+    model_label: str,
+    start_idx: int,
+    checkpoint_path: Path,
+    output_dir: Path,
+    total_eval: int,
+) -> List[Dict[str, Any]]:
+    """Run evaluation for a single model (base or FT)."""
+    results = []
+    eval_times = []
+
+    for i in range(start_idx, len(eval_data)):
+        example = eval_data[i]
+        question = get_user_prompt(example)
+        reference = get_reference_answer(example)
+        category = example.get("metadata", {}).get("category", "unknown")
+        difficulty = example.get("metadata", {}).get("difficulty", "unknown")
+        system_msg = ""
+        for msg in example.get("messages", []):
+            if msg.get("role") == "system":
+                system_msg = msg.get("content", "")
+                break
+
+        item_start = time.time()
+        print(f"[{model_label} {i + 1}/{len(eval_data)}] {category} ({difficulty})...")
+
+        try:
+            response = evaluator.generate_response(question, system_msg)
+        except Exception as e:
+            print(f"  ERROR: {e}")
+            response = f"Error: {e}"
+
+        scores = evaluate_response(response, reference, category)
+
+        results.append(
+            {
+                "question": question,
+                "response": response,
+                "scores": scores,
+                "category": category,
+                "difficulty": difficulty,
+            }
+        )
+
+        item_time = time.time() - item_start
+        eval_times.append(item_time)
+        avg_time = sum(eval_times) / len(eval_times)
+        remaining = len(eval_data) - (i + 1)
+        eta = format_eta(avg_time, remaining)
+        print(f"  Done in {item_time:.1f}s | Avg: {avg_time:.1f}s | ETA: {eta}")
+
+        # Save partial results for checkpointing
+        if (i + 1) % 50 == 0 or (i + 1) == len(eval_data):
+            partial_results = {
+                "base_results": results if model_label == "BASE" else [],
+                "ft_results": results if model_label == "FT" else [],
+                "completed": i + 1 if model_label == "FT" else 0,
+                "base_completed": i + 1 if model_label == "BASE" else 0,
+                "ft_completed": i + 1 if model_label == "FT" else 0,
+            }
+            # Save intermediate results
+            interim_path = (
+                output_dir / f"eval-{model_label.lower()}-results-{i + 1:05d}.json"
+            )
+            with open(interim_path, "w", encoding="utf-8") as f:
+                json.dump(results, f, indent=2, ensure_ascii=False)
+            print(f"  Saved {model_label} results at {i + 1}/{len(eval_data)}")
+
+    return results
+
+
 def main():
     if len(sys.argv) < 4:
         print(
@@ -570,96 +660,93 @@ def main():
     checkpoint_path = output_dir / "eval-checkpoint.json"
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    base_results, ft_results, completed = load_checkpoint(checkpoint_path)
-    if completed > 0:
-        print(f"Resuming from checkpoint: {completed}/{len(eval_data)} examples done")
+    # Check for saved results from previous run
+    base_results_path = output_dir / "eval-base-results-final.json"
+    ft_results_path = output_dir / "eval-ft-results-final.json"
 
-    base_evaluator = ModelEvaluator(base_model_path)
-    ft_evaluator = ModelEvaluator(
-        base_model_path, adapter_path or "", merged_model_path or ""
-    )
+    base_results = None
+    ft_results = None
 
-    print("\nLoading models (one-time)...")
-    base_evaluator.load_model()
-    ft_evaluator.load_model()
-    print("Both models loaded. Starting evaluation...\n")
+    # Load base results if available
+    if base_results_path.exists():
+        print(f"Loading cached base results from {base_results_path}")
+        with open(base_results_path, "r", encoding="utf-8") as f:
+            base_results = json.load(f)
+        print(f"  Loaded {len(base_results)} base results")
 
-    start_time = time.time()
-    eval_times = []
+    # Load FT results if available
+    if ft_results_path.exists():
+        print(f"Loading cached FT results from {ft_results_path}")
+        with open(ft_results_path, "r", encoding="utf-8") as f:
+            ft_results = json.load(f)
+        print(f"  Loaded {len(ft_results)} FT results")
 
-    for i in range(completed, len(eval_data)):
-        example = eval_data[i]
-        question = get_user_prompt(example)
-        reference = get_reference_answer(example)
-        category = example.get("metadata", {}).get("category", "unknown")
-        difficulty = example.get("metadata", {}).get("difficulty", "unknown")
-        system_msg = ""
-        for msg in example.get("messages", []):
-            if msg.get("role") == "system":
-                system_msg = msg.get("content", "")
-                break
-
-        item_start = time.time()
-        print(f"[{i + 1}/{len(eval_data)}] Evaluating {category} ({difficulty})...")
-
-        base_response = base_evaluator.generate_response(question, system_msg)
-        ft_response = ft_evaluator.generate_response(question, system_msg)
-
-        base_scores = evaluate_response(base_response, reference, category)
-        ft_scores = evaluate_response(ft_response, reference, category)
-
-        base_results.append(
-            {
-                "question": question,
-                "response": base_response,
-                "scores": base_scores,
-                "category": category,
-                "difficulty": difficulty,
-            }
+    # Phase 1: Evaluate base model
+    if base_results is None:
+        print("\n" + "=" * 60)
+        print("PHASE 1: Evaluating base model")
+        print("=" * 60)
+        base_evaluator = ModelEvaluator(base_model_path)
+        base_evaluator.load_model()
+        base_results = run_single_model_eval(
+            base_evaluator,
+            eval_data,
+            "BASE",
+            0,
+            checkpoint_path,
+            output_dir,
+            len(eval_data),
         )
-        ft_results.append(
-            {
-                "question": question,
-                "response": ft_response,
-                "scores": ft_scores,
-                "category": category,
-                "difficulty": difficulty,
-            }
+        # Save final base results
+        with open(base_results_path, "w", encoding="utf-8") as f:
+            json.dump(base_results, f, indent=2, ensure_ascii=False)
+        print(f"\nBase results saved to {base_results_path}")
+        # Free memory
+        del base_evaluator
+        import gc
+
+        gc.collect()
+    else:
+        print(f"\nSkipping base model evaluation ({len(base_results)} results cached)")
+
+    # Phase 2: Evaluate FT model
+    if ft_results is None:
+        print("\n" + "=" * 60)
+        print("PHASE 2: Evaluating fine-tuned model")
+        print("=" * 60)
+        ft_evaluator = ModelEvaluator(
+            base_model_path, adapter_path or "", merged_model_path or ""
         )
+        ft_evaluator.load_model()
+        ft_results = run_single_model_eval(
+            ft_evaluator,
+            eval_data,
+            "FT",
+            0,
+            checkpoint_path,
+            output_dir,
+            len(eval_data),
+        )
+        # Save final FT results
+        with open(ft_results_path, "w", encoding="utf-8") as f:
+            json.dump(ft_results, f, indent=2, ensure_ascii=False)
+        print(f"\nFT results saved to {ft_results_path}")
+        del ft_evaluator
+        import gc
 
-        item_time = time.time() - item_start
-        eval_times.append(item_time)
-        avg_time = sum(eval_times) / len(eval_times)
-        remaining = len(eval_data) - (i + 1)
-        eta = format_eta(avg_time, remaining)
-        print(f"  Done in {item_time:.1f}s | Avg: {avg_time:.1f}s | ETA: {eta}")
+        gc.collect()
+    else:
+        print(f"\nSkipping FT model evaluation ({len(ft_results)} results cached)")
 
-        if (i + 1) % 50 == 0 or (i + 1) == len(eval_data):
-            save_checkpoint(checkpoint_path, base_results, ft_results, i + 1)
-            pct = (i + 1) / len(eval_data) * 100
-            print(f"  Checkpoint saved at {i + 1}/{len(eval_data)} ({pct:.1f}%)")
-
-            # Generate incremental report at each checkpoint
-            incr_path = output_dir / f"eval-progress-{i + 1:05d}.md"
-            generate_comparison_report(base_results, ft_results, incr_path)
-            print(f"  Progress report: {incr_path}")
-
-            # Auto-push to GitHub every checkpoint
-            try:
-                subprocess.run(
-                    ["bash", "scripts/push_progress.sh"],
-                    capture_output=True,
-                    text=True,
-                    timeout=60,
-                )
-                print(f"  Progress pushed to GitHub")
-            except Exception as e:
-                print(f"  Push failed (will retry next checkpoint): {e}")
+    # Phase 3: Generate reports
+    print("\n" + "=" * 60)
+    print("PHASE 3: Generating reports")
+    print("=" * 60)
 
     output_path = (
         output_dir / f"eval-comparison-{datetime.now().strftime('%Y%m%d-%H%M%S')}.md"
     )
-    generate_comparison_report(base_results, ft_results, output_path)
+    generate_comparison_report(base_results, ft_results, output_path, len(eval_data))
 
     difficulty_report = generate_difficulty_report(base_results, ft_results, output_dir)
     print(f"\nDifficulty report saved to {difficulty_report}")

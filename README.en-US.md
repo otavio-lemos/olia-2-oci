@@ -32,37 +32,34 @@ The model is designed to assist with:
 
 ## Training Results
 
-Multi-cycle training with decreasing learning rate completed successfully:
+Multi-cycle training with decreasing learning rate completed successfully (v3):
 
 | Cycle | LR | Iters | Val Loss | Train Loss | Mode |
 |-------|-----|-------|----------|------------|------|
-| cycle-1 | 5e-5 | 200 | 0.163 | 0.161 | From scratch |
-| cycle-2 | 1e-5 | 200 | 0.119 | 0.104 | Continues cycle-1 |
-| cycle-3 | 5e-6 | 200 | **0.114** | **0.089** | Continues cycle-2 (best) |
+| cycle-1-v3 | 3e-5 | 1,864 | 0.074 | 0.073 | From scratch |
+| cycle-2-v3 | 1e-5 | 932 | 0.057 | 0.056 | Resume cycle-1 |
+| cycle-3-v3 | 5e-6 | 466 | **0.053** | **0.039** | Resume cycle-2 (best) |
 
-**Best adapter**: `outputs/cycle-3/adapters.safetensors` (lowest val loss: 0.114)
+**Best adapter**: `outputs/cycle-2/adapters.safetensors` (base for cycle-3-v3)
 **Merged model**: `outputs/merged-model/` (~1.8GB)
 
 ### Training Progression
 
 ```
-Val Loss:  0.163 → 0.119 → 0.114  (30% improvement)
-Train Loss: 0.161 → 0.104 → 0.089  (45% improvement)
+Val Loss:  0.074 → 0.057 → 0.053  (28% improvement)
+Train Loss: 0.073 → 0.056 → 0.039  (47% improvement)
 ```
 
-> **Note**: The results above are from the last training executed.
+> **Note**: The results above are from the last training executed (v3).
 > After each new training and evaluation, this section is automatically updated with real data.
 
-### Real-Time Monitoring
+### Monitoring
 
-During training and evaluation, progress is automatically pushed to GitHub every 50 steps/examples:
+During training, metrics are automatically captured:
 
-**During training:**
-- [`outputs/logs/cycle-N/training-progress.md`](outputs/logs/) — formatted summary
+**Logs and metrics:**
 - [`outputs/logs/cycle-N/metrics.csv`](outputs/logs/) — raw metrics (step, train_loss, val_loss)
-
-**During evaluation:**
-- [`outputs/benchmarks/eval-progress-NNNNN.md`](outputs/benchmarks/) — base vs fine-tuned comparison report
+- [`outputs/logs/cycle-N/training.log`](outputs/logs/) — full log
 
 **Direct links:**
 - [outputs/benchmarks/](https://github.com/otavio-lemos/olia-2-oci/tree/main/outputs/benchmarks/)
@@ -79,8 +76,11 @@ The dataset contains 9,940 unique examples generated with structural diversity a
 | Metric | Value |
 |--------|-------|
 | **Total Examples** | 9,940 |
-| **Categories** | 71 OCI topics |
+| **Categories** | 72 OCI topics |
 | **Examples per Category** | 140 |
+| **Response Structures** | 15 (cost_analysis, security_audit, performance_tuning, disaster_recovery, monitoring_alerting, integration, migration, + 8 existing) |
+| **Category Mapping** | 5-7 relevant structures per category |
+| **SDK Validation** | Resource-specific model fields (9 SDK models) |
 | **Duplicates** | 0 (exact + near) |
 | **Fake CLI Commands** | 0 |
 | **Fake SDK Classes** | 0 |
@@ -99,9 +99,9 @@ The dataset contains 9,940 unique examples generated with structural diversity a
 
 | Difficulty | Count | Percentage |
 |------------|-------|------------|
-| Beginner | 2,223 | 29.8% |
-| Intermediate | 3,731 | 50.0% |
-| Advanced | 1,501 | 20.1% |
+| Beginner | 2,182 | 29.3% |
+| Intermediate | 3,783 | 50.7% |
+| Advanced | 1,490 | 20.0% |
 
 ### Categories by Group
 
@@ -195,8 +195,9 @@ bash training/run_all_cycles.sh
 
 # 3.1 Export/Merge adapter (uses venv automatically)
 # Check which cycle has lowest val loss in outputs/logs/cycle-*/metrics.csv
-# cycle-3 is the best from current training (val loss: 0.114)
-ADAPTER_DIR=outputs/cycle-3 bash training/export_adapter.sh
+# cycle-3-v3 is the best from current training (val loss: 0.053)
+# Note: cycle-3-v3 was trained via resume from cycle-2
+ADAPTER_DIR=outputs/cycle-2 bash training/export_adapter.sh
 
 # 3.2 Test inference
 bash training/run_inference.sh
@@ -214,19 +215,15 @@ The pipeline supports multi-cycle training with decreasing learning rate:
 
 | Variable | cycle-1 | cycle-2 | cycle-3 |
 |----------|---------|---------|---------|
-| `LEARNING_RATE` | 5e-5 | 1e-5 | 5e-6 |
-| `ITERS` | 200 | 200 | 200 |
+| `LEARNING_RATE` | 3e-5 | 1e-5 | 5e-6 |
+| `LORA_RANK` | 16 | 16 | 8 |
+| `LORA_ALPHA` | 32 | 32 | 16 |
+| `ITERS` (v3) | 1,864 | 932 | 466 |
 | `RESUME` | scratch | cycle-1 | cycle-2 |
-
-> ⚠️ **Note**: The script `training/run_all_cycles.sh` uses smaller iterations (200/100/50) by default.
-> The values above reflect the actual training executed. To reproduce, adjust `ITERS` in `config/cycle-*.env` files.
 
 ```bash
 # Run all cycles sequentially
 bash training/run_all_cycles.sh
-
-# Monitor training progress (push to GitHub)
-bash scripts/push_training_progress.sh cycle-1  # or cycle-2, cycle-3
 ```
 
 ### Cycle Configuration (`config/cycle-1.env`)

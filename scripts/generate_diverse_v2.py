@@ -1247,6 +1247,689 @@ CATEGORY_ALIAS = {
 
 
 # ============================================================================
+# CATEGORY-TO-STRUCTURE MAPPING
+# ============================================================================
+
+CATEGORY_RESPONSE_MAP = {
+    "compute/instances": [
+        "step_by_step",
+        "troubleshooting",
+        "code_first",
+        "best_practices",
+        "cost_analysis",
+        "performance_tuning",
+        "disaster_recovery",
+    ],
+    "compute/scaling": [
+        "step_by_step",
+        "troubleshooting",
+        "code_first",
+        "best_practices",
+        "cost_analysis",
+        "performance_tuning",
+        "monitoring_alerting",
+    ],
+    "compute/custom-images": [
+        "step_by_step",
+        "troubleshooting",
+        "code_first",
+        "best_practices",
+        "disaster_recovery",
+        "cost_analysis",
+    ],
+    "storage/block": [
+        "step_by_step",
+        "troubleshooting",
+        "code_first",
+        "best_practices",
+        "cost_analysis",
+        "performance_tuning",
+        "disaster_recovery",
+    ],
+    "storage/object": [
+        "step_by_step",
+        "troubleshooting",
+        "code_first",
+        "best_practices",
+        "cost_analysis",
+        "disaster_recovery",
+        "integration",
+    ],
+    "storage/file": [
+        "step_by_step",
+        "troubleshooting",
+        "code_first",
+        "best_practices",
+        "cost_analysis",
+        "performance_tuning",
+    ],
+    "networking/vcn": [
+        "step_by_step",
+        "troubleshooting",
+        "code_first",
+        "architecture",
+        "best_practices",
+        "security_audit",
+        "integration",
+    ],
+    "networking/security": [
+        "step_by_step",
+        "troubleshooting",
+        "code_first",
+        "best_practices",
+        "security_audit",
+        "monitoring_alerting",
+        "integration",
+    ],
+    "networking/connectivity": [
+        "step_by_step",
+        "troubleshooting",
+        "code_first",
+        "architecture",
+        "best_practices",
+        "disaster_recovery",
+    ],
+    "lb/load-balancer": [
+        "step_by_step",
+        "troubleshooting",
+        "code_first",
+        "architecture",
+        "best_practices",
+        "performance_tuning",
+        "disaster_recovery",
+    ],
+    "database/autonomous": [
+        "step_by_step",
+        "troubleshooting",
+        "code_first",
+        "best_practices",
+        "cost_analysis",
+        "disaster_recovery",
+        "performance_tuning",
+    ],
+    "database/autonomous-json": [
+        "step_by_step",
+        "troubleshooting",
+        "code_first",
+        "best_practices",
+        "cost_analysis",
+        "disaster_recovery",
+        "performance_tuning",
+    ],
+    "database/mysql": [
+        "step_by_step",
+        "troubleshooting",
+        "code_first",
+        "best_practices",
+        "cost_analysis",
+        "disaster_recovery",
+        "performance_tuning",
+    ],
+    "database/postgresql": [
+        "step_by_step",
+        "troubleshooting",
+        "code_first",
+        "best_practices",
+        "cost_analysis",
+        "disaster_recovery",
+        "performance_tuning",
+    ],
+    "database/nosql": [
+        "step_by_step",
+        "troubleshooting",
+        "code_first",
+        "best_practices",
+        "cost_analysis",
+        "disaster_recovery",
+    ],
+    "database/exadata": [
+        "step_by_step",
+        "troubleshooting",
+        "code_first",
+        "best_practices",
+        "cost_analysis",
+        "disaster_recovery",
+        "performance_tuning",
+    ],
+    "container/oke": [
+        "step_by_step",
+        "troubleshooting",
+        "code_first",
+        "architecture",
+        "best_practices",
+        "monitoring_alerting",
+        "integration",
+    ],
+    "container/instances": [
+        "step_by_step",
+        "troubleshooting",
+        "code_first",
+        "best_practices",
+        "cost_analysis",
+        "integration",
+    ],
+    "container/container-instances": [
+        "step_by_step",
+        "troubleshooting",
+        "code_first",
+        "best_practices",
+        "cost_analysis",
+        "integration",
+    ],
+    "serverless/functions": [
+        "step_by_step",
+        "troubleshooting",
+        "code_first",
+        "architecture",
+        "best_practices",
+        "integration",
+        "cost_analysis",
+    ],
+    "serverless/api-gateway": [
+        "step_by_step",
+        "troubleshooting",
+        "code_first",
+        "architecture",
+        "best_practices",
+        "integration",
+        "security_audit",
+    ],
+    "security/iam-basics": [
+        "step_by_step",
+        "troubleshooting",
+        "code_first",
+        "best_practices",
+        "security_audit",
+        "integration",
+    ],
+    "security/policies": [
+        "step_by_step",
+        "troubleshooting",
+        "code_first",
+        "best_practices",
+        "security_audit",
+        "integration",
+    ],
+    "security/dynamic-groups": [
+        "step_by_step",
+        "troubleshooting",
+        "code_first",
+        "best_practices",
+        "security_audit",
+        "integration",
+    ],
+    "security/vault-keys": [
+        "step_by_step",
+        "troubleshooting",
+        "code_first",
+        "best_practices",
+        "security_audit",
+        "disaster_recovery",
+    ],
+    "security/vault-secrets": [
+        "step_by_step",
+        "troubleshooting",
+        "code_first",
+        "best_practices",
+        "security_audit",
+        "disaster_recovery",
+    ],
+    "security/encryption": [
+        "step_by_step",
+        "troubleshooting",
+        "code_first",
+        "best_practices",
+        "security_audit",
+    ],
+    "security/cloud-guard": [
+        "step_by_step",
+        "troubleshooting",
+        "code_first",
+        "best_practices",
+        "security_audit",
+        "monitoring_alerting",
+    ],
+    "security/waf": [
+        "step_by_step",
+        "troubleshooting",
+        "code_first",
+        "architecture",
+        "best_practices",
+        "security_audit",
+        "monitoring_alerting",
+    ],
+    "security/federation": [
+        "step_by_step",
+        "troubleshooting",
+        "code_first",
+        "best_practices",
+        "security_audit",
+        "integration",
+    ],
+    "migration/aws-compute": [
+        "migration",
+        "step_by_step",
+        "code_first",
+        "cost_analysis",
+        "disaster_recovery",
+    ],
+    "migration/aws-storage": [
+        "migration",
+        "step_by_step",
+        "code_first",
+        "cost_analysis",
+        "disaster_recovery",
+    ],
+    "migration/aws-database": [
+        "migration",
+        "step_by_step",
+        "code_first",
+        "cost_analysis",
+        "disaster_recovery",
+        "performance_tuning",
+    ],
+    "migration/azure-compute": [
+        "migration",
+        "step_by_step",
+        "code_first",
+        "cost_analysis",
+        "disaster_recovery",
+    ],
+    "migration/azure-storage": [
+        "migration",
+        "step_by_step",
+        "code_first",
+        "cost_analysis",
+        "disaster_recovery",
+    ],
+    "migration/azure-database": [
+        "migration",
+        "step_by_step",
+        "code_first",
+        "cost_analysis",
+        "disaster_recovery",
+        "performance_tuning",
+    ],
+    "migration/gcp-compute": [
+        "migration",
+        "step_by_step",
+        "code_first",
+        "cost_analysis",
+        "disaster_recovery",
+    ],
+    "migration/gcp-storage": [
+        "migration",
+        "step_by_step",
+        "code_first",
+        "cost_analysis",
+        "disaster_recovery",
+    ],
+    "migration/gcp-database": [
+        "migration",
+        "step_by_step",
+        "code_first",
+        "cost_analysis",
+        "disaster_recovery",
+        "performance_tuning",
+    ],
+    "migration/onprem-compute": [
+        "migration",
+        "step_by_step",
+        "code_first",
+        "cost_analysis",
+        "disaster_recovery",
+    ],
+    "migration/onprem-storage": [
+        "migration",
+        "step_by_step",
+        "code_first",
+        "cost_analysis",
+        "disaster_recovery",
+    ],
+    "migration/onprem-database": [
+        "migration",
+        "step_by_step",
+        "code_first",
+        "cost_analysis",
+        "disaster_recovery",
+        "performance_tuning",
+    ],
+    "migration/onprem-vmware": [
+        "migration",
+        "step_by_step",
+        "code_first",
+        "architecture",
+        "cost_analysis",
+        "disaster_recovery",
+    ],
+    "migration/data-transfer": [
+        "migration",
+        "step_by_step",
+        "code_first",
+        "cost_analysis",
+        "disaster_recovery",
+    ],
+    "terraform/provider": [
+        "terraform",
+        "step_by_step",
+        "code_first",
+        "best_practices",
+        "security_audit",
+    ],
+    "terraform/compute": [
+        "terraform",
+        "step_by_step",
+        "code_first",
+        "best_practices",
+        "cost_analysis",
+        "performance_tuning",
+    ],
+    "terraform/storage": [
+        "terraform",
+        "step_by_step",
+        "code_first",
+        "best_practices",
+        "cost_analysis",
+        "disaster_recovery",
+    ],
+    "terraform/networking": [
+        "terraform",
+        "step_by_step",
+        "code_first",
+        "architecture",
+        "best_practices",
+        "security_audit",
+    ],
+    "terraform/load-balancer": [
+        "terraform",
+        "step_by_step",
+        "code_first",
+        "architecture",
+        "best_practices",
+        "performance_tuning",
+    ],
+    "terraform/database": [
+        "terraform",
+        "step_by_step",
+        "code_first",
+        "best_practices",
+        "cost_analysis",
+        "disaster_recovery",
+    ],
+    "terraform/container": [
+        "terraform",
+        "step_by_step",
+        "code_first",
+        "architecture",
+        "best_practices",
+        "integration",
+    ],
+    "terraform/serverless": [
+        "terraform",
+        "step_by_step",
+        "code_first",
+        "architecture",
+        "best_practices",
+        "integration",
+    ],
+    "terraform/security": [
+        "terraform",
+        "step_by_step",
+        "code_first",
+        "best_practices",
+        "security_audit",
+    ],
+    "terraform/observability": [
+        "terraform",
+        "step_by_step",
+        "code_first",
+        "best_practices",
+        "monitoring_alerting",
+    ],
+    "terraform/devops": [
+        "terraform",
+        "step_by_step",
+        "code_first",
+        "best_practices",
+        "integration",
+    ],
+    "terraform/state": [
+        "terraform",
+        "step_by_step",
+        "code_first",
+        "best_practices",
+        "security_audit",
+        "disaster_recovery",
+    ],
+    "observability/logging": [
+        "step_by_step",
+        "troubleshooting",
+        "code_first",
+        "architecture",
+        "best_practices",
+        "integration",
+        "monitoring_alerting",
+    ],
+    "observability/monitoring": [
+        "step_by_step",
+        "troubleshooting",
+        "code_first",
+        "best_practices",
+        "monitoring_alerting",
+        "integration",
+        "performance_tuning",
+    ],
+    "observability/stack-monitoring": [
+        "step_by_step",
+        "troubleshooting",
+        "code_first",
+        "best_practices",
+        "monitoring_alerting",
+        "integration",
+    ],
+    "observability/apm": [
+        "step_by_step",
+        "troubleshooting",
+        "code_first",
+        "best_practices",
+        "monitoring_alerting",
+        "performance_tuning",
+        "integration",
+    ],
+    "troubleshooting/compute": [
+        "troubleshooting",
+        "step_by_step",
+        "code_first",
+        "best_practices",
+        "performance_tuning",
+    ],
+    "troubleshooting/storage": [
+        "troubleshooting",
+        "step_by_step",
+        "code_first",
+        "best_practices",
+        "performance_tuning",
+    ],
+    "troubleshooting/connectivity": [
+        "troubleshooting",
+        "step_by_step",
+        "code_first",
+        "best_practices",
+        "security_audit",
+    ],
+    "troubleshooting/database": [
+        "troubleshooting",
+        "step_by_step",
+        "code_first",
+        "best_practices",
+        "performance_tuning",
+        "disaster_recovery",
+    ],
+    "troubleshooting/authentication": [
+        "troubleshooting",
+        "step_by_step",
+        "code_first",
+        "best_practices",
+        "security_audit",
+    ],
+    "troubleshooting/performance": [
+        "troubleshooting",
+        "step_by_step",
+        "code_first",
+        "best_practices",
+        "performance_tuning",
+        "monitoring_alerting",
+    ],
+    "troubleshooting/functions": [
+        "troubleshooting",
+        "step_by_step",
+        "code_first",
+        "best_practices",
+        "integration",
+    ],
+    "troubleshooting/oke": [
+        "troubleshooting",
+        "step_by_step",
+        "code_first",
+        "best_practices",
+        "integration",
+        "monitoring_alerting",
+    ],
+    "devops/ci-cd": [
+        "step_by_step",
+        "troubleshooting",
+        "code_first",
+        "architecture",
+        "best_practices",
+        "integration",
+    ],
+    "devops/resource-manager": [
+        "step_by_step",
+        "troubleshooting",
+        "code_first",
+        "best_practices",
+        "integration",
+        "security_audit",
+    ],
+    "devops/artifacts": [
+        "step_by_step",
+        "troubleshooting",
+        "code_first",
+        "best_practices",
+        "integration",
+    ],
+    "devops/secrets": [
+        "step_by_step",
+        "troubleshooting",
+        "code_first",
+        "best_practices",
+        "security_audit",
+        "integration",
+    ],
+}
+
+STRUCTURE_DISPATCH = {
+    "step_by_step": "_answer_step_by_step",
+    "troubleshooting": "_answer_troubleshooting",
+    "comparison": "_answer_comparison_table",
+    "architecture": "_answer_architecture_diagram",
+    "code_first": "_answer_code_first",
+    "terraform": "_answer_terraform",
+    "python_sdk": "_answer_python_sdk",
+    "best_practices": "_answer_best_practices",
+    "cost_analysis": "_answer_cost_analysis",
+    "security_audit": "_answer_security_audit",
+    "performance_tuning": "_answer_performance_tuning",
+    "disaster_recovery": "_answer_disaster_recovery",
+    "monitoring_alerting": "_answer_monitoring_alerting",
+    "integration": "_answer_integration_pattern",
+    "migration": "_answer_migration_guide",
+}
+
+SDK_MODEL_FIELDS = {
+    "compute/instances": {
+        "model": "LaunchInstanceDetails",
+        "required": [
+            "compartment_id",
+            "availability_domain",
+            "shape",
+            "source_details",
+        ],
+        "optional": ["display_name", "freeform_tags", "defined_tags", "metadata"],
+    },
+    "storage/block": {
+        "model": "CreateVolumeDetails",
+        "required": ["compartment_id", "availability_domain"],
+        "optional": ["display_name", "size_in_gbs", "vpus_per_gb", "freeform_tags"],
+    },
+    "storage/object": {
+        "model": "CreateBucketDetails",
+        "required": ["compartment_id", "name"],
+        "optional": [
+            "display_name",
+            "public_access_type",
+            "storage_tier",
+            "freeform_tags",
+        ],
+    },
+    "storage/file": {
+        "model": "CreateFileSystemDetails",
+        "required": ["compartment_id", "availability_domain"],
+        "optional": ["display_name", "freeform_tags"],
+    },
+    "networking/vcn": {
+        "model": "CreateVcnDetails",
+        "required": ["compartment_id", "cidr_blocks"],
+        "optional": ["display_name", "dns_label", "freeform_tags"],
+    },
+    "database/autonomous": {
+        "model": "CreateAutonomousDatabaseDetails",
+        "required": [
+            "compartment_id",
+            "cpu_core_count",
+            "data_storage_size_in_tbs",
+            "db_name",
+            "admin_password",
+        ],
+        "optional": ["display_name", "db_workload", "is_free_tier", "license_model"],
+    },
+    "database/mysql": {
+        "model": "CreateDbSystemDetails",
+        "required": [
+            "compartment_id",
+            "availability_domain",
+            "shape_name",
+            "subnet_id",
+            "display_name",
+        ],
+        "optional": ["description", "data_storage_size_in_gbs", "freeform_tags"],
+    },
+    "security/vault-secrets": {
+        "model": "CreateSecretDetails",
+        "required": ["compartment_id", "vault_id", "key_id", "secret_content"],
+        "optional": ["display_name", "description", "freeform_tags"],
+    },
+    "security/vault-keys": {
+        "model": "CreateKeyDetails",
+        "required": ["compartment_id", "key_shape"],
+        "optional": ["display_name", "freeform_tags", "protection_mode"],
+    },
+}
+
+
+def _get_sdk_fields(category: str) -> dict:
+    """Get validated SDK model fields for a category."""
+    return SDK_MODEL_FIELDS.get(
+        category,
+        {
+            "model": "CreateResourceDetails",
+            "required": ["compartment_id"],
+            "optional": ["display_name", "freeform_tags"],
+        },
+    )
+
+
+# ============================================================================
 # QUESTION GENERATION - 140 unique questions per category
 # ============================================================================
 
@@ -4033,34 +4716,64 @@ def _generate_questions(category: str) -> list:
 
 
 def _generate_answer(category: str, question: str, idx: int) -> str:
-    """Generate a highly diverse answer for a category and question index."""
+    """Generate answer using category-specific response structures."""
     subcat = category.split("/")[1] if "/" in category else category
-
-    # Get scenario context
     scenario = f"{COMPANIES[idx % len(COMPANIES)]} - {PROJECTS[idx % len(PROJECTS)]}"
 
-    # Determine response structure based on idx
-    structure_idx = idx % 8  # 8 different response structures
+    structures = CATEGORY_RESPONSE_MAP.get(
+        category, ["step_by_step", "troubleshooting", "code_first", "best_practices"]
+    )
+    structure_name = structures[idx % len(structures)]
 
-    # Generate answer based on structure
-    if subcat in ("policies", "iam-basics", "dynamic-groups"):
-        return _answer_iam_policy(category, subcat, question, idx, scenario)
-    elif structure_idx == 0:
-        return _answer_step_by_step(category, subcat, question, idx, scenario)
-    elif structure_idx == 1:
-        return _answer_troubleshooting(category, subcat, question, idx, scenario)
-    elif structure_idx == 2:
-        return _answer_comparison_table(category, subcat, question, idx, scenario)
-    elif structure_idx == 3:
-        return _answer_architecture_diagram(category, subcat, question, idx, scenario)
-    elif structure_idx == 4:
-        return _answer_code_first(category, subcat, question, idx, scenario)
-    elif structure_idx == 5:
-        return _answer_terraform(category, subcat, question, idx, scenario)
-    elif structure_idx == 6:
-        return _answer_python_sdk(category, subcat, question, idx, scenario)
-    else:
-        return _answer_best_practices(category, subcat, question, idx, scenario)
+    dispatch_map = {
+        "step_by_step": lambda: _answer_step_by_step(
+            category, subcat, question, idx, scenario
+        ),
+        "troubleshooting": lambda: _answer_troubleshooting(
+            category, subcat, question, idx, scenario
+        ),
+        "comparison": lambda: _answer_comparison_table(
+            category, subcat, question, idx, scenario
+        ),
+        "architecture": lambda: _answer_architecture_diagram(
+            category, subcat, question, idx, scenario
+        ),
+        "code_first": lambda: _answer_code_first(
+            category, subcat, question, idx, scenario
+        ),
+        "terraform": lambda: _answer_terraform(
+            category, subcat, question, idx, scenario
+        ),
+        "python_sdk": lambda: _answer_python_sdk(
+            category, subcat, question, idx, scenario
+        ),
+        "best_practices": lambda: _answer_best_practices(
+            category, subcat, question, idx, scenario
+        ),
+        "cost_analysis": lambda: _answer_cost_analysis(
+            category, subcat, question, idx, scenario
+        ),
+        "security_audit": lambda: _answer_security_audit(
+            category, subcat, question, idx, scenario
+        ),
+        "performance_tuning": lambda: _answer_performance_tuning(
+            category, subcat, question, idx, scenario
+        ),
+        "disaster_recovery": lambda: _answer_disaster_recovery(
+            category, subcat, question, idx, scenario
+        ),
+        "monitoring_alerting": lambda: _answer_monitoring_alerting(
+            category, subcat, question, idx, scenario
+        ),
+        "integration": lambda: _answer_integration_pattern(
+            category, subcat, question, idx, scenario
+        ),
+        "migration": lambda: _answer_migration_guide(
+            category, subcat, question, idx, scenario
+        ),
+    }
+
+    return dispatch_map.get(structure_name, dispatch_map["step_by_step"])()
 
 
 def _answer_step_by_step(
@@ -4554,6 +5267,624 @@ def _answer_best_practices(
 Documentacao: {doc}"""
 
 
+def _answer_cost_analysis(
+    category: str, subcat: str, question: str, idx: int, scenario: str
+) -> str:
+    """Generate cost analysis responses with OCI pricing considerations."""
+    doc = DOC_LINKS.get(category, "https://docs.oracle.com/iaas/")
+    comp = COMPS[idx % len(COMPS)]
+    region = REGIONS[idx % len(REGIONS)]
+    shape = SHAPES[idx % len(SHAPES)]
+
+    if subcat in ("instances", "scaling", "custom-images"):
+        cost_content = f"""**Analise de Custos — Compute ({scenario})**
+
+**Componentes de custo:**
+1. **Compute OCPUs**: {shape} com {OCPUS[idx % len(OCPUS)]} OCPUs
+2. **Boot Volume**: {STORAGE_SIZES[idx % len(STORAGE_SIZES)]} Block Volume
+3. **Networking**: Data egress de {region}
+4. **Licenciamento**: BYOL vs Pay-as-you-go
+
+**Otimizacoes recomendadas:**
+- Use shapes preemptiveis para workloads fault-tolerant (ate 75% economia)
+- Dimensione OCPUs com base em metricas reais (OCI Monitoring)
+- Commitment de 1-3 anos para Universal Credits (desconto de 20-60%)
+- Desligue instancias de dev/test fora do horario comercial
+
+**Estimativa mensal:** Consulte [OCI Pricing Calculator](https://www.oracle.com/cloud/costestimator.html) para valores atualizados.
+
+**Referencia:** [OCI Compute Pricing](https://www.oracle.com/cloud/compute/pricing/)"""
+    elif subcat in ("block", "object", "file"):
+        cost_content = f"""**Analise de Custos — Storage ({scenario})**
+
+**Componentes de custo:**
+1. **Provisionado vs utilizado**: Block Volume cobra pelo provisionado
+2. **Tier de performance**: Higher IOPS = higher cost
+3. **Data transfer**: Cross-region replication tem custo adicional
+4. **Lifecycle policies**: Archive tier para dados raramente acessados
+
+**Otimizacoes recomendadas:**
+- Use Object Storage Standard para dados frequentemente acessados
+- Mova para Archive/Infrequent Access apos 30 dias
+- Delete unattached Block Volumes (cobranca continua)
+- Compacte backups de Block Volume
+
+**Referencia:** [OCI Storage Pricing](https://www.oracle.com/cloud/storage/pricing/)"""
+    elif subcat in ("autonomous", "mysql", "postgresql", "nosql", "exadata"):
+        cost_content = f"""**Analise de Custos — Database ({scenario})**
+
+**Componentes de custo:**
+1. **OCPU/ECPU**: Processamento do banco
+2. **Storage**: Database storage com backup automatico
+3. **Licenciamento**: Oracle Database (incluido no Autonomous)
+4. **Cross-region DR**: Data Guard tem custo adicional
+
+**Otimizacoes recomendadas:**
+- Autonomous Database: ECPUs sao mais eficientes para workloads variaveis
+- Use Always Free Autonomous Database para dev/test
+- Pause Autonomous Database quando nao em uso
+- MySQL HeatWave: inclua analytics sem ETL separado
+
+**Referencia:** [OCI Database Pricing](https://www.oracle.com/cloud/database/pricing/)"""
+    else:
+        cost_content = f"""**Analise de Custos — {subcat.replace("-", " ").title()} ({scenario})**
+
+**Componentes de custo:**
+1. **Recurso principal**: Based on usage/provisioned capacity
+2. **Storage associado**: Volumes, backups, snapshots
+3. **Networking**: Data transfer entre regioes e internet
+4. **Servicos complementares**: Monitoring, Logging, Vault
+
+**Otimizacoes recomendadas:**
+- Use OCI Budgets para alertas de gasto
+- Tag resources por projeto para chargeback
+- Revise recursos nao utilizados semanalmente
+- Considere Universal Credits para descontos por commitment
+
+**Referencia:** [OCI Pricing Calculator](https://www.oracle.com/cloud/costestimator.html)"""
+
+    return f"""{cost_content}
+
+**Dicas de otimizacao:**
+- Monitore utilizacao real antes de dimensionar
+- Automatize start/stop de ambientes non-production
+- Use OCI Cost Analysis reports mensalmente
+- Avalie serverless (Functions, Autonomous) para workloads variaveis
+
+Documentacao: {doc}"""
+
+
+def _answer_security_audit(
+    category: str, subcat: str, question: str, idx: int, scenario: str
+) -> str:
+    """Generate security audit responses with OCI security best practices."""
+    doc = DOC_LINKS.get(category, "https://docs.oracle.com/iaas/")
+    comp = COMPS[idx % len(COMPS)]
+    group_name = f"developers-{comp.replace('-', '')}"
+
+    security_checks = f"""**Security Audit — {subcat.replace("-", " ").title()} ({scenario})**
+
+**Checklist de Seguranca:**
+
+**1. Identity & Access Management**
+- [ ] Policies com principio de menor privilegio
+- [ ] Grupos IAM organizados por funcao (nao por pessoa)
+- [ ] MFA habilitado para todos os usuarios
+- [ ] API keys rotacionadas a cada 90 dias
+- [ ] Dynamic groups para workloads (nao user credentials)
+
+**2. Network Security**
+- [ ] Security lists restritivas (deny by default)
+- [ ] Network Security Groups por workload
+- [ ] WAF habilitado para aplicacoes web publicas
+- [ ] Private endpoints para servicos OCI
+- [ ] Sem subnets publicas com acesso direto a databases
+
+**3. Data Protection**
+- [ ] Encryption em repouso (OCI Vault com chaves gerenciadas pelo cliente)
+- [ ] Encryption em transito (TLS 1.2+)
+- [ ] Backups automatizados e testados
+- [ ] Cross-region replication para DR
+- [ ] Object Storage com versionamento habilitado
+
+**4. Monitoring & Compliance**
+- [ ] OCI Cloud Guard habilitado
+- [ ] Audit log ativado em todos os compartments
+- [ ] Alarms para atividades suspeitas
+- [ ] Revisao trimestral de acesso
+- [ ] Compliance com regulamentacoes aplicaveis"""
+
+    if subcat in ("vault-keys", "vault-secrets", "encryption"):
+        security_checks += f"""
+
+**IAM Policy recomendada:**
+```
+Allow group {group_name} to manage vaults in compartment {comp}
+Allow group {group_name} to manage keys in compartment {comp}
+Allow group {group_name} to manage secrets in compartment {comp}
+Allow service blockstorage to use secret-family in compartment {comp}
+```"""
+
+    return f"""{security_checks}
+
+**Ferramentas de verificacao:**
+- OCI Security Zones (bloqueia configuracoes inseguras)
+- OCI Cloud Guard (detecta misconfigurations automaticamente)
+- OCI Vulner Scanning (imagens de container e hosts)
+- OCI Configuration Auditor (regras CIS Benchmark)
+
+**Referencias:**
+- [OCI Security Best Practices](https://docs.oracle.com/iaas/Content/Security/Concepts/security.htm)
+- [CIS Oracle Cloud Foundations Benchmark](https://www.cisecurity.org/benchmark/oracle_cloud)
+
+Documentacao: {doc}"""
+
+
+def _answer_performance_tuning(
+    category: str, subcat: str, question: str, idx: int, scenario: str
+) -> str:
+    """Generate performance tuning responses with OCI benchmarking guidance."""
+    doc = DOC_LINKS.get(category, "https://docs.oracle.com/iaas/")
+    shape = SHAPES[idx % len(SHAPES)]
+    ocpus = OCPUS[idx % len(OCPUS)]
+
+    if subcat in ("instances", "scaling"):
+        perf_content = f"""**Performance Tuning — Compute ({scenario})**
+
+**Metricas criticas:**
+| Metrica | Threshold | Acao |
+|---------|-----------|------|
+| CPU Utilization | >80% sustained | Scale up ou adicionar instancias |
+| Memory | >85% | Verificar memory leaks, scale up |
+| Network throughput | >70% da capacity | Considerar shape com mais bandwidth |
+| Disk IOPS | >80% provisionadas | Aumentar performance tier do Block Volume |
+
+**Otimizacoes de shape:**
+- {shape}: {ocpus} OCPUs — ideal para workloads balanced
+- Flexible shapes: ajuste OCPUs e memory independentemente
+- Dense I/O: para workloads com alto IOPS local
+- GPU: para ML inference e rendering
+
+**Tuning de sistema operacional:**
+- Kernel parameters: net.core.somaxconn, fs.file-max
+- TCP: enable TCP BBR congestion control
+- Storage: use paravirtualized attachment para latencia menor
+- Oracle Cloud Agent: habilitar todos os plugins"""
+    elif subcat in ("block", "object", "file"):
+        perf_content = f"""**Performance Tuning — Storage ({scenario})**
+
+**Block Volume Performance Tiers:**
+| Tier | IOPS/GB | Throughput/GB | Use Case |
+|------|---------|---------------|----------|
+| Balanced | 10 | 480KB/s | General purpose |
+| Higher Performance | 20 | 960KB/s | Databases |
+| Ultra High Performance | 75 | 3.6MB/s | High-throughput workloads |
+
+**Otimizacoes:**
+- Stripe multiplos Block Volumes para IOPS agregados
+- Use NVMe local em Dense I/O shapes para maximo throughput
+- Object Storage: multipart upload para arquivos >100MB
+- File Storage: ajuste throughput mode (elastic vs provisioned)
+- Enable paravirtualized attachment para menor latencia"""
+    elif subcat in ("autonomous", "mysql", "postgresql"):
+        perf_content = f"""**Performance Tuning — Database ({scenario})**
+
+**Autonomous Database:**
+- Auto scaling: 1-20x OCPUs baseado em carga
+- Auto indexing: Oracle cria/drop indices automaticamente
+- SQL Performance Analyzer: testa queries antes de deploy
+- AWR reports: identifica bottlenecks
+
+**MySQL HeatWave:**
+- HeatWave cluster: in-memory analytics 400x mais rapido
+- Auto parallel load: otimiza dados para HeatWave
+- Query rewrite: otimiza queries automaticamente
+
+**PostgreSQL:**
+- Connection pooling: PgBouncer para >500 conexoes
+- Autovacuum tuning: baseado em write workload
+- Shared buffers: 25% da RAM disponivel"""
+    else:
+        perf_content = f"""**Performance Tuning — {subcat.replace("-", " ").title()} ({scenario})**
+
+**Metodologia de benchmark:**
+1. Establish baseline com metricas atuais
+2. Identificar bottleneck (CPU, memory, I/O, network)
+3. Aplicar otimizacao isolada
+4. Re-medir e comparar
+5. Documentar resultados
+
+**Ferramentas OCI:**
+- OCI Monitoring: metricas em tempo real
+- OCI APM: application performance monitoring
+- OCI Logging: logs estruturados para analise
+- Service Connector Hub: pipeline de observabilidade"""
+
+    return f"""{perf_content}
+
+**Comandos de diagnostico:**
+```bash
+# Monitorar CPU e memory
+oci monitoring metric-data summarize-metrics \\
+  --compartment-id <ocid> \\
+  --query-text "CpuUtilization[1m].maximum"
+
+# Verificar throughput de Block Volume
+oci bv volume-performance get --volume-id <ocid>
+```
+
+**Referencia:** [OCI Performance Best Practices](https://docs.oracle.com/iaas/Content/performance.htm)
+
+Documentacao: {doc}"""
+
+
+def _answer_disaster_recovery(
+    category: str, subcat: str, question: str, idx: int, scenario: str
+) -> str:
+    """Generate disaster recovery responses with OCI backup and failover guidance."""
+    doc = DOC_LINKS.get(category, "https://docs.oracle.com/iaas/")
+    region = REGIONS[idx % len(REGIONS)]
+    comp = COMPS[idx % len(COMPS)]
+
+    if subcat in ("instances", "scaling", "custom-images"):
+        dr_content = f"""**Disaster Recovery — Compute ({scenario})**
+
+**Estrategia de DR:**
+| RPO | RTO | Estrategia | Custo |
+|-----|-----|------------|-------|
+| 24h | Horas | Backup + Restore | Baixo |
+| 1h | Minutos | Cross-region replication | Medio |
+| 0 | Segundos | Active-Active multi-region | Alto |
+
+**Plano de recuperacao:**
+1. **Backup**: Custom images + boot volume backups em regiao secundaria
+2. **Replicacao**: Cross-region copy de custom images
+3. **Failover**: Instance pool em regiao secundaria com auto-scaling
+4. **DNS**: Steering policy para redirecionar trafego
+
+**Comandos de recuperacao:**
+```bash
+# Criar backup do boot volume
+oci compute boot-volume backup create \\
+  --boot-volume-id <ocid> \\
+  --display-name "dr-backup-$(date +%Y%m%d)" \\
+  --compartment-id {comp}
+
+# Cross-region copy
+oci compute boot-volume-backup copy \\
+  --boot-volume-backup-id <ocid> \\
+  --destination-region <secondary-region>
+```"""
+    elif subcat in ("autonomous", "mysql", "postgresql", "exadata"):
+        dr_content = f"""**Disaster Recovery — Database ({scenario})**
+
+**Autonomous Database:**
+- Autonomous Data Guard: standby cross-region automatico
+- RPO: 0 (sync replication), RTO: minutos
+- Failover manual ou automatico via OCI
+- Backup automatico: retém 60 dias
+
+**MySQL HeatWave:**
+- Point-in-time recovery: ate 5 minutos
+- Cross-region read replica para DR
+- Automated backups: retém 35 dias
+
+**Recovery procedure:**
+1. Verificar status do primary database
+2. Promover standby para primary (Data Guard)
+3. Atualizar connection strings na aplicacao
+4. Validar integridade dos dados
+5. Recriar standby na regiao original"""
+    elif subcat in ("block", "object", "file"):
+        dr_content = f"""**Disaster Recovery — Storage ({scenario})**
+
+**Block Volume:**
+- Volume groups para backup consistente
+- Cross-region volume group backup
+- Clone de backups para recovery testing
+
+**Object Storage:**
+- Cross-region replication (automatica)
+- Versioning para protecao contra delecao acidental
+- Object lifecycle policies para gerenciamento de versoes
+
+**File Storage:**
+- File system snapshots
+- Replicacao manual via rsync para regiao secundaria
+- Mount targets em multiplas ADs para HA"""
+    else:
+        dr_content = f"""**Disaster Recovery — {subcat.replace("-", " ").title()} ({scenario})**
+
+**Framework de DR:**
+1. **Assess**: Identificar workloads criticos e RPO/RTO
+2. **Protect**: Implementar backups e replicacao
+3. **Recover**: Documentar runbooks de recuperacao
+4. **Test**: Simular failover trimestralmente
+
+**OCI DR Services:**
+- OCI GoldenGate: replicacao de dados em tempo real
+- OCI Data Guard: database standby automatico
+- Cross-region replication: Object Storage, Block Volume
+- Resource Manager: infraestrutura como codigo para rebuild"""
+
+    return f"""{dr_content}
+
+**Runbook de teste de DR:**
+1. Notificar equipe de teste
+2. Simular falha na regiao primaria
+3. Executar failover para regiao secundaria
+4. Validar aplicacao e dados
+5. Failback para regiao primaria
+6. Documentar licoes aprendidas
+
+**Metricas de sucesso:**
+- RPO real <= RPO planejado
+- RTO real <= RTO planejado
+- Zero data loss para workloads criticos
+
+Documentacao: {doc}"""
+
+
+def _answer_monitoring_alerting(
+    category: str, subcat: str, question: str, idx: int, scenario: str
+) -> str:
+    """Generate monitoring and alerting responses with OCI Monitoring service."""
+    doc = DOC_LINKS.get(category, "https://docs.oracle.com/iaas/")
+    comp = COMPS[idx % len(COMPS)]
+    region = REGIONS[idx % len(REGIONS)]
+
+    monitoring_content = f"""**Monitoring & Alerting — {subcat.replace("-", " ").title()} ({scenario})**
+
+**Metricas essenciais:**
+| Metrica | Namespace | Alarm Threshold | Severidade |
+|---------|-----------|-----------------|------------|
+| CPU Utilization | oci_computeagent | >80% por 5min | Warning |
+| Memory Utilization | oci_computeagent | >85% por 5min | Critical |
+| Disk Read/Write Ops | oci_blockstorage | >90% IOPS provisionadas | Warning |
+| Network Bytes In/Out | oci_computeagent | >70% bandwidth | Warning |
+| Database Connections | oci_database | >80% max connections | Critical |
+
+**Configuracao de alarmes:**
+```bash
+# Criar alarme de CPU
+oci monitoring alarm create \\
+  --compartment-id {comp} \\
+  --display-name "high-cpu-{comp}" \\
+  --metric-compartment-id {comp} \\
+  --namespace oci_computeagent \\
+  --query "CpuUtilization[1m]{{resourceId = '<instance-ocid>'}}.mean > 80" \\
+  --severity WARNING \\
+  --destination-credentials '{{"topicId": "ocid1.onstopic..."}}' \\
+  --body "CPU utilization exceeded 80% for 5 minutes" \\
+  --repeat-notification-duration PT1H
+```
+
+**Dashboard recomendado:**
+1. **Infrastructure**: CPU, memory, disk, network por instancia
+2. **Database**: Connections, queries/sec, storage, replication lag
+3. **Application**: Response time, error rate, throughput
+4. **Cost**: Daily spend, budget alerts, anomaly detection"""
+
+    return f"""{monitoring_content}
+
+**Service Connector Hub — Pipeline de logs:**
+1. OCI Logging → Object Storage (archive)
+2. OCI Logging → OCI Functions (processamento)
+3. OCI Monitoring → Notifications (PagerDuty, Slack)
+4. OCI Audit → Streaming (analise em tempo real)
+
+**Best practices:**
+- Alarms com duration para evitar alertas de spike
+- Escalar notifications por severidade (email → SMS → PagerDuty)
+- Dashboards por equipe e por workload
+- Revisar thresholds mensalmente baseado em baseline
+
+**Referencia:** [OCI Monitoring](https://docs.oracle.com/iaas/Content/monitoring/home.htm)
+
+Documentacao: {doc}"""
+
+
+def _answer_integration_pattern(
+    category: str, subcat: str, question: str, idx: int, scenario: str
+) -> str:
+    """Generate integration pattern responses showing how OCI services work together."""
+    doc = DOC_LINKS.get(category, "https://docs.oracle.com/iaas/")
+    comp = COMPS[idx % len(COMPS)]
+    region = REGIONS[idx % len(REGIONS)]
+
+    if subcat in ("functions", "api-gateway"):
+        integration_content = f"""**Integration Pattern — Serverless ({scenario})**
+
+**Arquitetura:**
+```
+Internet → API Gateway → OCI Functions → OCI Services
+                                    ↓
+                    ┌───────────────┼───────────────┐
+                    ↓               ↓               ↓
+              Object Storage   Autonomous DB   OCI Vault
+```
+
+**Fluxo de dados:**
+1. Client faz request via API Gateway
+2. API Gateway autentica e roteia para Function
+3. Function processa, acessa servicos OCI via SDK
+4. Response retornada ao client
+
+**Exemplo de integracao:**
+```python
+import oci
+from fdk import response
+
+def handler(ctx, data: dict = None):
+    object_storage = oci.object_storage.ObjectStorageClient(
+        oci.config.from_file()
+    )
+    namespace = object_storage.get_namespace().data
+    object_storage.put_object(
+        namespace_name=namespace,
+        bucket_name="results",
+        object_name="output.json",
+        put_object_body=oci.util.to_stream(data)
+    )
+    return response.Response(
+        ctx, response_data={{"status": "success"}},
+        headers={{"Content-Type": "application/json"}}
+    )
+```"""
+    elif subcat in ("logging", "monitoring", "apm", "stack-monitoring"):
+        integration_content = f"""**Integration Pattern — Observability ({scenario})**
+
+**Arquitetura de Observabilidade:**
+```
+Applications → OCI Logging ──┐
+                             ↓
+Infrastructure → OCI Monitoring → Service Connector Hub
+                             ↓
+User Experience → OCI APM ───┘
+            ↓
+    OCI Notifications
+            ↓
+    PagerDuty / Slack / Email
+```
+
+**Service Connector Hub flows:**
+- Logs → Object Storage (compliance archive)
+- Logs → Functions (real-time processing)
+- Metrics → Notifications (alerting)
+- Audit → Streaming (security analysis)"""
+    elif subcat in ("devops", "ci-cd", "resource-manager"):
+        integration_content = f"""**Integration Pattern — DevOps ({scenario})**
+
+**CI/CD Pipeline:**
+```
+Git Repo → OCI DevOps Build → OCIR → OKE / Compute
+                ↓
+        OCI DevOps Deploy
+                ↓
+        OCI Functions / Compute Instance Group
+                ↓
+        OCI Monitoring (health check)
+```
+
+**Infrastructure as Code:**
+- Terraform via OCI Resource Manager
+- State management em Object Storage
+- Plans automaticos em MRs
+- Apply via pipeline aprovado"""
+    else:
+        integration_content = f"""**Integration Pattern — {subcat.replace("-", " ").title()} ({scenario})**
+
+**Servicos OCI que integram com {subcat}:**
+1. **OCI Vault**: Encryption keys e secrets management
+2. **OCI Monitoring**: Metricas e alertas
+3. **OCI Logging**: Logs estruturados
+4. **OCI IAM**: Politicas de acesso
+5. **OCI Notifications**: Alertas e eventos
+
+**Padrao comum:**
+```
+Recurso OCI → Events → Service Connector Hub → Destination
+                                    ↓
+                        ┌───────────┼───────────┐
+                        ↓           ↓           ↓
+                  Functions   Notifications  Streaming
+```"""
+
+    return f"""{integration_content}
+
+**Dynamic Groups para integracao:**
+```
+ALL {{resource.type = 'fnfunc', resource.compartment.id = '{comp}'}}
+ALL {{resource.type = 'compute', resource.compartment.id = '{comp}'}}
+```
+
+**Policies necessarias:**
+```
+Allow dynamic-group {comp}-functions to manage objects in compartment {comp}
+Allow dynamic-group {comp}-functions to use secret-family in compartment {comp}
+```
+
+**Referencia:** [OCI Integration Patterns](https://docs.oracle.com/iaas/Content/integration.htm)
+
+Documentacao: {doc}"""
+
+
+def _answer_migration_guide(
+    category: str, subcat: str, question: str, idx: int, scenario: str
+) -> str:
+    """Generate migration guide responses for cloud-to-OCI migrations."""
+    doc = DOC_LINKS.get(category, "https://docs.oracle.com/iaas/")
+    comp = COMPS[idx % len(COMPS)]
+    region = REGIONS[idx % len(REGIONS)]
+
+    if "aws" in category:
+        source = "AWS"
+    elif "azure" in category:
+        source = "Azure"
+    elif "gcp" in category:
+        source = "GCP"
+    elif "onprem" in category:
+        source = "On-premises"
+    else:
+        source = "Cloud provider"
+
+    migration_content = f"""**Migration Guide — {source} → OCI ({scenario})**
+
+**Mapeamento de servicos ({source} → OCI):**
+| {source} | OCI | CLI Command |
+|----------|-----|-------------|
+| VM instances | OCI Compute | `oci compute instance launch` |
+| Cloud storage | Object Storage | `oci os object put` |
+| Managed database | Autonomous Database | `oci db autonomous-database create` |
+
+**Fases da migracao:**
+
+**Fase 1: Assessment (1-2 semanas)**
+- Inventariar workloads e dependencias
+- Classificar por criticidade e complexidade
+- Definir estrategia: rehost, replatform, refactor
+- Estimar custos OCI vs {source}
+
+**Fase 2: Foundation (1-2 semanas)**
+- Criar VCN, subnets, gateways
+- Configurar IAM, compartments, policies
+- Estabelecer conectividade (IPSec/FastConnect)
+- Configurar monitoring e logging
+
+**Fase 3: Migration (2-4 semanas)**
+- Migrar dados primeiro (Database Migration Service)
+- Migrar aplicacoes (lift-and-shift ou replatform)
+- Validar funcionalidade e performance
+- Executar cutover com minimo downtime
+
+**Fase 4: Optimization (continuo)**
+- Right-size resources baseado em metricas reais
+- Implementar auto-scaling
+- Otimizar custos com Universal Credits
+- Documentar runbooks OCI"""
+
+    return f"""{migration_content}
+
+**Ferramentas de migracao OCI:**
+- **Database Migration Service**: Online migration com minimo downtime
+- **Data Transfer Service**: Appliance fisico para grandes volumes
+- **Object Storage Migration Service**: Migracao direta entre clouds
+- **VMware Solution**: Lift-and-shift de workloads VMware
+- **oci-cli**: Automacao de provisioning
+
+**Checklist de cutover:**
+- [ ] DNS atualizado para endpoints OCI
+- [ ] SSL/TLS certificates instalados
+- [ ] Health checks passando
+- [ ] Monitoring e alertas ativos
+- [ ] Backup configurado
+- [ ] Runbook de rollback preparado
+
+**Referencia:** [OCI Migration Guide](https://docs.oracle.com/iaas/Content/migration.htm)
+
+Documentacao: {doc}"""
+
+
 def _answer_iam_policy(
     category: str, subcat: str, question: str, idx: int, scenario: str
 ) -> str:
@@ -4656,6 +5987,43 @@ Documentacao: {doc}"""
 # ============================================================================
 # MAIN GENERATION
 # ============================================================================
+
+
+def validate_example(example: dict, category: str) -> list:
+    """Validate a generated example for topic relevance and correctness."""
+    issues = []
+    assistant_content = ""
+    for msg in example.get("messages", []):
+        if msg.get("role") == "assistant":
+            assistant_content = msg.get("content", "")
+
+    subcat = category.split("/")[1] if "/" in category else category
+    topic_keywords = subcat.replace("-", " ").split()
+    first_300 = assistant_content[:300].lower()
+    keyword_match = sum(1 for kw in topic_keywords if kw.lower() in first_300)
+    if keyword_match == 0:
+        issues.append(
+            f"OFF_TOPIC: No topic keywords ({topic_keywords}) in first 300 chars"
+        )
+
+    if "migration" not in category:
+        cross_cloud = [
+            "aws_",
+            "azurerm_",
+            "EC2",
+            "CloudWatch",
+            "AWS Management Console",
+        ]
+        for pattern in cross_cloud:
+            if pattern in assistant_content:
+                issues.append(
+                    f"CROSS_CLOUD: Found '{pattern}' in non-migration category"
+                )
+
+    if len(assistant_content) < 200:
+        issues.append(f"TOO_SHORT: Only {len(assistant_content)} chars")
+
+    return issues
 
 
 def main():
