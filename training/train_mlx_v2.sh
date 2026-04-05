@@ -18,8 +18,8 @@ TRAIN_DATA=${TRAIN_DATA:-"data/train.jsonl"}
 VALID_DATA=${VALID_DATA:-"data/valid.jsonl"}
 OUTPUT_DIR=${OUTPUT_DIR:-"outputs/${CYCLE}"}
 PREV_ADAPTER=${PREV_ADAPTER:-""}
-ITERS=${ITERS:-2485}
-MAX_SEQ_LENGTH=${MAX_SEQ_LENGTH:-1024}
+ITERS=${ITERS:-200}
+MAX_SEQ_LENGTH=${MAX_SEQ_LENGTH:-4096}
 NUM_LAYERS=${NUM_LAYERS:-16}
 
 echo "=========================================="
