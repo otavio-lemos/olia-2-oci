@@ -184,10 +184,8 @@ bash training/run_all_cycles.sh
 # ========== 3. PÓS-TREINAMENTO ==========
 
 # 3.1 Exportar/Merge adapter (usa venv automaticamente)
-# Verifique qual ciclo tem menor val loss em outputs/logs/cycle-*/metrics.csv
-# O cycle-3-v3 é o melhor do treinamento atual (val loss: 0.053)
-# Nota: cycle-3-v3 foi treinado via resume do cycle-2
-ADAPTER_DIR=outputs/cycle-2 bash training/export_adapter.sh
+# O melhor adapter é o cycle-3 (dataset com 15 estruturas, SDK validado)
+ADAPTER_DIR=outputs/cycle-3 bash training/export_adapter.sh
 
 # 3.2 Testar inference
 bash training/run_inference.sh
@@ -208,7 +206,8 @@ O pipeline suporta treinamento em múltiplos ciclos com learning rate decrescent
 | `LEARNING_RATE` | 3e-5 | 1e-5 | 5e-6 |
 | `LORA_RANK` | 16 | 16 | 8 |
 | `LORA_ALPHA` | 32 | 32 | 16 |
-| `ITERS` (v3) | 1,864 | 932 | 466 |
+| `ITERS` | 200 | 100 | 50 |
+| `MAX_SEQ_LENGTH` | 4096 | 4096 | 4096 |
 | `RESUME` | scratch | cycle-1 | cycle-2 |
 
 ```bash
@@ -250,12 +249,12 @@ flowchart LR
         DP7 --> Eval[eval.jsonl]
     end
     
-    subgraph Training["2. Treinamento Multi-Cycle (v3)"]
+    subgraph Training["2. Treinamento Multi-Cycle"]
         Train --> T1[Selecionar Base Model]
         Valid --> T1
-        T1 --> T2[Cycle 1: LR=3e-5, 1864 iters]
-        T2 --> T3[Cycle 2: LR=1e-5, 932 iters]
-        T3 --> T4[Cycle 3: LR=5e-6, 466 iters]
+        T1 --> T2[Cycle 1: LR=3e-5, 200 iters, seq=4096]
+        T2 --> T3[Cycle 2: LR=1e-5, 100 iters, seq=4096]
+        T3 --> T4[Cycle 3: LR=5e-6, 50 iters, seq=4096]
     end
     
     subgraph PostProcess["3. Pós-Treinamento"]
@@ -288,7 +287,7 @@ olia-2-oci/
 ├── LICENSE                        # Licença MIT
 ├── requirements.txt               # Dependências pinadas
 ├── docs/                          # Documentação do projeto
-│   ├── taxonomy.md               # Topics do dataset (71 categorias)
+│   ├── taxonomy.md               # Topics do dataset (72 categorias)
 │   ├── quality-rules.md          # Regras de qualidade
 │   ├── eval-rubric.md            # Critérios de avaliação
 │   ├── scope.md                  # Escopo v1 vs v2
@@ -298,7 +297,7 @@ olia-2-oci/
 │   ├── cycle-2.env               # Ciclo 2: LR=1e-5, rank=16 (resume)
 │   └── cycle-3.env               # Ciclo 3: LR=5e-6, rank=8 (resume)
 ├── data/                          # Dataset
-│   ├── curated/                  # 71 topic files (140 examples each)
+│   ├── curated/                  # 72 topic files (140 examples each)
 │   ├── all_curated.jsonl         # Combined dataset (9,940)
 │   ├── all_curated_clean.jsonl   # Validated + deduplicated (9,940)
 │   ├── train.jsonl               # Training split (7,455)
@@ -321,8 +320,9 @@ olia-2-oci/
 │   ├── run_inference.sh          # Testar inferência
 │   └── log_metrics.py            # Capturar métricas em CSV
 └── outputs/                       # Artefatos de saída
-    ├── cycle-1/                  # Adapter cycle 1 (2485 iters)
-    ├── cycle-2/                  # Adapter cycle 2 (2485 iters)
+    ├── cycle-1/                  # Adapter cycle 1 (200 iters, LR=3e-5)
+    ├── cycle-2/                  # Adapter cycle 2 (50 iters, LR=1e-5)
+    ├── cycle-3/                  # Adapter cycle 3 (50 iters, LR=5e-6, BEST)
     ├── merged-model/             # Modelo fundido final (~1.8GB)
     ├── logs/                     # Logs e métricas CSV por ciclo (v3)
     └── benchmarks/               # Relatórios de avaliação + progresso
@@ -356,7 +356,7 @@ Após o treinamento:
 ## Melhorias Futuras
 
 1. **Camada RAG**: Para precisão factual em comandos CLI, classes SDK e resources Terraform, adicionar uma camada RAG com documentação em tempo real.
-2. **Diversidade de Respostas**: Expandir de 8 para 20+ estruturas de resposta.
+2. **Diversidade de Respostas**: ✅ Concluído — 15 estruturas de resposta com mapeamento por categoria.
 3. **Modelo Maior**: Considerar Llama-3.1-8B para melhor raciocínio em cenários arquiteturais.
 4. **Avaliação Humana**: Revisão humana das respostas geradas para avaliação de qualidade nuances.
 5. **Treinamento Contínuo**: Pipeline suporta adicionar novos exemplos e retreinar.
