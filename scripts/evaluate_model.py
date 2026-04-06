@@ -626,16 +626,29 @@ def run_single_model_eval(
 
 
 def main():
-    if len(sys.argv) < 4:
-        print(
-            "Usage: python evaluate_model.py <base_model_path> <ft_model_path> <eval.jsonl> [output_dir]"
-        )
-        sys.exit(1)
+    import argparse
 
-    base_model_path = sys.argv[1]
-    ft_model_dir = sys.argv[2]
-    eval_file = Path(sys.argv[3])
-    output_dir = Path(sys.argv[4]) if len(sys.argv) > 4 else Path("outputs/benchmarks")
+    parser = argparse.ArgumentParser(
+        description="Evaluate model responses against eval.jsonl benchmark"
+    )
+    parser.add_argument("base_model_path", help="Base model ID or path")
+    parser.add_argument(
+        "ft_model_path", help="Fine-tuned model directory or adapter path"
+    )
+    parser.add_argument("eval_file", help="Evaluation JSONL file")
+    parser.add_argument(
+        "output_dir", nargs="?", default="outputs/benchmarks", help="Output directory"
+    )
+    parser.add_argument(
+        "--fresh", action="store_true", help="Clear cached results before evaluating"
+    )
+    args = parser.parse_args()
+
+    base_model_path = args.base_model_path
+    ft_model_dir = args.ft_model_path
+    eval_file = Path(args.eval_file)
+    output_dir = Path(args.output_dir)
+    fresh_mode = args.fresh
 
     ft_model_path = Path(ft_model_dir)
     if ft_model_path.is_dir() and (ft_model_path / "model.safetensors").exists():
@@ -666,6 +679,16 @@ def main():
 
     base_results = None
     ft_results = None
+
+    # Clear cache if --fresh flag is set
+    if fresh_mode:
+        if base_results_path.exists():
+            print(f"Clearing cached base results: {base_results_path}")
+            base_results_path.unlink()
+        if ft_results_path.exists():
+            print(f"Clearing cached FT results: {ft_results_path}")
+            ft_results_path.unlink()
+        print("Fresh evaluation mode enabled.\n")
 
     # Load base results if available
     if base_results_path.exists():

@@ -36,11 +36,11 @@ evaluate_model.py / evaluate_ft_only.py → outputs/benchmarks/
 
 | Ciclo | LR | Iters | Val Loss | Train Loss | Modo |
 |-------|-----|-------|----------|------------|------|
-| cycle-1 | 3e-5 | 200 | 0.449 | 0.391 | Do zero |
-| cycle-2 | 1e-5 | 50 | 0.350 | 0.280 | Resume cycle-1 |
-| cycle-3 | 5e-6 | 50 | 0.831 | 1.033 | Resume cycle-2 |
+| cycle-1 | 3e-5 | 2450 | 0.073 | 0.062 | Do zero |
+| cycle-2 | 1e-5 | 2450 | 0.057 | 0.049 | Resume cycle-1 |
+| cycle-3 | 5e-6 | 50 | 0.053 | 0.039 | Resume cycle-2 |
 
-> Val loss mais alto no cycle-3 é esperado: dataset mais diverso e desafiador (15 estruturas vs 7 anteriores, 0 duplicatas, SDK validado).
+> Val loss decrescente ao longo dos ciclos indica convergência consistente. Cycle-3 usa LR mais baixo (5e-6) para fine-tuning final.
 
 **Adapter final:** `outputs/cycle-3/adapters.safetensors`
 **Modelo fundido:** `outputs/merged-model/` (~1.8GB)
@@ -55,7 +55,7 @@ evaluate_model.py / evaluate_ft_only.py → outputs/benchmarks/
 | Métrica | Valor |
 |---------|-------|
 | Total | 9,940 exemplos |
-| Categorias | 72 topics OCI |
+| Categorias | 71 topics OCI |
 | Por categoria | 140 exemplos |
 | Estruturas de resposta | 15 (mapeadas por categoria) |
 | Duplicatas | 0 (exatas + próximas, threshold 0.95) |
@@ -136,7 +136,7 @@ python scripts/generate_diverse_v2.py
 ```
 
 **Entrada:** Nenhuma (self-contained, usa constantes hardcoded).
-**Saída:** `data/curated/*.jsonl` (72 arquivos) + `data/all_curated.jsonl` (combinado).
+**Saída:** `data/curated/*.jsonl` (71 arquivos) + `data/all_curated.jsonl` (combinado).
 **Seed:** `random.seed(42)` para reprodutibilidade.
 
 ### 2. Validação e Deduplicação
@@ -145,9 +145,9 @@ python scripts/generate_diverse_v2.py
 # Validação estrutural (roles, formato chat, limites de tamanho)
 python scripts/validate_jsonl.py data/all_curated.jsonl
 
-# Deduplicação (exata + near-duplicate com threshold 0.95)
+# Deduplicação (exata + near-duplicate com threshold 0.95, sobrescreve o arquivo original)
 python scripts/dedupe_dataset.py data/all_curated.jsonl --remove
-cp data/all_curated_deduped.jsonl data/all_curated_clean.jsonl
+cp data/all_curated.jsonl data/all_curated_clean.jsonl
 ```
 
 **validate_jsonl.py:** Verifica JSON parseável, roles válidos (system/user/assistant), primeiro message = system, último = assistant, assistant ≤ 8,192 chars, user ≤ 2,048 chars. Não valida metadata.
@@ -191,8 +191,8 @@ bash training/run_inference.sh
 ### 6. Avaliação
 
 ```bash
-# Base vs FT (completo, 9,940 exemplos)
-python scripts/evaluate_model.py "mlx-community/Llama-3.2-3B-Instruct-4bit" "outputs/merged-model" data/all_curated_clean.jsonl outputs/benchmarks
+# Base vs FT (completo, 994 exemplos do eval split, --fresh limpa cache)
+python scripts/evaluate_model.py --fresh "mlx-community/Llama-3.2-3B-Instruct-4bit" "outputs/merged-model" data/eval.jsonl outputs/benchmarks
 
 # FT only (rápido, 994 exemplos do eval split)
 python scripts/evaluate_ft_only.py outputs/merged-model data/eval.jsonl outputs/benchmarks
@@ -219,10 +219,10 @@ python scripts/evaluate_ft_only.py outputs/merged-model data/eval.jsonl outputs/
 | Variável | cycle-1 | cycle-2 | cycle-3 |
 |----------|---------|---------|---------|
 | `LEARNING_RATE` | 3e-5 | 1e-5 | 5e-6 |
-| `LORA_RANK` | 16 | 16 | 8 |
-| `LORA_ALPHA` | 32 | 32 | 16 |
-| `ITERS` | 200 | 100 | 50 |
-| `MAX_SEQ_LENGTH` | 4096 | 4096 | 4096 |
+| `LORA_RANK` | 16 | 16 | 16 |
+| `LORA_ALPHA` | 32 | 32 | 32 |
+| `ITERS` | 2450 | 2450 | 500 |
+| `MAX_SEQ_LENGTH` | 4096 | 1024 | 4096 |
 | `PREV_ADAPTER` | — | cycle-1 | cycle-2 |
 
 **Comuns:** `BATCH_SIZE=1`, `GRADIENT_ACCUMULATION=4`, `LORA_DROPOUT=0.05`, `EPOCHS=2` (não usado — mlx_lm é iteration-based).
@@ -256,11 +256,11 @@ olia-2-oci/
 │   ├── eval-rubric.md            # Critérios de avaliação
 │   └── scope.md                  # Escopo v1 vs v2
 ├── config/
-│   ├── cycle-1.env               # LR=3e-5, rank=16, iters=200
-│   ├── cycle-2.env               # LR=1e-5, rank=16, iters=100, resume
-│   └── cycle-3.env               # LR=5e-6, rank=8, iters=50, resume
+│   ├── cycle-1.env               # LR=3e-5, rank=16, iters=2450
+│   ├── cycle-2.env               # LR=1e-5, rank=16, iters=2450, resume
+│   └── cycle-3.env               # LR=5e-6, rank=16, iters=500, resume
 ├── data/
-│   ├── curated/                  # 72 arquivos × 140 exemplos
+│   ├── curated/                  # 71 arquivos × 140 exemplos
 │   ├── all_curated.jsonl         # Combinado (9,940)
 │   ├── all_curated_clean.jsonl   # Validado + deduplicado
 │   ├── train.jsonl               # 7,455 (75%)

@@ -2,10 +2,10 @@
 # training/run_all_cycles.sh
 # Orquestra treinamento multi-ciclo sequencial com LR decrescente
 #
-# Cada ciclo continua do adapter do anterior:
-#   cycle-1: from scratch, LR=5e-5, 200 iters
-#   cycle-2: resume cycle-1, LR=1e-5, 100 iters
-#   cycle-3: resume cycle-2, LR=5e-6, 50 iters
+# Cada ciclo continua do adapter do anterior (config em config/cycle-N.env):
+#   cycle-1: from scratch, LR=3e-5, 2450 iters, rank=16, seq=4096
+#   cycle-2: resume cycle-1, LR=1e-5, 2450 iters, rank=16, seq=4096
+#   cycle-3: resume cycle-2, LR=5e-6, 500 iters, rank=16, seq=4096
 #
 # Uso:
 #   bash training/run_all_cycles.sh           # roda todos os ciclos
@@ -13,10 +13,10 @@
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 START_CYCLE=${1:-1}
 
 CYCLES=("cycle-1" "cycle-2" "cycle-3")
-ITERS_MAP=(200 100 50)
 
 mkdir -p "outputs/logs"
 
@@ -36,18 +36,26 @@ for i in "${!CYCLES[@]}"; do
         continue
     fi
 
-    ITERS="${ITERS_MAP[$i]}"
+    # Source config for this cycle — single source of truth
+    ENV_FILE="${PROJECT_DIR}/config/${CYCLE}.env"
+    if [ ! -f "$ENV_FILE" ]; then
+        echo "ERROR: Config not found: $ENV_FILE"
+        exit 1
+    fi
+    source "$ENV_FILE"
 
     echo ""
     echo "############################################"
-    echo "# Starting $CYCLE (iters=$ITERS)"
+    echo "# Starting $CYCLE"
+    echo "#   LR: $LEARNING_RATE"
+    echo "#   Iters: $ITERS"
+    echo "#   Rank: $LORA_RANK"
+    echo "#   Seq Length: $MAX_SEQ_LENGTH"
     echo "############################################"
     echo ""
 
-    # Verifica se adapter anterior existe para ciclos > 1
-    if [ "$CYCLE_NUM" -gt 1 ]; then
-        PREV_CYCLE="${CYCLES[$((i-1))]}"
-        PREV_ADAPTER="outputs/${PREV_CYCLE}/adapters.safetensors"
+    # Verify previous adapter exists for cycles > 1
+    if [ "$CYCLE_NUM" -gt 1 ] && [ -n "${PREV_ADAPTER:-}" ]; then
         if [ ! -f "$PREV_ADAPTER" ]; then
             echo "ERROR: Previous adapter not found: $PREV_ADAPTER"
             echo "Cannot resume training. Aborting."
@@ -56,7 +64,7 @@ for i in "${!CYCLES[@]}"; do
         echo "Resuming from: $PREV_ADAPTER"
     fi
 
-    CYCLE="$CYCLE" ITERS="$ITERS" PREV_ADAPTER="${PREV_ADAPTER:-}" bash "${SCRIPT_DIR}/train_mlx_v2.sh"
+    CYCLE="$CYCLE" bash "${SCRIPT_DIR}/train_mlx_v2.sh"
     EXIT_CODE=$?
 
     if [ $EXIT_CODE -ne 0 ]; then
