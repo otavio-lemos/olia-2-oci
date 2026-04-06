@@ -6,7 +6,7 @@ Fine-tuning pipeline para um LLM especialista em Oracle Cloud Infrastructure (OC
 [![Python](https://img.shields.io/badge/Python-3.12-blue?style=flat-square&logo=python&logoColor=white)](https://www.python.org)
 [![MLX](https://img.shields.io/badge/MLX-Apple%20Silicon-orange?style=flat-square)](https://mlx.ai)
 [![Model](https://img.shields.io/badge/Base%20Model-Llama--3.2--3B--Instruct--4bit-purple?style=flat-square)](https://huggingface.co/mlx-community/Llama-3.2-3B-Instruct-4bit)
-[![Dataset](https://img.shields.io/badge/Dataset-9940_examples-green?style=flat-square)](docs/taxonomy.md)
+[![Dataset](https://img.shields.io/badge/Dataset-3467_examples-green?style=flat-square)](docs/taxonomy.md)
 
 > **Idioma**: Todos os dados de treinamento e prompts estão em PT-BR.
 
@@ -106,15 +106,20 @@ python scripts/generate_diverse_v2.py
 **Saída:** `data/curated/*.jsonl` (71 arquivos) + `data/all_curated.jsonl` (combinado).
 **Seed:** `random.seed(42)` para reprodutibilidade.
 
-### 2. Validação e Deduplicação
-
+### 2. Validação, Limpeza e Deduplicação
+ 
 ```bash
 # Validação estrutural (roles, formato chat, limites de tamanho)
-python scripts/validate_jsonl.py data/all_curated.jsonl
-
-# Deduplicação (exata + near-duplicate com threshold 0.95, sobrescreve o arquivo original)
-python scripts/dedupe_dataset.py data/all_curated.jsonl --remove
-cp data/all_curated.jsonl data/all_curated_clean.jsonl
+python3 scripts/validate_jsonl.py data/all_curated.jsonl
+ 
+# Limpeza de conteúdo (remove templates genéricos, CLI errado, poluição de contexto, shapes em respostas, adiciona acentos)
+python3 scripts/clean_dataset.py --input data/all_curated.jsonl --output data/all_curated_clean.jsonl --all
+ 
+# Deduplicação (exata + near-duplicate com threshold 0.95)
+python3 scripts/dedupe_dataset.py data/all_curated_clean.jsonl --remove
+if [ -f "data/all_curated_deduped.jsonl" ]; then
+    cp data/all_curated_deduped.jsonl data/all_curated_clean.jsonl
+fi
 ```
 
 **validate_jsonl.py:** Verifica JSON parseável, roles válidos (system/user/assistant), primeiro message = system, último = assistant, assistant ≤ 8,192 chars, user ≤ 2,048 chars. Não valida metadata.
@@ -235,10 +240,10 @@ olia-2-oci/
 ├── data/
 │   ├── curated/                  # 71 arquivos × 140 exemplos
 │   ├── all_curated.jsonl         # Combinado (9,940)
-│   ├── all_curated_clean.jsonl   # Validado + deduplicado
-│   ├── train.jsonl               # 7,455 (75%)
-│   ├── valid.jsonl               # 1,491 (15%)
-│   └── eval.jsonl                # 994 (10%)
+│   ├── all_curated_clean.jsonl   # Validado + deduplicado + limpo (3,467)
+│   ├── train.jsonl               # 2,583 (74.5%)
+│   ├── valid.jsonl               # 495 (14.3%)
+│   └── eval.jsonl                # 325 (9.4%)
 ├── scripts/
 │   ├── generate_diverse_v2.py    # Gerador principal (6,144 linhas)
 │   ├── generate_prompt.py        # Prompts a partir da taxonomy
