@@ -26,7 +26,7 @@ training/run_all_cycles.sh (3 cycles) → outputs/cycle-{1,2,3}/ → export_adap
 evaluate_model.py / evaluate_ft_only.py → outputs/benchmarks/ → report_generator.py / comparison_dashboard.py
 ```
 
-**Stack:** Python 3.12, MLX (Apple Silicon), LoRA, `mlx-lm`, JSONL chat format.
+**Stack:** Python 3.12, MLX (Apple Silicon), LoRA, `mlx-tune` (Unsloth-compatible Python API), JSONL chat format.
 
 ---
 
@@ -140,18 +140,33 @@ Split estratificado por categoria: 75% train, 15% valid, 10% eval. Seed 42.
 ### 4. Treinamento
 
 ```bash
-# Todos os ciclos
+# Todos os ciclos (do zero)
+bash training/run_all_cycles.sh --fresh
+
+# Todos os ciclos (resume do último state)
 bash training/run_all_cycles.sh
 
+# A partir de um ciclo específico
+bash training/run_all_cycles.sh 2
+
 # Ciclo individual
-CYCLE=cycle-1 bash training/train_mlx_v2.sh
+CYCLE=cycle-1 python training/train_mlx_tune.py
+CYCLE=cycle-1 python training/train_mlx_tune.py --fresh  # limpa output e recomeça
 ```
 
-**Fluxo por ciclo:** `config/cycle-N.env` → gera YAML → `mlx_lm lora` → `outputs/cycle-N/adapters.safetensors`.
+**Fluxo por ciclo:** `config/cycle-N.env` → `train_mlx_tune.py` (Python API) → `outputs/cycle-N/adapters.safetensors`.
 
-**Resume:** Cycle 2+ usa `--resume-adapter-file` do ciclo anterior.
+**Parâmetros do config:** Todos vêm do `.env` — zero hardcode. Suporta: MODEL, TRAIN_DATA, OUTPUT_DIR, PREV_ADAPTER, ITERS, MAX_SEQ_LENGTH, BATCH_SIZE, LEARNING_RATE, LORA_RANK, LORA_ALPHA, LORA_DROPOUT, GRADIENT_ACCUMULATION, VAL_BATCHES, NUM_LAYERS, LR_SCHEDULER, WEIGHT_DECAY, WARMUP_STEPS, LOGGING_STEPS, SAVE_STEPS, SEED.
 
-**Logging:** `log_metrics.py` captura stdout do treinamento, parseia `Iter N: Train/Val loss`, exporta CSV.
+**Resume:** Cycle 2+ usa `PREV_ADAPTER` do ciclo anterior (configurado no `.env`).
+
+**Logging:** Métricas capturadas em `outputs/logs/{cycle}/training.log` e `metrics.csv`.
+
+**`--fresh` flag:**
+- `train_mlx_tune.py --fresh`: Remove o `OUTPUT_DIR` e recomeça do zero
+- `run_all_cycles.sh --fresh`: Remove todos `outputs/cycle-{1,2,3}` antes de começar
+
+**Rollback:** O script antigo `train_mlx_v2.sh` permanece no repo para fallback.
 
 ### Phase 2: Performance Tools (Opcional)
 
@@ -166,8 +181,11 @@ python scripts/performance/eval_cache.py --stats
 ### 5. Export e Inferência
 
 ```bash
-# Fundir adapter com base model
-ADAPTER_DIR=outputs/cycle-3 bash training/export_adapter.sh
+# Fundir adapter com base model (safetensors)
+CYCLE=cycle-3 bash training/export_adapter.sh
+
+# O script gera:
+#   outputs/merged-model/ — modelo merged em formato MLX/safetensors
 
 # Testar inferência (4 prompts hardcoded, fallback: merged → adapter → base)
 bash training/run_inference.sh
@@ -231,8 +249,9 @@ python scripts/quality/factual_checker.py --text "resposta a verificar"
 | `ITERS` | 2450 | 2450 | 500 |
 | `MAX_SEQ_LENGTH` | 2048 | 2048 | 2048 |
 | `PREV_ADAPTER` | — | cycle-1 | cycle-2 |
+| `VAL_BATCHES` | 5 | 5 | 5 |
 
-**Comuns:** `BATCH_SIZE=8`, `GRADIENT_ACCUMULATION=2`, `NUM_LAYERS=20`, `LORA_DROPOUT=0.05`.
+**Comuns:** `BATCH_SIZE=8`, `GRADIENT_ACCUMULATION=2`, `NUM_LAYERS=20`, `LORA_DROPOUT=0.05`, `LR_SCHEDULER=cosine`, `WEIGHT_DECAY=0.01`, `SEED=42`.
 
 ### Configuração Completa (`config/cycle-1.env`)
 
@@ -240,8 +259,8 @@ python scripts/quality/factual_checker.py --text "resposta a verificar"
 |----------|-----------|-------|
 | `MODEL` | Base model HuggingFace | `mlx-community/Llama-3.2-3B-Instruct-4bit` |
 | `TRAIN_DATA` | Dataset de treino | `data/train.jsonl` |
-| `VALID_DATA` | Dataset de validação | `data/valid.jsonl` |
 | `OUTPUT_DIR` | Pasta do adapter | `outputs/cycle-1` |
+| `PREV_ADAPTER` | Adapter anterior (resume) | — |
 | `LEARNING_RATE` | Taxa de aprendizado | `3e-5` |
 | `LORA_RANK` | Rank da matriz LoRA | `16` |
 | `LORA_ALPHA` | Escala LoRA | `32` |
@@ -250,6 +269,14 @@ python scripts/quality/factual_checker.py --text "resposta a verificar"
 | `MAX_SEQ_LENGTH` | Tamanho máximo de sequência | `2048` |
 | `BATCH_SIZE` | Batch size | `8` |
 | `GRADIENT_ACCUMULATION` | Steps antes do update | `2` |
+| `VAL_BATCHES` | Batches de validação | `5` |
+| `NUM_LAYERS` | Camadas LoRA | `20` |
+| `LR_SCHEDULER` | Tipo de scheduler | `cosine` |
+| `WEIGHT_DECAY` | Regularização | `0.01` |
+| `WARMUP_STEPS` | Warmup steps | `0` |
+| `LOGGING_STEPS` | Log a cada N steps | `10` |
+| `SAVE_STEPS` | Save checkpoint a cada N steps | `50` |
+| `SEED` | Seed para reprodutibilidade | `42` |
 
 ---
 
@@ -265,7 +292,8 @@ olia-2-oci/
 ├── config/
 │   ├── cycle-1.env               # LR=3e-5, rank=16, iters=2450
 │   ├── cycle-2.env               # LR=1e-5, rank=16, iters=2450, resume
-│   └── cycle-3.env               # LR=5e-6, rank=16, iters=500, resume
+│   ├── cycle-3.env               # LR=5e-6, rank=16, iters=500, resume
+│   └── cycle-1-test.env          # Config de teste (ITERS=50)
 ├── data/
 │   ├── curated/                  # 71 arquivos × 140 exemplos
 │   ├── all_curated.jsonl         # Combinado (9,940)
@@ -281,8 +309,8 @@ olia-2-oci/
 │   ├── dedupe_dataset.py         # Deduplicação exata + near
 │   ├── build_dataset_fixed.py    # Split estratificado
 │   ├── prepare_data.sh           # Pipeline completo de preparação
-│   ├── evaluate_model.py         # Eval base vs FT
-│   ├── evaluate_ft_only.py       # Eval FT apenas
+│   ├── evaluate_model.py         # Eval base vs FT (--fresh limpa cache)
+│   ├── evaluate_ft_only.py       # Eval FT apenas (--fresh limpa checkpoint)
 │   ├── performance/              # Phase 2: Performance
 │   │   ├── async_pipeline.py     # Pipeline async com prefetch
 │   │   ├── dynamic_batcher.py   # Batch sizing dinâmico
@@ -294,15 +322,16 @@ olia-2-oci/
 │       ├── report_generator.py  # Relatórios HTML automáticos
 │       └── comparison_dashboard.py  # Comparativo base vs FT
 ├── training/
-│   ├── train_mlx_v2.sh           # Treino individual com logging
-│   ├── run_all_cycles.sh         # Orquestrador multi-cycle
-│   ├── export_adapter.sh         # mlx_lm fuse
+│   ├── train_mlx_tune.py         # Treino principal (mlx-tune, Python API)
+│   ├── train_mlx_v2.sh           # Legacy: treino com mlx-lm (rollback)
+│   ├── run_all_cycles.sh         # Orquestrador multi-cycle (--fresh support)
+│   ├── export_adapter.sh         # Merge adapter (save_pretrained_merged)
 │   ├── run_inference.sh          # Teste de inferência
 │   └── log_metrics.py            # Parser de métricas → CSV
 └── outputs/
-    ├── cycle-{1,2,3}/            # Adapters por ciclo
+    ├── cycle-{1,2,3}/            # Adapters por ciclo + checkpoints
     ├── merged-model/             # Modelo fundido (~1.8GB)
-    ├── logs/                     # logs + metrics.csv por ciclo
+    ├── logs/                     # training.log + metrics.csv por ciclo
     └── benchmarks/               # Relatórios de avaliação
 ```
 

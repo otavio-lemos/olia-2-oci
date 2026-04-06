@@ -1,6 +1,6 @@
 # Core MLX
 mlx==0.31.1
-mlx-lm==0.31.1
+mlx-tune>=0.4.17,<0.5.0
 
 # Transformers & Tokenizers
 transformers==5.4.0

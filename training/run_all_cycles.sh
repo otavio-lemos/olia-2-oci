@@ -10,15 +10,40 @@
 # Uso:
 #   bash training/run_all_cycles.sh           # roda todos os ciclos
 #   bash training/run_all_cycles.sh 2         # roda a partir do cycle-2
+#   bash training/run_all_cycles.sh --fresh   # limpa outputs e roda do zero
+#   bash training/run_all_cycles.sh 2 --fresh # limpa outputs e roda do cycle-2
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
-START_CYCLE=${1:-1}
+
+# Parse arguments
+FRESH=""
+START_CYCLE=1
+for arg in "$@"; do
+    if [ "$arg" = "--fresh" ]; then
+        FRESH="--fresh"
+    elif [[ "$arg" =~ ^[0-9]+$ ]]; then
+        START_CYCLE="$arg"
+    fi
+done
 
 CYCLES=("cycle-1" "cycle-2" "cycle-3")
 
 mkdir -p "outputs/logs"
+
+# Clean all outputs if --fresh
+if [ -n "$FRESH" ]; then
+    echo "[fresh] Cleaning all cycle outputs..."
+    for c in "${CYCLES[@]}"; do
+        if [ -d "outputs/$c" ]; then
+            rm -rf "outputs/$c"
+            echo "[fresh] Cleaned: outputs/$c"
+        fi
+    done
+    echo "[fresh] All outputs cleaned. Starting fresh."
+    echo ""
+fi
 
 echo "============================================"
 echo "OCI Specialist LLM - Multi-Cycle Training"
@@ -64,7 +89,7 @@ for i in "${!CYCLES[@]}"; do
         echo "Resuming from: $PREV_ADAPTER"
     fi
 
-    CYCLE="$CYCLE" bash "${SCRIPT_DIR}/train_mlx_v2.sh"
+    CYCLE="$CYCLE" python "${SCRIPT_DIR}/train_mlx_tune.py" $FRESH
     EXIT_CODE=$?
 
     if [ $EXIT_CODE -ne 0 ]; then
