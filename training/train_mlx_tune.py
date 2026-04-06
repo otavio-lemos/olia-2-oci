@@ -247,7 +247,7 @@ def main():
         from mlx_lm.tuner.trainer import TrainingArgs, train as mlx_train
         from mlx_lm.tuner.datasets import CacheDataset, load_dataset as mlx_load_dataset
         import mlx.core as mx
-        from mlx import nn
+        import mlx.optimizers as optim
 
         data_dir = trainer._prepare_training_data()
         lr_schedule = trainer._get_lr_schedule()
@@ -260,13 +260,11 @@ def main():
             trainer.model.model if hasattr(trainer.model, "model") else trainer.model
         )
 
-        # Get trainable parameters from LoRA layers
-        trainable_params = list(actual_model.parameters())
-
-        print(f"  Trainable parameters: {len(trainable_params)}")
-
-        # Create optimizer for LoRA parameters
-        optimizer = nn.optim.Adam(learning_rate=learning_rate)
+        # Create optimizer with AdamW (like original mlx_tune)
+        optimizer = optim.AdamW(
+            learning_rate=learning_rate,
+            weight_decay=weight_decay,
+        )
         adapter_file = str(trainer.adapter_path / "adapters.safetensors")
         training_args = TrainingArgs(
             batch_size=trainer.batch_size,
