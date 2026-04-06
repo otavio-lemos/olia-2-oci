@@ -185,7 +185,7 @@ def generate_comparison_report(
 
 - **Scoring Rubric:** 6 criteria (1-5 scale): Technical Correctness, Depth, Structure, Hallucination (inverse), Clarity, Overall
 - **Evaluation Set:** {n} examples from eval.jsonl, stratified across {len(categories)} OCI categories
-- **Base Model:** mlx-community/Llama-3.2-3B-Instruct-4bit
+- **Base Model:** mlx-community/Meta-Llama-3.1-8B-Instruct-4bit
 - **Fine-Tuned Model:** LoRA adapters from cycle-2 (merged), LR=1e-5, 2485 iterations, rank=16
 - **Dataset:** 9,940 unique examples, 71 categories, 140 per category
 """

@@ -12,7 +12,7 @@ PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 CYCLE=${CYCLE:-"cycle-3"}
 source "${PROJECT_DIR}/config/${CYCLE}.env"
 
-BASE_MODEL=${BASE_MODEL:-${MODEL:-"mlx-community/Llama-3.2-3B-Instruct-4bit"}}
+BASE_MODEL=${BASE_MODEL:-${MODEL:-"mlx-community/Meta-Llama-3.1-8B-Instruct-4bit"}}
 ADAPTER_DIR=${ADAPTER_DIR:-${OUTPUT_DIR:-"outputs/${CYCLE}"}}
 MERGED_MODEL=${MERGED_MODEL:-"outputs/merged-model"}
 

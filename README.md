@@ -5,7 +5,7 @@ Fine-tuning pipeline para um LLM especialista em Oracle Cloud Infrastructure (OC
 [![License](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.12-blue?style=flat-square&logo=python&logoColor=white)](https://www.python.org)
 [![MLX](https://img.shields.io/badge/MLX-Apple%20Silicon-orange?style=flat-square)](https://mlx.ai)
-[![Model](https://img.shields.io/badge/Base%20Model-Llama--3.2--3B--Instruct--4bit-purple?style=flat-square)](https://huggingface.co/mlx-community/Llama-3.2-3B-Instruct-4bit)
+[![Model](https://img.shields.io/badge/Base%20Model-Llama--3.2--3B--Instruct--4bit-purple?style=flat-square)](https://huggingface.co/mlx-community/Meta-Llama-3.1-8B-Instruct-4bit)
 [![Dataset](https://img.shields.io/badge/Dataset-3467_examples-green?style=flat-square)](docs/taxonomy.md)
 
 > **Idioma**: Todos os dados de treinamento e prompts estão em PT-BR.
@@ -195,8 +195,8 @@ bash training/run_inference.sh
 
 ```bash
 # Base vs FT (completo, 325 exemplos do eval split, --fresh limpa cache)
-python scripts/evaluate_model.py "mlx-community/Llama-3.2-3B-Instruct-4bit" "outputs/merged-model" data/eval.jsonl outputs/benchmarks
-python scripts/evaluate_model.py --fresh "mlx-community/Llama-3.2-3B-Instruct-4bit" "outputs/merged-model" data/eval.jsonl outputs/benchmarks  # limpa cache
+python scripts/evaluate_model.py "mlx-community/Meta-Llama-3.1-8B-Instruct-4bit" "outputs/merged-model" data/eval.jsonl outputs/benchmarks
+python scripts/evaluate_model.py --fresh "mlx-community/Meta-Llama-3.1-8B-Instruct-4bit" "outputs/merged-model" data/eval.jsonl outputs/benchmarks  # limpa cache
 
 # FT only (rápido, 325 exemplos do eval split, --fresh limpa checkpoint)
 python scripts/evaluate_ft_only.py outputs/merged-model data/eval.jsonl outputs/benchmarks
@@ -257,7 +257,7 @@ python scripts/quality/factual_checker.py --text "resposta a verificar"
 
 | Variável | Descrição | Valor |
 |----------|-----------|-------|
-| `MODEL` | Base model HuggingFace | `mlx-community/Llama-3.2-3B-Instruct-4bit` |
+| `MODEL` | Base model HuggingFace | `mlx-community/Meta-Llama-3.1-8B-Instruct-4bit` |
 | `TRAIN_DATA` | Dataset de treino | `data/train.jsonl` |
 | `OUTPUT_DIR` | Pasta do adapter | `outputs/cycle-1` |
 | `PREV_ADAPTER` | Adapter anterior (resume) | — |

@@ -89,7 +89,7 @@ def main():
         model, tokenizer = load(path_or_hf_repo=merged_model_path)
     else:
         model, tokenizer = load(
-            path_or_hf_repo="mlx-community/Llama-3.2-3B-Instruct-4bit",
+            path_or_hf_repo="mlx-community/Meta-Llama-3.1-8B-Instruct-4bit",
             adapter_path=adapter_path,
         )
     sampler = make_sampler(temp=0.5, top_p=0.9, min_p=0.0, top_k=50)
@@ -188,7 +188,7 @@ def main():
 
 **Date:** {datetime.now().strftime("%Y-%m-%d %H:%M")}
 **Model:** outputs/merged-model (cycle-3-v3, LoRA rank=8, alpha=16)
-**Base:** mlx-community/Llama-3.2-3B-Instruct-4bit
+**Base:** mlx-community/Meta-Llama-3.1-8B-Instruct-4bit
 **Examples:** {n}/{len(eval_data)} ({n / len(eval_data) * 100:.1f}%)
 **Categories:** {len(categories)}
 

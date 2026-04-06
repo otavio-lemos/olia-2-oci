@@ -8,7 +8,7 @@ Fine-tuning pipeline for an OCI specialist LLM using Apple Silicon, MLX, and LoR
 [![License](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.12-blue?style=flat-square&logo=python&logoColor=white)](https://www.python.org)
 [![MLX](https://img.shields.io/badge/MLX-Apple%20Silicon-orange?style=flat-square)](https://mlx.ai)
-[![Model](https://img.shields.io/badge/Base%20Model-Llama--3.2--3B--Instruct--4bit-purple?style=flat-square)](https://huggingface.co/mlx-community/Llama-3.2-3B-Instruct-4bit)
+[![Model](https://img.shields.io/badge/Base%20Model-Llama--3.2--3B--Instruct--4bit-purple?style=flat-square)](https://huggingface.co/mlx-community/Meta-Llama-3.1-8B-Instruct-4bit)
 [![Dataset](https://img.shields.io/badge/Dataset-9940_examples-green?style=flat-square)](docs/taxonomy.md)
 
 </div>
@@ -207,10 +207,10 @@ ADAPTER_DIR=outputs/cycle-2 bash training/export_adapter.sh
 bash training/run_inference.sh
 
 # 3.3 Evaluate (full — 9,940 examples, recommended)
-python scripts/evaluate_model.py "mlx-community/Llama-3.2-3B-Instruct-4bit" "outputs/merged-model" data/all_curated_clean.jsonl outputs/benchmarks
+python scripts/evaluate_model.py "mlx-community/Meta-Llama-3.1-8B-Instruct-4bit" "outputs/merged-model" data/all_curated_clean.jsonl outputs/benchmarks
 
 # 3.3 Evaluate (quick — 994 examples from eval split)
-# python scripts/evaluate_model.py "mlx-community/Llama-3.2-3B-Instruct-4bit" "outputs/merged-model" data/eval.jsonl outputs/benchmarks
+# python scripts/evaluate_model.py "mlx-community/Meta-Llama-3.1-8B-Instruct-4bit" "outputs/merged-model" data/eval.jsonl outputs/benchmarks
 ```
 
 ### Multi-Cycle Training
@@ -234,7 +234,7 @@ bash training/run_all_cycles.sh
 
 | Variable | Description | Default |
 |----------|-------------|---------|
-| `MODEL` | MLX base model (HuggingFace) | `mlx-community/Llama-3.2-3B-Instruct-4bit` |
+| `MODEL` | MLX base model (HuggingFace) | `mlx-community/Meta-Llama-3.1-8B-Instruct-4bit` |
 | `TRAIN_DATA` | Training data file | `data/train.jsonl` |
 | `VALID_DATA` | Validation data file | `data/valid.jsonl` |
 | `OUTPUT_DIR` | Folder to save LoRA adapters | `outputs/cycle-1` |

@@ -13,7 +13,7 @@ CYCLE=${CYCLE:-"cycle-1"}
 
 source "${SCRIPT_DIR}/../config/${CYCLE}.env"
 
-MODEL=${MODEL:-"mlx-community/Llama-3.2-3B-Instruct-4bit"}
+MODEL=${MODEL:-"mlx-community/Meta-Llama-3.1-8B-Instruct-4bit"}
 TRAIN_DATA=${TRAIN_DATA:-"data/train.jsonl"}
 VALID_DATA=${VALID_DATA:-"data/valid.jsonl"}
 OUTPUT_DIR=${OUTPUT_DIR:-"outputs/${CYCLE}"}
