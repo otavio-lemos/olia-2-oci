@@ -219,7 +219,7 @@ The pipeline supports multi-cycle training with decreasing learning rate:
 
 | Variable | cycle-1 | cycle-2 | cycle-3 |
 |----------|---------|---------|---------|
-| `LEARNING_RATE` | 3e-5 | 1e-5 | 5e-6 |
+| `LEARNING_RATE` | 2e-5 | 5e-6 | 1e-6 |
 | `LORA_RANK` | 16 | 16 | 8 |
 | `LORA_ALPHA` | 32 | 32 | 16 |
 | `ITERS` (v3) | 1,864 | 932 | 466 |

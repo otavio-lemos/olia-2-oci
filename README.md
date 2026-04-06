@@ -40,7 +40,7 @@ evaluate_model.py / evaluate_ft_only.py → outputs/benchmarks/ → report_gener
 | cycle-2 | 1e-5 | 2450 | 0.057 | 0.049 | Resume cycle-1 |
 | cycle-3 | 5e-6 | 50 | 0.053 | 0.039 | Resume cycle-2 |
 
-> Val loss decrescente ao longo dos ciclos indica convergência consistente. Cycle-3 usa LR mais baixo (5e-6) para fine-tuning final.
+> Val loss decrescente ao longo dos ciclos indica convergência consistente. Cycle-3 usa LR mais baixo (1e-6) para fine-tuning final.
 
 **Adapter final:** `outputs/cycle-3/adapters.safetensors`
 **Modelo fundido:** `outputs/merged-model/` (~1.8GB)
@@ -243,7 +243,7 @@ python scripts/quality/factual_checker.py --text "resposta a verificar"
 
 | Variável | cycle-1 | cycle-2 | cycle-3 |
 |----------|---------|---------|---------|
-| `LEARNING_RATE` | 3e-5 | 1e-5 | 5e-6 |
+| `LEARNING_RATE` | 2e-5 | 5e-6 | 1e-6 |
 | `LORA_RANK` | 16 | 16 | 16 |
 | `LORA_ALPHA` | 32 | 32 | 32 |
 | `ITERS` | 2450 | 2450 | 500 |
@@ -261,7 +261,7 @@ python scripts/quality/factual_checker.py --text "resposta a verificar"
 | `TRAIN_DATA` | Dataset de treino | `data/train.jsonl` |
 | `OUTPUT_DIR` | Pasta do adapter | `outputs/cycle-1` |
 | `PREV_ADAPTER` | Adapter anterior (resume) | — |
-| `LEARNING_RATE` | Taxa de aprendizado | `3e-5` |
+| `LEARNING_RATE` | Taxa de aprendizado | `2e-5` |
 | `LORA_RANK` | Rank da matriz LoRA | `16` |
 | `LORA_ALPHA` | Escala LoRA | `32` |
 | `LORA_DROPOUT` | Dropout rate | `0.05` |
@@ -290,9 +290,10 @@ olia-2-oci/
 │   ├── eval-rubric.md            # Critérios de avaliação
 │   └── scope.md                  # Escopo v1 vs v2
 ├── config/
-│   ├── cycle-1.env               # LR=3e-5, rank=16, iters=2450
-│   ├── cycle-2.env               # LR=1e-5, rank=16, iters=2450, resume
-│   ├── cycle-3.env               # LR=5e-6, rank=16, iters=500, resume
+│   ├── cycle-1-test.env          # LR=2e-5, rank=16, iters=50 (teste)
+│   ├── cycle-1.env               # LR=2e-5, rank=16, iters=2450
+│   ├── cycle-2.env               # LR=5e-6, rank=16, iters=2450, resume
+│   ├── cycle-3.env               # LR=1e-6, rank=16, iters=500, resume
 │   └── cycle-1-test.env          # Config de teste (ITERS=50)
 ├── data/
 │   ├── curated/                  # 71 arquivos × 140 exemplos
