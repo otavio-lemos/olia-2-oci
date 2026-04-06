@@ -355,19 +355,14 @@ pip install -r requirements.txt
 1. **Geração template-based:** Dados são gerados programaticamente, não por LLM ou curadoria humana. Qualidade depende dos templates hardcoded.
 2. **Scoring regex-based:** Avaliação usa pattern matching, não compreensão semântica. Scores são indicadores proxy.
 3. **100% single-turn:** Dataset não contém conversas multi-turn. Modelo não aprendeu manutenção de contexto.
-4. **Código duplicado:** `evaluate_model.py` e `evaluate_ft_only.py` compartilham ~300 linhas de scoring idêntico.
-5. **LoRA rank change:** Cycle-3 usa rank=16 com resume de rank=16. Sem mismatch.
-6. **Sem validação de metadata:** `validate_jsonl.py` não verifica campos `metadata.category`, `metadata.difficulty`, `metadata.source`.
-7. **Inference manual:** `run_inference.sh` usa 4 prompts hardcoded sem captura ou comparação automática de resultados.
+4. **Inference manual:** `run_inference.sh` usa 4 prompts hardcoded sem captura ou comparação automática de resultados.
 
 ---
 
 ## Melhorias Futuras
 
 1. **Multi-turn data:** Gerar 20-30% de exemplos com 2-5 turns para conversas longas.
-2. **Shared eval module:** Extrair scoring functions de `evaluate_model.py` e `evaluate_ft_only.py` para módulo compartilhado.
-3. **RAG layer:** Documentação OCI em tempo real para precisão factual.
-4. **Modelo maior:** Llama-3.1-8B para raciocínio arquitetural.
-5. **Avaliação humana:** Review de respostas geradas para qualidade semântica.
-6. **Semantic dedup:** Embedding-based similarity ao invés de character-level.
-7. **Phase 2 implementado:** Módulos de performance, qualidade e reporting já disponíveis em `scripts/performance/`, `scripts/quality/`, `scripts/reporting/`.
+2. **RAG layer:** Documentação OCI em tempo real para precisão factual.
+3. **Modelo maior:** Llama-3.1-8B para raciocínio arquitetural.
+4. **Avaliação humana:** Review de respostas geradas para qualidade semântica.
+5. **Semantic dedup:** Embedding-based similarity ao invés de character-level.

@@ -26,6 +26,31 @@ def validate_message_structure(msg: Dict[str, Any], line_num: int) -> List[str]:
     return errors
 
 
+def validate_metadata(example: Dict[str, Any], line_num: int) -> List[str]:
+    errors = []
+    metadata = example.get("metadata")
+    if metadata is None:
+        errors.append(f"Line {line_num}: Missing 'metadata' field")
+        return errors
+    if not isinstance(metadata, dict):
+        errors.append(f"Line {line_num}: 'metadata' must be a dict")
+        return errors
+    required_fields = ["category", "difficulty", "source"]
+    for field in required_fields:
+        if field not in metadata:
+            errors.append(f"Line {line_num}: Missing metadata.{field}")
+        elif not metadata[field] or not str(metadata[field]).strip():
+            errors.append(f"Line {line_num}: Empty metadata.{field}")
+    valid_difficulties = {"beginner", "intermediate", "advanced"}
+    difficulty = metadata.get("difficulty", "")
+    if difficulty and difficulty not in valid_difficulties:
+        errors.append(
+            f"Line {line_num}: Invalid metadata.difficulty '{difficulty}' "
+            f"(must be one of {valid_difficulties})"
+        )
+    return errors
+
+
 def validate_example(example: Dict[str, Any], line_num: int) -> List[str]:
     errors = []
 
@@ -62,6 +87,8 @@ def validate_example(example: Dict[str, Any], line_num: int) -> List[str]:
 
     if roles_seen[-1] != "assistant":
         errors.append(f"Line {line_num}: Last message must be 'assistant'")
+
+    errors.extend(validate_metadata(example, line_num))
 
     return errors
 
