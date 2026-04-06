@@ -261,17 +261,7 @@ def main():
         )
 
         # Get trainable parameters from LoRA layers
-        trainable_params = []
-        for name, param in actual_model.named_parameters():
-            if "lora" in name.lower():
-                trainable_params.append(param)
-
-        if not trainable_params:
-            trainable_params = [
-                p
-                for p in actual_model.parameters()
-                if hasattr(p, "requires_grad") and p.requires_grad
-            ]
+        trainable_params = list(actual_model.parameters())
 
         print(f"  Trainable parameters: {len(trainable_params)}")
 
