@@ -19,11 +19,11 @@ Pipeline completo para fine-tuning de LLM em OCI: geração de dataset sintétic
 **Arquitetura de dados:**
 
 ```
-generate_diverse_v2.py → data/curated/ → validate → dedup → split → train/valid/eval.jsonl
-                                                                        ↓
-train_mlx_v2.sh (3 cycles) → outputs/cycle-{1,2,3}/ → export_adapter.sh → merged-model/
-                                                                          ↓
-evaluate_model.py / evaluate_ft_only.py → outputs/benchmarks/
+generate_diverse_v2.py → data/curated/ → prepare_data.sh → train/valid/eval.jsonl
+                                                                   ↓
+training/run_all_cycles.sh (3 cycles) → outputs/cycle-{1,2,3}/ → export_adapter.sh → merged-model/
+                                                                              ↓
+evaluate_model.py / evaluate_ft_only.py → outputs/benchmarks/ → report_generator.py / comparison_dashboard.py
 ```
 
 **Stack:** Python 3.12, MLX (Apple Silicon), LoRA, `mlx-lm`, JSONL chat format.
@@ -44,7 +44,7 @@ evaluate_model.py / evaluate_ft_only.py → outputs/benchmarks/
 
 **Adapter final:** `outputs/cycle-3/adapters.safetensors`
 **Modelo fundido:** `outputs/merged-model/` (~1.8GB)
-**Avaliação FT:** **4.09/5** (994/994 exemplos, 5 dimensões de scoring)
+**Avaliação FT:** **4.09/5** (325/325 exemplos, 5 dimensões de scoring)
 
 ---
 
@@ -106,14 +106,18 @@ python scripts/generate_diverse_v2.py
 **Seed:** `random.seed(42)` para reprodutibilidade.
 
 ### 2. Validação, Limpeza e Deduplicação
- 
+
 ```bash
+# Executa todo o pipeline de preparação (validate → clean → dedup → split)
+bash scripts/prepare_data.sh
+
+# Ou manualmente passo a passo:
 # Validação estrutural (roles, formato chat, limites de tamanho)
 python3 scripts/validate_jsonl.py data/all_curated.jsonl
- 
+
 # Limpeza de conteúdo (remove templates genéricos, CLI errado, poluição de contexto, shapes em respostas, adiciona acentos)
 python3 scripts/clean_dataset.py --input data/all_curated.jsonl --output data/all_curated_clean.jsonl --all
- 
+
 # Deduplicação (exata + near-duplicate com threshold 0.95)
 python3 scripts/dedupe_dataset.py data/all_curated_clean.jsonl --remove
 if [ -f "data/all_curated_deduped.jsonl" ]; then
@@ -228,7 +232,7 @@ python scripts/quality/factual_checker.py --text "resposta a verificar"
 | `MAX_SEQ_LENGTH` | 2048 | 2048 | 2048 |
 | `PREV_ADAPTER` | — | cycle-1 | cycle-2 |
 
-**Comuns:** `BATCH_SIZE=2`, `GRADIENT_ACCUMULATION=2`, `NUM_LAYERS=20`, `LORA_DROPOUT=0.05`.
+**Comuns:** `BATCH_SIZE=8`, `GRADIENT_ACCUMULATION=2`, `NUM_LAYERS=20`, `LORA_DROPOUT=0.05`.
 
 ### Configuração Completa (`config/cycle-1.env`)
 
@@ -244,7 +248,7 @@ python scripts/quality/factual_checker.py --text "resposta a verificar"
 | `LORA_DROPOUT` | Dropout rate | `0.05` |
 | `ITERS` | Iterações de treino | `2450` |
 | `MAX_SEQ_LENGTH` | Tamanho máximo de sequência | `2048` |
-| `BATCH_SIZE` | Batch size | `2` |
+| `BATCH_SIZE` | Batch size | `8` |
 | `GRADIENT_ACCUMULATION` | Steps antes do update | `2` |
 
 ---
@@ -273,9 +277,10 @@ olia-2-oci/
 │   ├── generate_diverse_v2.py    # Gerador principal (6,144 linhas)
 │   ├── generate_prompt.py        # Prompts a partir da taxonomy
 │   ├── validate_jsonl.py         # Validação estrutural
-│   ├── clean_dataset.py         # Limpeza de conteúdo (Phase 2)
+│   ├── clean_dataset.py         # Limpeza de conteúdo
 │   ├── dedupe_dataset.py         # Deduplicação exata + near
 │   ├── build_dataset_fixed.py    # Split estratificado
+│   ├── prepare_data.sh           # Pipeline completo de preparação
 │   ├── evaluate_model.py         # Eval base vs FT
 │   ├── evaluate_ft_only.py       # Eval FT apenas
 │   ├── performance/              # Phase 2: Performance
@@ -322,7 +327,7 @@ pip install -r requirements.txt
 2. **Scoring regex-based:** Avaliação usa pattern matching, não compreensão semântica. Scores são indicadores proxy.
 3. **100% single-turn:** Dataset não contém conversas multi-turn. Modelo não aprendeu manutenção de contexto.
 4. **Código duplicado:** `evaluate_model.py` e `evaluate_ft_only.py` compartilham ~300 linhas de scoring idêntico.
-5. **LoRA rank change:** Cycle-3 usa rank=8 com resume de rank=16. Pode haver mismatch dimensional.
+5. **LoRA rank change:** Cycle-3 usa rank=16 com resume de rank=16. Sem mismatch.
 6. **Sem validação de metadata:** `validate_jsonl.py` não verifica campos `metadata.category`, `metadata.difficulty`, `metadata.source`.
 7. **Inference manual:** `run_inference.sh` usa 4 prompts hardcoded sem captura ou comparação automática de resultados.
 
