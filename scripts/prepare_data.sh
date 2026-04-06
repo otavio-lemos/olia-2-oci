@@ -33,7 +33,7 @@ else
 fi
 
 echo ""
-echo "=== Step 4: Build dataset splits ==="
+echo "=== Step 5: Build dataset splits ==="
 python3 scripts/build_dataset_fixed.py -i data/all_curated_clean.jsonl -o data/
 
 echo ""
