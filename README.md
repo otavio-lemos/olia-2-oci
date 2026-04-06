@@ -50,14 +50,14 @@ evaluate_model.py / evaluate_ft_only.py → outputs/benchmarks/
 
 ## Dataset
 
-O dataset contém 9,940 exemplos únicos gerados com diversidade estrutural e validação rigorosa.
+O dataset contém 3,467 exemplos únicos gerados com diversidade estrutural e validação rigorosa.
 
 | Métrica | Valor |
 |---------|-------|
-| **Total de Exemplos** | 9,940 |
+| **Total de Exemplos** | 3,467 |
 | **Categorias** | 71 topics OCI |
 | **Exemplos por Categoria** | 140 |
-| **Duplicatas** | 0 (exatas + próximas) |
+| **Duplicatas** | 6473 (exatas + próximas) |
 | **Comandos CLI Falsos** | 0 |
 | **Classes SDK Falsas** | 0 |
 | **Resources TF Falsos** | 0 |
@@ -66,30 +66,30 @@ O dataset contém 9,940 exemplos únicos gerados com diversidade estrutural e va
 
 | Split | Exemplos | Percentual |
 |-------|----------|------------|
-| Train | 7,455 | 75.0% |
-| Valid | 1,491 | 15.0% |
-| Eval | 994 | 10.0% |
-| **Total** | **9,940** | **100.0%** |
+| Train | 2,583 | 74.5% |
+| Valid | 495 | 14.3% |
+| Eval | 325 | 9.4% |
+| **Total** | **3,467** | **100.0%** |
 
 ### Difficulty Distribution (Train)
 
 | Dificuldade | Count | Percentual |
 |-------------|-------|------------|
-| Beginner | 2,191 | 29.4% |
-| Intermediate | 3,786 | 50.8% |
-| Advanced | 1,478 | 19.8% |
+| Beginner | 781 | 30.2% |
+| Intermediate | 1,297 | 50.2% |
+| Advanced | 505 | 19.6% |
 
 ### Categorias por Grupo
 
 | Grupo | Topics | Exemplos |
 |-------|--------|----------|
-| OCI Core (compute, storage, networking, lb, database, container, serverless) | 20 | 2,800 |
-| Security (iam-basics, policies, vault, encryption, cloud-guard, waf) | 9 | 1,260 |
-| Migration (AWS/Azure/GCP/On-prem → OCI) | 14 | 1,960 |
-| Terraform (provider, compute, storage, networking, lb, database, container, serverless, security, observability, devops, state) | 12 | 1,680 |
-| Observability | 4 | 560 |
-| Troubleshooting | 8 | 1,120 |
-| DevOps | 4 | 560 |
+| OCI Core (compute, storage, networking, lb, database, container, serverless) | 20 | 1,036 |
+| Security (iam-basics, policies, vault, encryption, cloud-guard, waf) | 9 | 423 |
+| Migration (AWS/Azure/GCP/On-prem → OCI) | 14 | 683 |
+| Terraform (provider, compute, storage, networking, lb, database, container, serverless, security, observability, devops, state) | 12 | 583 |
+| Observability | 4 | 194 |
+| Troubleshooting | 8 | 390 |
+| DevOps | 4 | 198 |
 
 
 ---

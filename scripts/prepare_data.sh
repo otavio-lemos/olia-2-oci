@@ -15,18 +15,21 @@ find data/curated -name "*.jsonl" -exec cat {} + > data/all_curated.jsonl
 echo "Created: data/all_curated.jsonl ($(wc -l < data/all_curated.jsonl) lines)"
 
 echo ""
-echo "=== Step 2: Validate ==="
+echo "=== Step 2: Validate (structural) ==="
 python3 scripts/validate_jsonl.py data/all_curated.jsonl
 
 echo ""
-echo "=== Step 3: Deduplicate ==="
-python3 scripts/dedupe_dataset.py data/all_curated.jsonl --remove
+echo "=== Step 3: Clean content (remove generic templates, wrong CLI, etc.) ==="
+python3 scripts/clean_dataset.py --input data/all_curated.jsonl --output data/all_curated_clean.jsonl --all
+
+echo ""
+echo "=== Step 4: Deduplicate ==="
+python3 scripts/dedupe_dataset.py data/all_curated_clean.jsonl --remove
 if [ -f "data/all_curated_deduped.jsonl" ]; then
     cp data/all_curated_deduped.jsonl data/all_curated_clean.jsonl
     echo "Deduplicated: $(wc -l < data/all_curated_clean.jsonl) lines"
 else
-    cp data/all_curated.jsonl data/all_curated_clean.jsonl
-    echo "No duplicates found, using validated file: $(wc -l < data/all_curated_clean.jsonl) lines"
+    echo "No duplicates found, keeping cleaned file: $(wc -l < data/all_curated_clean.jsonl) lines"
 fi
 
 echo ""
