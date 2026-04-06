@@ -87,6 +87,7 @@ def generate_comparison_report(
     ft_results: List[Dict[str, Any]],
     output_path: Path,
     total_eval: int = 994,
+    base_model: str = "",
 ):
     if not base_results or not ft_results:
         return
@@ -185,7 +186,7 @@ def generate_comparison_report(
 
 - **Scoring Rubric:** 6 criteria (1-5 scale): Technical Correctness, Depth, Structure, Hallucination (inverse), Clarity, Overall
 - **Evaluation Set:** {n} examples from eval.jsonl, stratified across {len(categories)} OCI categories
-- **Base Model:** mlx-community/Meta-Llama-3.1-8B-Instruct-4bit
+- **Base Model:** {base_model or "mlx-community/Meta-Llama-3.1-8B-Instruct-4bit"}
 - **Fine-Tuned Model:** LoRA adapters from cycle-2 (merged), LR=1e-5, 2485 iterations, rank=16
 - **Dataset:** 9,940 unique examples, 71 categories, 140 per category
 """
@@ -379,9 +380,28 @@ def main():
     parser.add_argument(
         "--fresh", action="store_true", help="Clear cached results before evaluating"
     )
+    parser.add_argument(
+        "--cycle",
+        default=None,
+        help="Use config/cycle-N.env for MODEL (overrides base_model_path)",
+    )
     args = parser.parse_args()
 
-    base_model_path = args.base_model_path
+    SCRIPT_DIR = Path(__file__).parent
+    PROJECT_DIR = SCRIPT_DIR.parent
+
+    if args.cycle:
+        import configparser
+
+        cfg = configparser.ConfigParser()
+        cfg.read(PROJECT_DIR / "config" / f"{args.cycle}.env")
+        base_model_path = cfg.get("MODEL", "")
+        if not base_model_path:
+            print(f"ERROR: MODEL not found in config/{args.cycle}.env")
+            return
+        print(f"Using MODEL from config/{args.cycle}.env: {base_model_path}")
+    else:
+        base_model_path = args.base_model_path
     ft_model_dir = args.ft_model_path
     eval_file = Path(args.eval_file)
     output_dir = Path(args.output_dir)
@@ -506,7 +526,9 @@ def main():
     output_path = (
         output_dir / f"eval-comparison-{datetime.now().strftime('%Y%m%d-%H%M%S')}.md"
     )
-    generate_comparison_report(base_results, ft_results, output_path, len(eval_data))
+    generate_comparison_report(
+        base_results, ft_results, output_path, len(eval_data), base_model_path
+    )
 
     difficulty_report = generate_difficulty_report(base_results, ft_results, output_dir)
     print(f"\nDifficulty report saved to {difficulty_report}")

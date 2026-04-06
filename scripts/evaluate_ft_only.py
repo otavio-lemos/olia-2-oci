@@ -31,19 +31,24 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(description="Evaluate fine-tuned model")
-    parser.add_argument("ft_model_path", help="Path to FT model or adapter")
-    parser.add_argument("eval_file", help="Path to eval.jsonl")
     parser.add_argument(
-        "output_dir", nargs="?", default="outputs/benchmarks", help="Output directory"
+        "--model",
+        default=None,
+        help="Base model (defaults to config/cycle-N.env MODEL)",
     )
-    parser.add_argument(
-        "--fresh",
-        action="store_true",
-        help="Clear checkpoint and start fresh",
-    )
+    parser.add_argument("--cycle", default="cycle-3", help="Cycle config to use")
     args = parser.parse_args()
 
-    ft_model_dir = args.ft_model_path
+    CYCLE = args.cycle
+    SCRIPT_DIR = Path(__file__).parent
+    PROJECT_DIR = SCRIPT_DIR.parent
+    import configparser
+
+    cfg = configparser.ConfigParser()
+    cfg.read(PROJECT_DIR / "config" / f"{CYCLE}.env")
+    MODEL = args.model or cfg.get(
+        "MODEL", "mlx-community/Meta-Llama-3.1-8B-Instruct-4bit"
+    )
     eval_file = Path(args.eval_file)
     output_dir = Path(args.output_dir)
     fresh = args.fresh
@@ -89,7 +94,7 @@ def main():
         model, tokenizer = load(path_or_hf_repo=merged_model_path)
     else:
         model, tokenizer = load(
-            path_or_hf_repo="mlx-community/Meta-Llama-3.1-8B-Instruct-4bit",
+            path_or_hf_repo=MODEL,
             adapter_path=adapter_path,
         )
     sampler = make_sampler(temp=0.5, top_p=0.9, min_p=0.0, top_k=50)
@@ -188,7 +193,7 @@ def main():
 
 **Date:** {datetime.now().strftime("%Y-%m-%d %H:%M")}
 **Model:** outputs/merged-model (cycle-3-v3, LoRA rank=8, alpha=16)
-**Base:** mlx-community/Meta-Llama-3.1-8B-Instruct-4bit
+**Base:** {MODEL}
 **Examples:** {n}/{len(eval_data)} ({n / len(eval_data) * 100:.1f}%)
 **Categories:** {len(categories)}
 
