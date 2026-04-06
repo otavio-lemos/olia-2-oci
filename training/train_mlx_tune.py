@@ -246,10 +246,37 @@ def main():
     def patched_train_native():
         from mlx_lm.tuner.trainer import TrainingArgs, train as mlx_train
         from mlx_lm.tuner.datasets import CacheDataset, load_dataset as mlx_load_dataset
+        import mlx.core as mx
+        from mlx import nn
 
         data_dir = trainer._prepare_training_data()
         lr_schedule = trainer._get_lr_schedule()
-        optimizer = trainer._get_optimizer(lr_schedule)
+
+        # Create optimizer manually (mlx_tune changed API)
+        learning_rate = trainer.learning_rate
+        weight_decay = trainer.weight_decay
+
+        actual_model = (
+            trainer.model.model if hasattr(trainer.model, "model") else trainer.model
+        )
+
+        # Get trainable parameters from LoRA layers
+        trainable_params = []
+        for name, param in actual_model.named_parameters():
+            if "lora" in name.lower():
+                trainable_params.append(param)
+
+        if not trainable_params:
+            trainable_params = [
+                p
+                for p in actual_model.parameters()
+                if hasattr(p, "requires_grad") and p.requires_grad
+            ]
+
+        print(f"  Trainable parameters: {len(trainable_params)}")
+
+        # Create optimizer for LoRA parameters
+        optimizer = nn.optim.Adam(learning_rate=learning_rate)
         adapter_file = str(trainer.adapter_path / "adapters.safetensors")
         training_args = TrainingArgs(
             batch_size=trainer.batch_size,
@@ -276,9 +303,6 @@ def main():
         valid_set = CacheDataset(valid_set)
         logger.log(f"  Val batches: {val_batches} (from config)")
 
-        actual_model = (
-            trainer.model.model if hasattr(trainer.model, "model") else trainer.model
-        )
         mlx_train(
             model=actual_model,
             optimizer=optimizer,
