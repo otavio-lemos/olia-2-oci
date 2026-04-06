@@ -290,15 +290,25 @@ def evaluate_response(response: str, reference: str, category: str) -> Dict[str,
 
 
 def main():
-    if len(sys.argv) < 3:
-        print(
-            "Usage: python evaluate_ft_only.py <ft_model_path> <eval.jsonl> [output_dir]"
-        )
-        sys.exit(1)
+    import argparse
 
-    ft_model_dir = sys.argv[1]
-    eval_file = Path(sys.argv[2])
-    output_dir = Path(sys.argv[3]) if len(sys.argv) > 3 else Path("outputs/benchmarks")
+    parser = argparse.ArgumentParser(description="Evaluate fine-tuned model")
+    parser.add_argument("ft_model_path", help="Path to FT model or adapter")
+    parser.add_argument("eval_file", help="Path to eval.jsonl")
+    parser.add_argument(
+        "output_dir", nargs="?", default="outputs/benchmarks", help="Output directory"
+    )
+    parser.add_argument(
+        "--fresh",
+        action="store_true",
+        help="Clear checkpoint and start fresh",
+    )
+    args = parser.parse_args()
+
+    ft_model_dir = args.ft_model_path
+    eval_file = Path(args.eval_file)
+    output_dir = Path(args.output_dir)
+    fresh = args.fresh
 
     ft_model_path = Path(ft_model_dir)
     if ft_model_path.is_dir() and (ft_model_path / "model.safetensors").exists():
@@ -318,6 +328,11 @@ def main():
 
     checkpoint_path = output_dir / "eval-ft-checkpoint.json"
     output_dir.mkdir(parents=True, exist_ok=True)
+
+    # Clear checkpoint if --fresh
+    if fresh and checkpoint_path.exists():
+        checkpoint_path.unlink()
+        print(f"Cleared checkpoint: {checkpoint_path}")
 
     # Load checkpoint
     if checkpoint_path.exists():

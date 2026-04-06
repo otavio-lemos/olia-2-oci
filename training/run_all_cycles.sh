@@ -3,9 +3,9 @@
 # Orquestra treinamento multi-ciclo sequencial com LR decrescente
 #
 # Cada ciclo continua do adapter do anterior (config em config/cycle-N.env):
-#   cycle-1: from scratch, LR=3e-5, 2450 iters, rank=16, seq=4096
-#   cycle-2: resume cycle-1, LR=1e-5, 2450 iters, rank=16, seq=4096
-#   cycle-3: resume cycle-2, LR=5e-6, 500 iters, rank=16, seq=4096
+#   cycle-1: from scratch, LR=3e-5, 2450 iters, rank=16, seq=2048
+#   cycle-2: resume cycle-1, LR=1e-5, 2450 iters, rank=16, seq=2048
+#   cycle-3: resume cycle-2, LR=5e-6, 500 iters, rank=16, seq=2048
 #
 # Uso:
 #   bash training/run_all_cycles.sh           # roda todos os ciclos

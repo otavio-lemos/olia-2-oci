@@ -32,7 +32,7 @@ evaluate_model.py / evaluate_ft_only.py → outputs/benchmarks/
 
 ## Resultados
 
-### Treinamento Atual (Dataset com 15 estruturas, MAX_SEQ_LENGTH=4096)
+### Treinamento Atual (Dataset com 15 estruturas, MAX_SEQ_LENGTH=2048)
 
 | Ciclo | LR | Iters | Val Loss | Train Loss | Modo |
 |-------|-----|-------|----------|------------|------|
@@ -192,10 +192,12 @@ bash training/run_inference.sh
 
 ```bash
 # Base vs FT (completo, 994 exemplos do eval split, --fresh limpa cache)
-python scripts/evaluate_model.py --fresh "mlx-community/Llama-3.2-3B-Instruct-4bit" "outputs/merged-model" data/eval.jsonl outputs/benchmarks
+python scripts/evaluate_model.py "mlx-community/Llama-3.2-3B-Instruct-4bit" "outputs/merged-model" data/eval.jsonl outputs/benchmarks
+python scripts/evaluate_model.py --fresh "mlx-community/Llama-3.2-3B-Instruct-4bit" "outputs/merged-model" data/eval.jsonl outputs/benchmarks  # limpa cache
 
-# FT only (rápido, 994 exemplos do eval split)
+# FT only (rápido, 994 exemplos do eval split, --fresh limpa checkpoint)
 python scripts/evaluate_ft_only.py outputs/merged-model data/eval.jsonl outputs/benchmarks
+python scripts/evaluate_ft_only.py --fresh outputs/merged-model data/eval.jsonl outputs/benchmarks  # limpa checkpoint
 ```
 
 **5 dimensões de scoring (escala 1-5):**
@@ -208,7 +210,11 @@ python scripts/evaluate_ft_only.py outputs/merged-model data/eval.jsonl outputs/
 | Hallucination | Comandos falsos, URLs inventadas, cross-cloud | Fake patterns (-1.0 a -1.5), cross-cloud (-1.0 a -2.0), fake URLs (-1.5) |
 | Clarity | Balanceamento de sentenças, conectivos PT-BR, exemplos | — |
 
-**Checkpoint:** Salva a cada 50 exemplos. Resume automático via `eval-ft-checkpoint.json`.
+**Checkpoint:** Salva a cada 50 exemplos. Resume automático via `eval-ft-checkpoint.json`. Use `--fresh` para limpar checkpoint e recomeçar do zero.
+
+**`--fresh` flag:**
+- `evaluate_model.py --fresh`: Remove resultados cached (`eval-base-results-final.json`, `eval-ft-results-final.json`)
+- `evaluate_ft_only.py --fresh`: Remove checkpoint (`eval-ft-checkpoint.json`)
 
 ---
 
@@ -222,7 +228,7 @@ python scripts/evaluate_ft_only.py outputs/merged-model data/eval.jsonl outputs/
 | `LORA_RANK` | 16 | 16 | 16 |
 | `LORA_ALPHA` | 32 | 32 | 32 |
 | `ITERS` | 2450 | 2450 | 500 |
-| `MAX_SEQ_LENGTH` | 4096 | 1024 | 4096 |
+| `MAX_SEQ_LENGTH` | 2048 | 2048 | 2048 |
 | `PREV_ADAPTER` | — | cycle-1 | cycle-2 |
 
 **Comuns:** `BATCH_SIZE=1`, `GRADIENT_ACCUMULATION=4`, `LORA_DROPOUT=0.05`, `EPOCHS=2` (não usado — mlx_lm é iteration-based).
@@ -240,7 +246,7 @@ python scripts/evaluate_ft_only.py outputs/merged-model data/eval.jsonl outputs/
 | `LORA_ALPHA` | Escala LoRA | `32` |
 | `LORA_DROPOUT` | Dropout rate | `0.05` |
 | `ITERS` | Iterações de treino | `200` |
-| `MAX_SEQ_LENGTH` | Tamanho máximo de sequência | `4096` |
+| `MAX_SEQ_LENGTH` | Tamanho máximo de sequência | `2048` |
 | `BATCH_SIZE` | Batch size | `1` |
 | `GRADIENT_ACCUMULATION` | Steps antes do update | `4` |
 
