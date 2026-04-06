@@ -363,6 +363,5 @@ pip install -r requirements.txt
 
 1. **Multi-turn data:** Gerar 20-30% de exemplos com 2-5 turns para conversas longas.
 2. **RAG layer:** Documentação OCI em tempo real para precisão factual.
-3. **Modelo maior:** Llama-3.1-8B para raciocínio arquitetural.
-4. **Avaliação humana:** Review de respostas geradas para qualidade semântica.
-5. **Semantic dedup:** Embedding-based similarity ao invés de character-level.
+3. **Avaliação humana:** Review de respostas geradas para qualidade semântica.
+4. **Semantic dedup:** Embedding-based similarity ao invés de character-level.
