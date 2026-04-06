@@ -50,80 +50,47 @@ evaluate_model.py / evaluate_ft_only.py → outputs/benchmarks/
 
 ## Dataset
 
-### Estatísticas
+O dataset contém 9,940 exemplos únicos gerados com diversidade estrutural e validação rigorosa.
 
 | Métrica | Valor |
 |---------|-------|
-| Total | 9,940 exemplos |
-| Categorias | 71 topics OCI |
-| Por categoria | 140 exemplos |
-| Estruturas de resposta | 15 (mapeadas por categoria) |
-| Duplicatas | 0 (exatas + próximas, threshold 0.95) |
-| Validação SDK | 9 modelos com campos validados |
+| **Total de Exemplos** | 9,940 |
+| **Categorias** | 71 topics OCI |
+| **Exemplos por Categoria** | 140 |
+| **Duplicatas** | 0 (exatas + próximas) |
+| **Comandos CLI Falsos** | 0 |
+| **Classes SDK Falsas** | 0 |
+| **Resources TF Falsos** | 0 |
 
-### Splits
+### Split Distribution
 
-| Split | Exemplos | % | Uso |
-|-------|----------|---|-----|
-| Train | 7,455 | 75.0% | Fine-tuning |
-| Valid | 1,491 | 15.0% | Val loss por ciclo |
-| Eval | 994 | 10.0% | Benchmark pós-treino |
+| Split | Exemplos | Percentual |
+|-------|----------|------------|
+| Train | 7,455 | 75.0% |
+| Valid | 1,491 | 15.0% |
+| Eval | 994 | 10.0% |
+| **Total** | **9,940** | **100.0%** |
 
-### Dificuldade (Train)
+### Difficulty Distribution (Train)
 
-| Nível | Count | % |
-|-------|-------|---|
-| Beginner | 2,182 | 29.3% |
-| Intermediate | 3,783 | 50.7% |
-| Advanced | 1,490 | 20.0% |
+| Dificuldade | Count | Percentual |
+|-------------|-------|------------|
+| Beginner | 2,191 | 29.4% |
+| Intermediate | 3,786 | 50.8% |
+| Advanced | 1,478 | 19.8% |
 
 ### Categorias por Grupo
 
 | Grupo | Topics | Exemplos |
 |-------|--------|----------|
-| OCI Core | 21 | 2,940 |
-| Migration | 14 | 1,960 |
-| Terraform | 12 | 1,680 |
-| Security | 9 | 1,260 |
-| Troubleshooting | 8 | 1,120 |
+| OCI Core (compute, storage, networking, lb, database, container, serverless) | 20 | 2,800 |
+| Security (iam-basics, policies, vault, encryption, cloud-guard, waf) | 9 | 1,260 |
+| Migration (AWS/Azure/GCP/On-prem → OCI) | 14 | 1,960 |
+| Terraform (provider, compute, storage, networking, lb, database, container, serverless, security, observability, devops, state) | 12 | 1,680 |
 | Observability | 4 | 560 |
+| Troubleshooting | 8 | 1,120 |
 | DevOps | 4 | 560 |
 
-### Formato dos Exemplos
-
-```json
-{
-  "messages": [
-    {"role": "system", "content": "Você é um arquiteto especialista em OCI..."},
-    {"role": "user", "content": "Como criar uma VCN com subnets privadas?"},
-    {"role": "assistant", "content": "## Solução\n\n### Passos:\n1. ..."}
-  ],
-  "metadata": {
-    "category": "networking/vcn",
-    "difficulty": "intermediate",
-    "source": "generated",
-    "structure": "step_by_step"
-  }
-}
-```
-
-### Geração de Dados
-
-O dataset é gerado programaticamente por `scripts/generate_diverse_v2.py` (6,144 linhas). Não há chamadas a APIs de LLM externas — todo conteúdo é gerado a partir de templates com substituição de variáveis.
-
-**15 estruturas de resposta:** step_by_step, troubleshooting, code_first, architecture, terraform, python_sdk, best_practices, cost_analysis, security_audit, performance_tuning, disaster_recovery, monitoring_alerting, integration, migration, comparison.
-
-**Mapeamento:** Cada categoria recebe 5-7 estruturas relevantes via `CATEGORY_RESPONSE_MAP`. Ex: `compute/instances` usa step_by_step, troubleshooting, code_first, best_practices, cost_analysis, performance_tuning, disaster_recovery.
-
-**Diversidade:** 20 empresas, 20 projetos, 10 regiões, 9 shapes, 8 OCPUs, 6 storage sizes, 10 compartments, 3 ADs — combinados via `idx` para variação contextual.
-
-**Lookups validados:**
-- `OCI_CLI_COMMANDS`: comandos CRUD por categoria (create, list, get, update, delete)
-- `OCI_PYTHON_SDK`: client class, métodos, modelo por categoria
-- `OCI_TERRAFORM_RESOURCES`: resources e data sources por categoria
-- `SDK_MODEL_FIELDS`: campos required/optional por modelo SDK (9 recursos)
-
-**Validação pós-geração:** `validate_example()` verifica presença de keywords do tópico nos primeiros 300 chars, ausência de contaminação cross-cloud (exceto migration), e tamanho mínimo de 200 chars.
 
 ---
 
