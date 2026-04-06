@@ -56,8 +56,7 @@ O dataset contém 3,467 exemplos únicos gerados com diversidade estrutural e va
 |---------|-------|
 | **Total de Exemplos** | 3,467 |
 | **Categorias** | 71 topics OCI |
-| **Exemplos por Categoria** | 140 |
-| **Duplicatas** | 6473 (exatas + próximas) |
+| **Exemplos Removidos na Limpeza** | 6,473 (templates genéricos, CLI errado, poluição de contexto, duplicatas) |
 | **Comandos CLI Falsos** | 0 |
 | **Classes SDK Falsas** | 0 |
 | **Resources TF Falsos** | 0 |
@@ -150,6 +149,16 @@ CYCLE=cycle-1 bash training/train_mlx_v2.sh
 
 **Logging:** `log_metrics.py` captura stdout do treinamento, parseia `Iter N: Train/Val loss`, exporta CSV.
 
+### Phase 2: Performance Tools (Opcional)
+
+```bash
+# Análise de sequence length e recomendação de batch size
+python scripts/performance/dynamic_batcher.py --input data/train.jsonl --recommend
+
+# Cache de respostas para avaliação mais rápida
+python scripts/performance/eval_cache.py --stats
+```
+
 ### 5. Export e Inferência
 
 ```bash
@@ -163,13 +172,19 @@ bash training/run_inference.sh
 ### 6. Avaliação
 
 ```bash
-# Base vs FT (completo, 994 exemplos do eval split, --fresh limpa cache)
+# Base vs FT (completo, 325 exemplos do eval split, --fresh limpa cache)
 python scripts/evaluate_model.py "mlx-community/Llama-3.2-3B-Instruct-4bit" "outputs/merged-model" data/eval.jsonl outputs/benchmarks
 python scripts/evaluate_model.py --fresh "mlx-community/Llama-3.2-3B-Instruct-4bit" "outputs/merged-model" data/eval.jsonl outputs/benchmarks  # limpa cache
 
-# FT only (rápido, 994 exemplos do eval split, --fresh limpa checkpoint)
+# FT only (rápido, 325 exemplos do eval split, --fresh limpa checkpoint)
 python scripts/evaluate_ft_only.py outputs/merged-model data/eval.jsonl outputs/benchmarks
 python scripts/evaluate_ft_only.py --fresh outputs/merged-model data/eval.jsonl outputs/benchmarks  # limpa checkpoint
+
+# Phase 2: Relatórios HTML automáticos
+python scripts/reporting/report_generator.py --results outputs/benchmarks/eval-ft-results-final.json --output outputs/benchmarks/report.html
+
+# Phase 2: Comparison dashboard (base vs FT)
+python scripts/reporting/comparison_dashboard.py --base outputs/benchmarks/eval-base-results-final.json --ft outputs/benchmarks/eval-ft-results-final.json --output outputs/benchmarks/comparison.html
 ```
 
 **5 dimensões de scoring (escala 1-5):**
@@ -188,6 +203,16 @@ python scripts/evaluate_ft_only.py --fresh outputs/merged-model data/eval.jsonl 
 - `evaluate_model.py --fresh`: Remove resultados cached (`eval-base-results-final.json`, `eval-ft-results-final.json`)
 - `evaluate_ft_only.py --fresh`: Remove checkpoint (`eval-ft-checkpoint.json`)
 
+### Phase 2: Quality Tools (Opcional)
+
+```bash
+# Scoring semântico para detecção de hallucination
+python scripts/quality/semantic_scorer.py --reference ref.txt --generated gen.txt --threshold 0.3
+
+# Verificação factual de respostas OCI (shapes, regions, CLI)
+python scripts/quality/factual_checker.py --text "resposta a verificar"
+```
+
 ---
 
 ## Configuração
@@ -203,7 +228,7 @@ python scripts/evaluate_ft_only.py --fresh outputs/merged-model data/eval.jsonl 
 | `MAX_SEQ_LENGTH` | 2048 | 2048 | 2048 |
 | `PREV_ADAPTER` | — | cycle-1 | cycle-2 |
 
-**Comuns:** `BATCH_SIZE=1`, `GRADIENT_ACCUMULATION=4`, `LORA_DROPOUT=0.05`, `EPOCHS=2` (não usado — mlx_lm é iteration-based).
+**Comuns:** `BATCH_SIZE=2`, `GRADIENT_ACCUMULATION=2`, `NUM_LAYERS=20`, `LORA_DROPOUT=0.05`.
 
 ### Configuração Completa (`config/cycle-1.env`)
 
@@ -217,10 +242,10 @@ python scripts/evaluate_ft_only.py --fresh outputs/merged-model data/eval.jsonl 
 | `LORA_RANK` | Rank da matriz LoRA | `16` |
 | `LORA_ALPHA` | Escala LoRA | `32` |
 | `LORA_DROPOUT` | Dropout rate | `0.05` |
-| `ITERS` | Iterações de treino | `200` |
+| `ITERS` | Iterações de treino | `2450` |
 | `MAX_SEQ_LENGTH` | Tamanho máximo de sequência | `2048` |
-| `BATCH_SIZE` | Batch size | `1` |
-| `GRADIENT_ACCUMULATION` | Steps antes do update | `4` |
+| `BATCH_SIZE` | Batch size | `2` |
+| `GRADIENT_ACCUMULATION` | Steps antes do update | `2` |
 
 ---
 
@@ -248,10 +273,21 @@ olia-2-oci/
 │   ├── generate_diverse_v2.py    # Gerador principal (6,144 linhas)
 │   ├── generate_prompt.py        # Prompts a partir da taxonomy
 │   ├── validate_jsonl.py         # Validação estrutural
+│   ├── clean_dataset.py         # Limpeza de conteúdo (Phase 2)
 │   ├── dedupe_dataset.py         # Deduplicação exata + near
 │   ├── build_dataset_fixed.py    # Split estratificado
 │   ├── evaluate_model.py         # Eval base vs FT
-│   └── evaluate_ft_only.py       # Eval FT apenas
+│   ├── evaluate_ft_only.py       # Eval FT apenas
+│   ├── performance/              # Phase 2: Performance
+│   │   ├── async_pipeline.py     # Pipeline async com prefetch
+│   │   ├── dynamic_batcher.py   # Batch sizing dinâmico
+│   │   └── eval_cache.py         # Cache de respostas
+│   ├── quality/                  # Phase 2: Quality
+│   │   ├── semantic_scorer.py   # Scoring semântico (embeddings)
+│   │   └── factual_checker.py   # Validação factual OCI
+│   └── reporting/                 # Phase 2: Reporting
+│       ├── report_generator.py  # Relatórios HTML automáticos
+│       └── comparison_dashboard.py  # Comparativo base vs FT
 ├── training/
 │   ├── train_mlx_v2.sh           # Treino individual com logging
 │   ├── run_all_cycles.sh         # Orquestrador multi-cycle
@@ -300,3 +336,4 @@ pip install -r requirements.txt
 4. **Modelo maior:** Llama-3.1-8B para raciocínio arquitetural.
 5. **Avaliação humana:** Review de respostas geradas para qualidade semântica.
 6. **Semantic dedup:** Embedding-based similarity ao invés de character-level.
+7. **Phase 2 implementado:** Módulos de performance, qualidade e reporting já disponíveis em `scripts/performance/`, `scripts/quality/`, `scripts/reporting/`.
