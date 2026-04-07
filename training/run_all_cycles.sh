@@ -81,7 +81,7 @@ for i in "${!CYCLES[@]}"; do
 
     # Verify previous adapter exists for cycles > 1
     if [ "$CYCLE_NUM" -gt 1 ] && [ -n "${PREV_ADAPTER:-}" ]; then
-        if [ ! -f "$PREV_ADAPTER" ]; then
+        if [ ! -e "$PREV_ADAPTER" ]; then
             echo "ERROR: Previous adapter not found: $PREV_ADAPTER"
             echo "Cannot resume training. Aborting."
             exit 1

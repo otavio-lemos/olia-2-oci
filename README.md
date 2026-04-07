@@ -7,6 +7,7 @@ Fine-tuning pipeline para um LLM especialista em Oracle Cloud Infrastructure (OC
 [![MLX](https://img.shields.io/badge/MLX-Apple%20Silicon-orange?style=flat-square)](https://mlx.ai)
 [![Model](https://img.shields.io/badge/Base%20Model-Meta--Llama--3.1--8B--Instruct--4bit-purple?style=flat-square)](https://huggingface.co/mlx-community/Meta-Llama-3.1-8B-Instruct-4bit)
 [![Dataset](https://img.shields.io/badge/Dataset-3467_examples-green?style=flat-square)](docs/taxonomy.md)
+[![Training](https://img.shields.io/badge/Training-MLX--Tune%200.4.18-blue?style=flat-square)](https://github.com/ARahim3/mlx-tune)
 
 > **Idioma**: Todos os dados de treinamento e prompts estão em PT-BR.
 
@@ -26,25 +27,25 @@ training/run_all_cycles.sh (3 cycles) → outputs/cycle-{1,2,3}/ → export_adap
 evaluate_model.py / evaluate_ft_only.py → outputs/benchmarks/ → report_generator.py / comparison_dashboard.py
 ```
 
-**Stack:** Python 3.12, MLX (Apple Silicon), LoRA, `mlx-tune` (Unsloth-compatible Python API), JSONL chat format.
+**Stack:** Python 3.12, MLX 0.31.1, MLX-LM 0.31.1, MLX-Tune 0.4.18 (Unsloth-compatible Python API), JSONL chat format.
 
 ---
 
 ## Resultados
 
-### Treinamento Atual (Dataset com 15 estruturas, MAX_SEQ_LENGTH=2048)
+### Treinamento Atual (Dataset com 3,467 exemplos, MAX_SEQ_LENGTH=2048, MLX-Tune Patched)
 
-| Ciclo | LR | Iters | Val Loss | Train Loss | Modo |
-|-------|-----|-------|----------|------------|------|
-| cycle-1 | 3e-5 | 2450 | 0.073 | 0.062 | Do zero |
-| cycle-2 | 1e-5 | 2450 | 0.057 | 0.049 | Resume cycle-1 |
-| cycle-3 | 5e-6 | 50 | 0.053 | 0.039 | Resume cycle-2 |
+| Ciclo | LR | Iters | Val Loss | Train Loss | Peak Mem | Modo |
+|-------|-----|-------|----------|------------|----------|------|
+| cycle-1 | 2e-5 | 200 | 0.243 | 0.371 | 6.5 GB | Do zero |
+| cycle-2 | 1e-5 | 100 | — | — | — | Resume cycle-1 |
+| cycle-3 | 5e-6 | 50 | — | — | — | Resume cycle-2 |
 
-> Val loss decrescente ao longo dos ciclos indica convergência consistente. Cycle-3 usa LR mais baixo (1e-6) para fine-tuning final.
+> **Fixes aplicados:** `grad_accumulation_steps` corrigido no MLX-Tune, gradient clipping (norm=1.0), clear cache threshold (5GB), dataset loading corrigido.
+> **Performance:** ~85 tokens/sec, ~0.18 iters/sec, Cycle 1 em ~21 minutos no M3 Pro 18GB.
 
-**Adapter final:** `outputs/cycle-3/adapters.safetensors`
-**Modelo fundido:** `outputs/merged-model/` (~1.8GB)
-**Avaliação FT:** **4.09/5** (325/325 exemplos, 5 dimensões de scoring)
+**Adapter final:** `outputs/cycle-3/adapters/` (após todos os cycles)
+**Avaliação FT:** Pendente (após cycle-3)
 
 ---
 
@@ -243,15 +244,22 @@ python scripts/quality/factual_checker.py --text "resposta a verificar"
 
 | Variável | cycle-1 | cycle-2 | cycle-3 |
 |----------|---------|---------|---------|
-| `LEARNING_RATE` | 2e-5 | 5e-6 | 1e-6 |
-| `LORA_RANK` | 16 | 16 | 16 |
-| `LORA_ALPHA` | 32 | 32 | 32 |
-| `ITERS` | 2450 | 2450 | 500 |
+| `LEARNING_RATE` | 2e-5 | 1e-5 | 5e-6 |
+| `LORA_RANK` | 8 | 8 | 8 |
+| `LORA_ALPHA` | 16 | 16 | 16 |
+| `LORA_DROPOUT` | 0.0 | 0.0 | 0.0 |
+| `ITERS` | 200 | 100 | 50 |
 | `MAX_SEQ_LENGTH` | 2048 | 2048 | 2048 |
+| `BATCH_SIZE` | 1 | 1 | 1 |
+| `GRADIENT_ACCUMULATION` | 2 | 2 | 2 |
+| `NUM_LAYERS` | 8 | 8 | 8 |
+| `WARMUP_STEPS` | 20 | 10 | 5 |
+| `GRADIENT_CLIP_NORM` | 1.0 | 1.0 | 1.0 |
+| `CLEAR_CACHE_GB` | 5 | 5 | 5 |
 | `PREV_ADAPTER` | — | cycle-1 | cycle-2 |
 | `VAL_BATCHES` | 5 | 5 | 5 |
 
-**Comuns:** `BATCH_SIZE=8`, `GRADIENT_ACCUMULATION=2`, `NUM_LAYERS=20`, `LORA_DROPOUT=0.05`, `LR_SCHEDULER=cosine`, `WEIGHT_DECAY=0.01`, `SEED=42`.
+**Comuns:** `LR_SCHEDULER=cosine`, `WEIGHT_DECAY=0.01`, `SEED=42`, `GRADIENT_CHECKPOINTING=true`, `LOGGING_STEPS=5`.
 
 ### Configuração Completa (`config/cycle-1.env`)
 
@@ -259,24 +267,29 @@ python scripts/quality/factual_checker.py --text "resposta a verificar"
 |----------|-----------|-------|
 | `MODEL` | Base model HuggingFace | `mlx-community/Meta-Llama-3.1-8B-Instruct-4bit` |
 | `TRAIN_DATA` | Dataset de treino | `data/train.jsonl` |
+| `VALID_DATA` | Dataset de validação | `data/valid.jsonl` |
 | `OUTPUT_DIR` | Pasta do adapter | `outputs/cycle-1` |
 | `PREV_ADAPTER` | Adapter anterior (resume) | — |
+| `EPOCHS` | Épocas de treino | `2` |
+| `BATCH_SIZE` | Batch size | `1` |
 | `LEARNING_RATE` | Taxa de aprendizado | `2e-5` |
-| `LORA_RANK` | Rank da matriz LoRA | `16` |
-| `LORA_ALPHA` | Escala LoRA | `32` |
-| `LORA_DROPOUT` | Dropout rate | `0.05` |
-| `ITERS` | Iterações de treino | `2450` |
-| `MAX_SEQ_LENGTH` | Tamanho máximo de sequência | `2048` |
-| `BATCH_SIZE` | Batch size | `8` |
+| `LORA_RANK` | Rank da matriz LoRA | `8` |
+| `LORA_ALPHA` | Escala LoRA | `16` |
+| `LORA_DROPOUT` | Dropout rate | `0.0` |
 | `GRADIENT_ACCUMULATION` | Steps antes do update | `2` |
+| `NUM_LAYERS` | Camadas LoRA | `8` |
+| `ITERS` | Iterações de treino | `200` |
+| `MAX_SEQ_LENGTH` | Tamanho máximo de sequência | `2048` |
 | `VAL_BATCHES` | Batches de validação | `5` |
-| `NUM_LAYERS` | Camadas LoRA | `20` |
+| `LOGGING_STEPS` | Log a cada N steps | `5` |
+| `SAVE_STEPS` | Save checkpoint a cada N steps | `50` |
+| `WARMUP_STEPS` | Warmup steps | `20` |
+| `GRADIENT_CHECKPOINTING` | Gradient checkpointing | `true` |
 | `LR_SCHEDULER` | Tipo de scheduler | `cosine` |
 | `WEIGHT_DECAY` | Regularização | `0.01` |
-| `WARMUP_STEPS` | Warmup steps | `0` |
-| `LOGGING_STEPS` | Log a cada N steps | `10` |
-| `SAVE_STEPS` | Save checkpoint a cada N steps | `50` |
 | `SEED` | Seed para reprodutibilidade | `42` |
+| `GRADIENT_CLIP_NORM` | Max norm para gradient clipping | `1.0` |
+| `CLEAR_CACHE_GB` | Threshold para clear cache (GB) | `5` |
 
 ---
 
@@ -290,11 +303,9 @@ olia-2-oci/
 │   ├── eval-rubric.md            # Critérios de avaliação
 │   └── scope.md                  # Escopo v1 vs v2
 ├── config/
-│   ├── cycle-1-test.env          # LR=2e-5, rank=16, iters=50 (teste)
-│   ├── cycle-1.env               # LR=2e-5, rank=16, iters=2450
-│   ├── cycle-2.env               # LR=5e-6, rank=16, iters=2450, resume
-│   ├── cycle-3.env               # LR=1e-6, rank=16, iters=500, resume
-│   └── cycle-1-test.env          # Config de teste (ITERS=50)
+│   ├── cycle-1.env               # LR=2e-5, rank=8, iters=200, do zero
+│   ├── cycle-2.env               # LR=1e-5, rank=8, iters=100, resume
+│   └── cycle-3.env               # LR=5e-6, rank=8, iters=50, resume
 ├── data/
 │   ├── curated/                  # 71 arquivos × 140 exemplos
 │   ├── all_curated.jsonl         # Combinado (9,940)

@@ -6,10 +6,22 @@ This project builds a fine-tuned LLM specialist in Oracle Cloud Infrastructure (
 
 ## Tech Stack
 
-- **Hardware**: Apple Silicon (M1/M2/M3/M4)
-- **Framework**: MLX for fine-tuning
-- **Method**: LoRA (Low-Rank Adaptation)
+- **Hardware**: Apple Silicon M3 Pro (18GB unified memory)
+- **Framework**: MLX-Tune 0.4.18 (wrapper sobre MLX-LM 0.31.1)
+- **MLX Core**: 0.31.1
+- **Method**: LoRA (Low-Rank Adaptation) with 4-bit quantized base model
 - **Format**: JSONL chat format
+- **Python**: 3.12 (venv: `venv/`)
+
+### Dependencies (venv)
+```
+mlx==0.31.1
+mlx-lm==0.31.1
+mlx-tune==0.4.18
+transformers==5.4.0
+sentence-transformers==5.3.0
+scikit-learn==1.8.0
+```
 
 ## Pipeline Stages
 
@@ -18,25 +30,57 @@ This project builds a fine-tuned LLM specialist in Oracle Cloud Infrastructure (
 3. **Data Collection** → raw → sanitized → curated
 4. **Validation** → JSONL validator, deduplication
 5. **Dataset Building** → build, split, export
-6. **Training** → MLX LoRA fine-tuning
+6. **Training** → MLX-Tune LoRA fine-tuning (3 cycles progressive)
 7. **Evaluation** → benchmark base vs fine-tuned
 
-## Data Generation
+## Training Architecture
 
-### Process
+### MLX-Tune Training Script
+- **Main script**: `training/train_mlx_tune.py`
+- **Config**: `config/cycle-N.env` (via `CYCLE` env var)
+- **Patches aplicados**:
+  - `grad_accumulation_steps` passado corretamente para `TrainingArgs`
+  - Gradient clipping via `mx.clip(grad, -norm, norm)` no step function
+  - Clear cache threshold para gerenciamento de memória (5GB)
+  - Dataset loading corrigido: `mlx_lm.tuner.datasets.load_dataset`
 
-1. Select category from `docs/taxonomy.md`
-2. Use prompt template from `tmp/prompt_*.md`
-3. Execute the prompt as specified in the file
-4. Validate response against quality rules
-5. Save to `data/curated/[topic]-[nnn].jsonl`
+### Como rodar treinamento
+```bash
+# Cycle 1 (do zero)
+CYCLE=cycle-1 python training/train_mlx_tune.py --fresh
 
-### Execution
+# Cycle 2 (resume do cycle 1)
+CYCLE=cycle-2 python training/train_mlx_tune.py
 
-Execute prompts exactly as requested in each `tmp/prompt_*.md` file:
-- Generate 1 file per topic in JSONL format
-- 140 examples per file
-- Follow the output format specified in the prompt file
+# Cycle 3 (resume do cycle 2)
+CYCLE=cycle-3 python training/train_mlx_tune.py
+```
+
+### Configuração por Ciclo
+
+| Param | Cycle-1 | Cycle-2 | Cycle-3 |
+|-------|---------|---------|---------|
+| Base | scratch | resume c1 | resume c2 |
+| LR | 2e-5 | 1e-5 | 5e-6 |
+| Rank | 8 | 8 | 8 |
+| Alpha | 16 | 16 | 16 |
+| Dropout | 0.0 | 0.0 | 0.0 |
+| Batch | 1 | 1 | 1 |
+| Grad Accum | 2 | 2 | 2 |
+| Layers | 8 | 8 | 8 |
+| Iters | 200 | 100 | 50 |
+| Max Seq | 2048 | 2048 | 2048 |
+| Warmup | 20 | 10 | 5 |
+| Weight Decay | 0.01 | 0.01 | 0.01 |
+| Grad Clip | 1.0 | 1.0 | 1.0 |
+| Clear Cache | 5GB | 5GB | 5GB |
+| Logging | 5 | 5 | 5 |
+
+### Performance Esperada (M3 Pro 18GB)
+- **Peak memory**: ~6.5 GB
+- **Velocidade**: ~85 tokens/sec, ~0.18 iters/sec
+- **Cycle 1 (200 iters)**: ~21 minutos
+- **Loss**: Val ~2.4 → ~0.24, Train ~2.2 → ~0.37
 
 ## Data Flow
 
@@ -90,9 +134,9 @@ data/eval.jsonl      → evaluation set (~10%)
 ## Output Artifacts
 
 - `data/curated/` - individual generated examples
-- `outputs/adapters/` - trained LoRA adapters
+- `outputs/cycle-N/` - trained LoRA adapters per cycle
 - `outputs/benchmarks/` - evaluation reports
-- `outputs/logs/` - training logs
+- `outputs/logs/` - training logs and metrics CSV
 
 ## Provider Strategy
 
