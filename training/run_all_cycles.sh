@@ -41,6 +41,21 @@ if [ -n "$FRESH" ]; then
             echo "[fresh] Cleaned: outputs/$c"
         fi
     done
+    
+    # Clean additional outputs
+    if [ -d "outputs/logs" ]; then
+        rm -rf "outputs/logs"
+        echo "[fresh] Cleaned: outputs/logs"
+    fi
+    if [ -d "outputs/benchmarks" ]; then
+        rm -rf "outputs/benchmarks"
+        echo "[fresh] Cleaned: outputs/benchmarks"
+    fi
+    if [ -d "outputs/merged-model" ]; then
+        rm -rf "outputs/merged-model"
+        echo "[fresh] Cleaned: outputs/merged-model"
+    fi
+    
     echo "[fresh] All outputs cleaned. Starting fresh."
     echo ""
 fi

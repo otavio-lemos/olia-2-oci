@@ -37,15 +37,15 @@ evaluate_model.py / evaluate_ft_only.py → outputs/benchmarks/ → report_gener
 
 | Ciclo | LR | Iters | Val Loss | Train Loss | Peak Mem | Modo |
 |-------|-----|-------|----------|------------|----------|------|
-| cycle-1 | 2e-5 | 200 | 0.243 | 0.371 | 6.5 GB | Do zero |
-| cycle-2 | 1e-5 | 100 | — | — | — | Resume cycle-1 |
-| cycle-3 | 5e-6 | 50 | — | — | — | Resume cycle-2 |
+| cycle-1 | 2e-5 | 200 | 0.331 | 0.316 | 6.5 GB | Do zero |
+| cycle-2 | 1e-5 | 100 | 0.254 | 0.152 | 6.5 GB | Resume cycle-1 |
+| cycle-3 | 5e-6 | 50 | 0.259 | 0.099 | 6.5 GB | Resume cycle-2 |
 
 > **Fixes aplicados:** `grad_accumulation_steps` corrigido no MLX-Tune, gradient clipping (norm=1.0), clear cache threshold (5GB), dataset loading corrigido.
 > **Performance:** ~85 tokens/sec, ~0.18 iters/sec, Cycle 1 em ~21 minutos no M3 Pro 18GB.
 
 **Adapter final:** `outputs/cycle-3/adapters/` (após todos os cycles)
-**Avaliação FT:** Pendente (após cycle-3)
+**Avaliação FT:** Concluída (após cycle-3)
 
 ---
 
