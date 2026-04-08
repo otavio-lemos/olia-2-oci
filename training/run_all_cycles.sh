@@ -28,7 +28,7 @@ for arg in "$@"; do
     fi
 done
 
-CYCLES=("cycle-1" "cycle-2" "cycle-3")
+CYCLES=("cycle-1" "cycle-2" "cycle-3" "cycle-4")
 
 mkdir -p "outputs/logs"
 
