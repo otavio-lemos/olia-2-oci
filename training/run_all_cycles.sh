@@ -28,7 +28,7 @@ for arg in "$@"; do
     fi
 done
 
-CYCLES=("cycle-1" "cycle-2" "cycle-3" "cycle-4")
+CYCLES=("cycle-1" "cycle-2" "cycle-3")
 
 mkdir -p "outputs/logs"
 
@@ -64,7 +64,8 @@ echo "============================================"
 echo "OCI Specialist LLM - Multi-Cycle Training"
 echo "============================================"
 echo "Starting from cycle: $START_CYCLE"
-echo "Cycles to run: ${CYCLES[@]:$((START_CYCLE-1))}"
+CYCLES_TO_RUN=("${CYCLES[@]:$((START_CYCLE-1))}")
+echo "Cycles to run: ${CYCLES_TO_RUN[*]}"
 echo "============================================"
 echo ""
 
