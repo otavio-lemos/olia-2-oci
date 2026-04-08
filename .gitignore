@@ -17,4 +17,13 @@ outputs/adapters/
 
 # Temp/diagnostic logs
 outputs/benchmarks/eval-run.log
+outputs/benchmarks/eval-ft-checkpoint.json
+outputs/benchmarks/quick/
+outputs/test/
+outputs/test-quick/
+outputs/benchmark/
+outputs/logs/cycle-*/
 backup_*/
+
+/* Firecrawl cache */
+.firecrawl/

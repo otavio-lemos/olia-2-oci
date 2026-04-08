@@ -128,13 +128,11 @@ Example categories:
 
 ## TOPIC: observability/apm
 
-#### observability/apm (10)
+#### observability/apm (140)
 - APM configuration
 - Distributed tracing
 - Performance diagnostics
 - **Docs**: https://docs.oracle.com/en-us/iaas/Content/apm/overview.htm
-
----
 
 
 ---
@@ -145,28 +143,103 @@ You are an OCI specialist with expertise in APM. Provide technical guidance on d
 
 ---
 
-## EXAMPLE QUESTIONS (para inspiração - gere questões originais)
-
-- Como configurar APM no OCI?
-- Como instrumentar aplicações para tracing?
-- Como configurar distributed tracing?
-- Como resolver traces não aparecendo?
-- Como troubleshootar performance diagnostics?
-- Como configurar APM domains?
-- Como monitorar microservices com APM?
-- Como integrar APM com Logging?
-- Como configurar alertas de performance?
-- Como analisar traces de aplicações Java?
-
----
-
 ## DIVERSITY REQUIREMENTS (OBRIGATÓRIO)
 
 Varie os exemplos entre:
-- Diferentes services (Logging, Monitoring, APM, Stack Monitoring)
-- Diferentes casos de uso (troubleshooting, alerting, compliance)
-- Diferentes personas (SRE, developer, operations)
-- Diferentes problemas (missing data, false alerts, performance)
+- Diferentes serviços (logging, monitoring, APM, stack monitoring)
+- Diferentes cenários (alerting, dashboards, troubleshooting)
+- Diferentes personas (SRE, DevOps, developer)
+- Diferentes problemas (missing metrics, log retention, trace correlation)
+
+
+---
+
+## OCI CLI Syntax
+
+### APM Domain Commands
+
+```bash
+# Create APM domain
+oci apm-config domain create --compartment-id <ocid> \
+  --display-name "production-apm" \
+  --description "Production APM domain"
+
+# List APM domains
+oci apm-config domain list --compartment-id <ocid>
+
+# Get APM domain
+oci apm-config domain get --apm-domain-id <ocid1.apmsddk.oc1.<region>.<unique-id>>
+```
+
+### Data Keys
+
+```bash
+# List data keys
+oci apm-config data-key list --apm-domain-id <ocid1.apmsddk.oc1.<region>.<unique-id>>
+
+# Create data key
+oci apm-config data-key create --apm-domain-id <ocid1.apmsddk.oc1.<region>.<unique-id>> \
+  --display-name "production-key" \
+  --key-type PUBLIC
+```
+
+### Span Filter
+
+```bash
+# Create span filter
+oci apm-config span-filter create --apm-domain-id <ocid1.apmsddk.oc1.<region>.<unique-id>> \
+  --display-name "error-filter" \
+  --filter "span.kind == 'SERVER' AND error == true"
+```
+
+### Metric Archive
+
+```bash
+# Create metric archive
+oci apm-analytics metric-archive create --apm-domain-id <ocid1.apmsddk.oc1.<region>.<unique-id>> \
+  --display-name "daily-metrics" \
+  --namespace "apm.custom.metrics"
+```
+
+
+## Anti-Patterns
+
+- NEVER create APM configurations without a valid APM domain
+- NEVER use real OCIDs — always use placeholders like `<ocid1.apmsddk.oc1.<region>.<unique-id>>`
+- NEVER omit `--compartment-id` — required for all operations
+- NEVER copy OCI documentation verbatim — generate original examples
+- NEVER use synthetic traces only — real tracing is preferred
+- NEVER skip data key configuration — agents require valid keys
+- NEVER create spans without proper span.kind — SERVER, CLIENT, PRODUCER, CONSUMER
+- NEVER use vague filter names — use descriptive names like "payment-service-error-filter"
+- NEVER omit span attributes — always include service.name, span.name, error.stack
+- NEVER forget to configure APM agent — Java, Node.js, Python agents need proper setup
+
+
+
+## Universal Anti-Patterns (Always Include)
+
+1. ❌ Copiar documentação OCI literalmente
+2. ❌ Inventar serviços Oracle inexistentes
+3. ❌ Usar preços ou limites sem marcar [MUTABLE]
+4. ❌ Criar exemplos vagos como "use best practices"
+5. ❌ Respostas arquiteturais sem steps, risks, justification
+6. ❌ OCID fictícios sem formato válido
+7. ❌ Comandos CLI inventados
+
+
+
+## Universal OCID Format Reference
+
+```
+ocid1.<resource>.<realm>.<region>.<unique-id>
+ocid1.instance.oc1.iad.abcd1234...
+ocid1.compartment.oc1..aaaa2222...
+ocid1.user.oc1.iad.bbbb3333...
+ocid1.group.oc1.iad.cccc4444...
+ocid1.tenancy.oc1..dddd5555...
+```
+
 
 ---
 
@@ -177,9 +250,8 @@ Varie os exemplos entre:
 3. Use APENAS as informações presentes em "TOPIC: observability/apm"
 4. Não invente informações que não estão nos docs OCI
 5. Não use preços ou limites sem marcar [MUTABLE] ou [CHECK DOCS]
-6. Se EXAMPLE QUESTIONS estiver presente, use como INSPIRAÇÃO para criar questões DIVERSAS e ORIGINAIS (não copie verbatim)
-7. Cada exemplo DEVE ter um cenário diferente - NÃO repita o mesmo caso de uso
-8. Varie os contextos: diferentes personas, diferentes níveis de complexidade, diferentes casos de uso reais
+6. Cada exemplo DEVE ter um cenário diferente - NÃO repita o mesmo caso de uso
+7. Varie os contextos: diferentes personas, diferentes níveis de complexidade, diferentes casos de uso reais
 
 ---
 
@@ -192,7 +264,7 @@ Gere EXATAMENTE 140 exemplos em formato JSONL.
 ```
 {"messages": [...], "metadata": {"category": "observability/apm", "difficulty": "beginner|intermediate|advanced", "source": "generated"}}
 {"messages": [...], "metadata": {"category": "observability/apm", "difficulty": "beginner|intermediate|advanced", "source": "generated"}}
-... (10 linhas total)
+... (140 linhas total)
 ```
 
 ---
@@ -230,9 +302,9 @@ Gere EXATAMENTE 140 exemplos em formato JSONL.
 ---
 
 ## DISTRIBUIÇÃO DE DIFICULDADE
-- beginner: ~30% dos exemplos (3 exemplos)
-- intermediate: ~50% dos exemplos (5 exemplos)
-- advanced: ~20% dos exemplos (2 exemplos)
+- beginner: ~30% dos exemplos (42 exemplos)
+- intermediate: ~50% dos exemplos (70 exemplos)
+- advanced: ~20% dos exemplos (28 exemplos)
 
 ---
 
@@ -254,7 +326,7 @@ Gere EXATAMENTE 140 exemplos em formato JSONL.
 
 Gere EXATAMENTE 140 exemplos diversos para o topic: **observability/apm**
 
-- Mistura de dificuldades: 3 beginner, 5 intermediate, 2 advanced
+- Mistura de dificuldades: 42 beginner, 70 intermediate, 28 advanced
 - Cenários reais de OCI - cada exemplo com um caso de uso diferente
 - Use Português (BR) para perguntas do usuário
 - Formato JSONL, uma linha por exemplo

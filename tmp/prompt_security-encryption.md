@@ -128,7 +128,7 @@ Example categories:
 
 ## TOPIC: security/encryption
 
-#### security/encryption (10)
+#### security/encryption (140)
 - Volume encryption
 - BYOK, customer-managed keys
 - HSM integration
@@ -139,32 +139,122 @@ Example categories:
 
 ## SYSTEM PROMPT (para usar no JSONL)
 
-You are an OCI security specialist with expertise in encryption. Provide technical guidance on volume encryption, BYOK, and customer-managed keys.
-
----
-
-## EXAMPLE QUESTIONS (para inspiração - gere questões originais)
-
-- Como configurar encryption em Block Volumes?
-- Como usar customer-managed keys para storage?
-- Como configurar BYOK no OCI?
-- Como resolver erro de key não encontrada?
-- Como auditar encryption em recursos?
-- Como migrar de Oracle-managed para customer-managed keys?
-- Como configurar encryption em Object Storage?
-- Como troubleshootar problemas de decrypt?
-- Como configurar envelope encryption?
-- Como verificar compliance de encryption?
+You are an OCI specialist with expertise in encryption. Provide technical guidance on volume encryption, BYOK, customer-managed keys, and HSM.
 
 ---
 
 ## DIVERSITY REQUIREMENTS (OBRIGATÓRIO)
 
 Varie os exemplos entre:
-- Diferentes componentes (IAM, Vault, Cloud Guard, WAF)
-- Diferentes cenários (access control, encryption, compliance)
-- Diferentes personas (security admin, auditor, developer)
-- Diferentes problemas (authorization, authentication, monitoring)
+- Diferentes serviços de segurança (IAM, Vault, Cloud Guard, WAF)
+- Diferentes cenários (access control, encryption, threat detection)
+- Diferentes personas (security engineer, admin, auditor)
+- Diferentes problemas (permission denied, key rotation, false positives)
+
+
+---
+
+## OCI CLI Syntax
+
+### Volume Encryption
+
+```bash
+# Create boot volume with encryption
+oci bv boot-volume create --compartment-id ocid1.compartment.oc1..<unique-id> \
+  --availability-domain 1:MELBOURNE-1-AD-1 \
+  --display-name WebServerBoot \
+  --size-in-gbs 50 \
+  --image-id ocid1.image.oc1..<unique-id>
+
+# Create block volume with custom encryption key
+oci bv volume create --compartment-id ocid1.compartment.oc1..<unique-id> \
+  --availability-domain 1:MELBOURNE-1-AD-1 \
+  --display-name DataVolume \
+  --size-in-gbs 100 \
+  --kms-key-id ocid1.key.oc1..<unique-id>
+
+# Attach volume with encryption
+oci bv volume-attachment attach --instance-id ocid1.instance.oc1..<unique-id> \
+  --volume-id ocid1.volume.oc1..<unique-id> \
+  --attachment-type iscsi
+```
+
+### Object Storage Encryption
+
+```bash
+# Create bucket with customer-managed key
+oci os bucket create --compartment-id ocid1.compartment.oc1..<unique-id> \
+  --name encrypted-bucket \
+  --kms-key-id ocid1.key.oc1..<unique-id> \
+  --encryption-type CUSTOMER_MANAGED
+
+# Update bucket to use CMK
+oci os bucket update --bucket-name encrypted-bucket \
+  --kms-key-id ocid1.key.oc1..<unique-id> \
+  --encryption-type CUSTOMER_MANAGED
+
+# Upload object (inherits bucket encryption)
+oci os object put --bucket-name encrypted-bucket \
+  --name sensitive-data.json \
+  --file ./data.json
+```
+
+### Key Management for Encryption
+
+```bash
+# List encryption keys
+oci kms key list --vault-id ocid1.vault.oc1..<unique-id> \
+  --key-shape algorithm=AES
+
+# Get key version
+oci kms key-version get --key-id ocid1.key.oc1..<unique-id> \
+  --version-number 1
+
+# Enable key for encryption
+oci kms key update --key-id ocid1.key.oc1..<unique-id> \
+  --state ACTIVE
+```
+
+
+## Anti-Patterns (Never generate)
+
+1. ❌ Use OCI-managed key when CMK is required for compliance
+2. ❌ Store encryption key in same vault as encrypted data
+3. ❌ Delete customer-managed key (data becomes unrecoverable)
+4. ❌ Mix up volume encryption vs object storage encryption (different services)
+5. ❌ Use placeholder OCIDs: `ocid1.key.<region>.<id>` - correct is `ocid1.key.oc1..<unique-id>`
+6. ❌ Forget that boot volumes can't use external CMKs (use block volumes instead)
+7. ❌ Use BYOK without proper key import procedures
+8. ❌ Create bucket without specifying encryption-type (defaults to OCI-managed)
+9. ❌ Forget that bucket encryption is set at creation time
+10. ❌ Recommend encryption at rest is optional - it's always enabled by default
+11. ❌ Use "KMS" when correct service name is "Vault" in OCI
+
+
+
+## Universal Anti-Patterns (Always Include)
+
+1. ❌ Copiar documentação OCI literalmente
+2. ❌ Inventar serviços Oracle inexistentes
+3. ❌ Usar preços ou limites sem marcar [MUTABLE]
+4. ❌ Criar exemplos vagos como "use best practices"
+5. ❌ Respostas arquiteturais sem steps, risks, justification
+6. ❌ OCID fictícios sem formato válido
+7. ❌ Comandos CLI inventados
+
+
+
+## Universal OCID Format Reference
+
+```
+ocid1.<resource>.<realm>.<region>.<unique-id>
+ocid1.instance.oc1.iad.abcd1234...
+ocid1.compartment.oc1..aaaa2222...
+ocid1.user.oc1.iad.bbbb3333...
+ocid1.group.oc1.iad.cccc4444...
+ocid1.tenancy.oc1..dddd5555...
+```
+
 
 ---
 
@@ -175,9 +265,8 @@ Varie os exemplos entre:
 3. Use APENAS as informações presentes em "TOPIC: security/encryption"
 4. Não invente informações que não estão nos docs OCI
 5. Não use preços ou limites sem marcar [MUTABLE] ou [CHECK DOCS]
-6. Se EXAMPLE QUESTIONS estiver presente, use como INSPIRAÇÃO para criar questões DIVERSAS e ORIGINAIS (não copie verbatim)
-7. Cada exemplo DEVE ter um cenário diferente - NÃO repita o mesmo caso de uso
-8. Varie os contextos: diferentes personas, diferentes níveis de complexidade, diferentes casos de uso reais
+6. Cada exemplo DEVE ter um cenário diferente - NÃO repita o mesmo caso de uso
+7. Varie os contextos: diferentes personas, diferentes níveis de complexidade, diferentes casos de uso reais
 
 ---
 
@@ -190,7 +279,7 @@ Gere EXATAMENTE 140 exemplos em formato JSONL.
 ```
 {"messages": [...], "metadata": {"category": "security/encryption", "difficulty": "beginner|intermediate|advanced", "source": "generated"}}
 {"messages": [...], "metadata": {"category": "security/encryption", "difficulty": "beginner|intermediate|advanced", "source": "generated"}}
-... (10 linhas total)
+... (140 linhas total)
 ```
 
 ---
@@ -228,9 +317,9 @@ Gere EXATAMENTE 140 exemplos em formato JSONL.
 ---
 
 ## DISTRIBUIÇÃO DE DIFICULDADE
-- beginner: ~30% dos exemplos (3 exemplos)
-- intermediate: ~50% dos exemplos (5 exemplos)
-- advanced: ~20% dos exemplos (2 exemplos)
+- beginner: ~30% dos exemplos (42 exemplos)
+- intermediate: ~50% dos exemplos (70 exemplos)
+- advanced: ~20% dos exemplos (28 exemplos)
 
 ---
 
@@ -252,7 +341,7 @@ Gere EXATAMENTE 140 exemplos em formato JSONL.
 
 Gere EXATAMENTE 140 exemplos diversos para o topic: **security/encryption**
 
-- Mistura de dificuldades: 3 beginner, 5 intermediate, 2 advanced
+- Mistura de dificuldades: 42 beginner, 70 intermediate, 28 advanced
 - Cenários reais de OCI - cada exemplo com um caso de uso diferente
 - Use Português (BR) para perguntas do usuário
 - Formato JSONL, uma linha por exemplo

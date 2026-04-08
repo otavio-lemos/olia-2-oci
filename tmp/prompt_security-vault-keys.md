@@ -128,7 +128,7 @@ Example categories:
 
 ## TOPIC: security/vault-keys
 
-#### security/vault-keys (10)
+#### security/vault-keys (140)
 - Keys, encryption
 - Key policies
 - Import, generate
@@ -139,32 +139,125 @@ Example categories:
 
 ## SYSTEM PROMPT (para usar no JSONL)
 
-You are an OCI security specialist with expertise in Vault keys. Provide technical guidance on key creation, encryption, and key policies.
-
----
-
-## EXAMPLE QUESTIONS (para inspiração - gere questões originais)
-
-- Como criar uma encryption key no OCI Vault?
-- Como configurar key policies?
-- Como importar key externa (BYOK)?
-- Como rotacionar encryption keys?
-- Como resolver erro de key disabled?
-- Como configurar HSM para keys?
-- Como auditar uso de keys?
-- Como fazer backup de keys?
-- Como troubleshootar erro de encrypt/decrypt?
-- Como configurar key delegation?
+You are an OCI specialist with expertise in Vault keys. Provide technical guidance on key management, policies, import, and generation.
 
 ---
 
 ## DIVERSITY REQUIREMENTS (OBRIGATÓRIO)
 
 Varie os exemplos entre:
-- Diferentes componentes (IAM, Vault, Cloud Guard, WAF)
-- Diferentes cenários (access control, encryption, compliance)
-- Diferentes personas (security admin, auditor, developer)
-- Diferentes problemas (authorization, authentication, monitoring)
+- Diferentes serviços de segurança (IAM, Vault, Cloud Guard, WAF)
+- Diferentes cenários (access control, encryption, threat detection)
+- Diferentes personas (security engineer, admin, auditor)
+- Diferentes problemas (permission denied, key rotation, false positives)
+
+
+---
+
+## OCI CLI Syntax
+
+### Vault Commands
+
+```bash
+# Create a vault
+oci kms vault create --compartment-id ocid1.compartment.oc1..<unique-id> \
+  --display-name ProductionVault --vault-type DEFAULT --wait-for-state ACTIVE
+
+# List vaults
+oci kms vault list --compartment-id ocid1.compartment.oc1..<unique-id>
+
+# Get vault details
+oci kms vault get --vault-id ocid1.vault.oc1..<unique-id>
+
+# Create a key
+oci kms key create --compartment-id ocid1.compartment.oc1..<unique-id> \
+  --display-name MasterKey --key-shape algorithm=AES key-length=256 \
+  --vault-id ocid1.vault.oc1..<unique-id>
+
+# List keys
+oci kms key list --vault-id ocid1.vault.oc1..<unique-id>
+
+# Get key details
+oci kms key get --key-id ocid1.key.oc1..<unique-id>
+
+# Rotate a key
+oci kms key rotate --key-id ocid1.key.oc1..<unique-id>
+```
+
+### Secret Commands
+
+```bash
+# Create a secret
+oci vault secret create-base64 --secret-name "api-key-prod" \
+  --vault-id ocid1.vault.oc1..<unique-id> \
+  --key-id ocid1.key.oc1..<unique-id> \
+  --secret-base64-encoded-content S2V5Q29udGVudA== \
+  --description "Production API Key"
+
+# List secrets
+oci vault secret list --vault-id ocid1.vault.oc1..<unique-id>
+
+# Get secret details
+oci vault secret get --secret-id ocid1.secret.oc1..<unique-id>
+
+# Get secret content
+oci vault secret get-secret-content --secret-id ocid1.secret.oc1..<unique-id>
+
+# Schedule secret deletion (for rotation)
+oci vault secret schedule-secret-deletion --secret-id ocid1.secret.oc1..<unique-id>
+```
+
+### HSM Commands
+
+```bash
+# Create HSM vault (dedicated hardware security module)
+oci kms vault create --compartment-id ocid1.compartment.oc1..<unique-id> \
+  --display-name HSMVault --vault-type DEDICATED_HSM --wait-for-state ACTIVE
+
+# List HSM keys
+oci kms key list --vault-id ocid1.vault.oc1..<unique-id> \
+  --key-shape algorithm=RSA
+```
+
+
+## Anti-Patterns (Never generate)
+
+1. ❌ Use Vault for secrets vs keys - keys are for encryption, secrets are for storing sensitive data
+2. ❌ Store encryption keys and encrypted data in same vault (use separate vaults)
+3. ❌ Hardcode secrets in code - always use Vault secret OCIDs
+4. ❌ Create secrets without encryption key
+5. ❌ Use placeholder OCIDs like `ocid1.vault.<region>.<unique-id>` - use actual format: `ocid1.vault.oc1..<unique-id>`
+6. ❌ Delete keys without understanding impact (data encrypted with key becomes unrecoverable)
+7. ❌ Skip key rotation schedules - rotate keys [MUTABLE: every 1-2 years]
+8. ❌ Use Vault without proper IAM policies
+9. ❌ Store plain-text secrets (must use base64 encoding)
+10. ❌ Describe Vault as "password manager" - it's for secrets and keys, not general credential storage
+
+
+
+## Universal Anti-Patterns (Always Include)
+
+1. ❌ Copiar documentação OCI literalmente
+2. ❌ Inventar serviços Oracle inexistentes
+3. ❌ Usar preços ou limites sem marcar [MUTABLE]
+4. ❌ Criar exemplos vagos como "use best practices"
+5. ❌ Respostas arquiteturais sem steps, risks, justification
+6. ❌ OCID fictícios sem formato válido
+7. ❌ Comandos CLI inventados
+
+
+
+## Universal OCID Format Reference
+
+```
+ocid1.<resource>.<realm>.<region>.<unique-id>
+ocid1.instance.oc1.iad.abcd1234...
+ocid1.compartment.oc1..aaaa2222...
+ocid1.user.oc1.iad.bbbb3333...
+ocid1.group.oc1.iad.cccc4444...
+ocid1.tenancy.oc1..dddd5555...
+```
+
 
 ---
 
@@ -175,9 +268,8 @@ Varie os exemplos entre:
 3. Use APENAS as informações presentes em "TOPIC: security/vault-keys"
 4. Não invente informações que não estão nos docs OCI
 5. Não use preços ou limites sem marcar [MUTABLE] ou [CHECK DOCS]
-6. Se EXAMPLE QUESTIONS estiver presente, use como INSPIRAÇÃO para criar questões DIVERSAS e ORIGINAIS (não copie verbatim)
-7. Cada exemplo DEVE ter um cenário diferente - NÃO repita o mesmo caso de uso
-8. Varie os contextos: diferentes personas, diferentes níveis de complexidade, diferentes casos de uso reais
+6. Cada exemplo DEVE ter um cenário diferente - NÃO repita o mesmo caso de uso
+7. Varie os contextos: diferentes personas, diferentes níveis de complexidade, diferentes casos de uso reais
 
 ---
 
@@ -190,7 +282,7 @@ Gere EXATAMENTE 140 exemplos em formato JSONL.
 ```
 {"messages": [...], "metadata": {"category": "security/vault-keys", "difficulty": "beginner|intermediate|advanced", "source": "generated"}}
 {"messages": [...], "metadata": {"category": "security/vault-keys", "difficulty": "beginner|intermediate|advanced", "source": "generated"}}
-... (10 linhas total)
+... (140 linhas total)
 ```
 
 ---
@@ -228,9 +320,9 @@ Gere EXATAMENTE 140 exemplos em formato JSONL.
 ---
 
 ## DISTRIBUIÇÃO DE DIFICULDADE
-- beginner: ~30% dos exemplos (3 exemplos)
-- intermediate: ~50% dos exemplos (5 exemplos)
-- advanced: ~20% dos exemplos (2 exemplos)
+- beginner: ~30% dos exemplos (42 exemplos)
+- intermediate: ~50% dos exemplos (70 exemplos)
+- advanced: ~20% dos exemplos (28 exemplos)
 
 ---
 
@@ -252,7 +344,7 @@ Gere EXATAMENTE 140 exemplos em formato JSONL.
 
 Gere EXATAMENTE 140 exemplos diversos para o topic: **security/vault-keys**
 
-- Mistura de dificuldades: 3 beginner, 5 intermediate, 2 advanced
+- Mistura de dificuldades: 42 beginner, 70 intermediate, 28 advanced
 - Cenários reais de OCI - cada exemplo com um caso de uso diferente
 - Use Português (BR) para perguntas do usuário
 - Formato JSONL, uma linha por exemplo

@@ -128,45 +128,54 @@ Example categories:
 
 ## TOPIC: serverless/api-gateway
 
-#### serverless/api-gateway (10)
+#### serverless/api-gateway (140)
 - API Gateway
 - Routes, integrations
 - Authentication, throttling
 - **Docs**: https://docs.oracle.com/en-us/iaas/Content/Functions/Con/functionsoverview.htm
-
----
 
 
 ---
 
 ## SYSTEM PROMPT (para usar no JSONL)
 
-You are an OCI specialist with expertise in API Gateway. Provide technical guidance on API creation, routes, integrations, and authentication.
-
----
-
-## EXAMPLE QUESTIONS (para inspiração - gere questões originais)
-
-- Como criar um API Gateway no OCI?
-- Como configurar routes para OCI Functions?
-- Como configurar autenticação no API Gateway?
-- Como configurar rate limiting no API Gateway?
-- Como integrar API Gateway com backend HTTP?
-- Como resolver erro 502 do API Gateway?
-- Como configurar CORS no API Gateway?
-- Como fazer versionamento de APIs?
-- Como monitorar métricas do API Gateway?
-- Como configurar request/response transformation?
+You are an OCI specialist with expertise in API Gateway. Provide technical guidance on routes, integrations, authentication, and throttling.
 
 ---
 
 ## DIVERSITY REQUIREMENTS (OBRIGATÓRIO)
 
 Varie os exemplos entre:
-- Diferentes services (Functions, API Gateway)
-- Diferentes casos de uso (event-driven, REST APIs, webhooks)
-- Diferentes personas (developer, architect, DevOps)
-- Diferentes problemas (performance, integration, debugging)
+- Diferentes cenários (event-driven, APIs, data processing)
+- Diferentes personas (developer, DevOps, architect)
+- Diferentes problemas (cold starts, timeouts, integration)
+
+
+
+
+## Universal Anti-Patterns (Always Include)
+
+1. ❌ Copiar documentação OCI literalmente
+2. ❌ Inventar serviços Oracle inexistentes
+3. ❌ Usar preços ou limites sem marcar [MUTABLE]
+4. ❌ Criar exemplos vagos como "use best practices"
+5. ❌ Respostas arquiteturais sem steps, risks, justification
+6. ❌ OCID fictícios sem formato válido
+7. ❌ Comandos CLI inventados
+
+
+
+## Universal OCID Format Reference
+
+```
+ocid1.<resource>.<realm>.<region>.<unique-id>
+ocid1.instance.oc1.iad.abcd1234...
+ocid1.compartment.oc1..aaaa2222...
+ocid1.user.oc1.iad.bbbb3333...
+ocid1.group.oc1.iad.cccc4444...
+ocid1.tenancy.oc1..dddd5555...
+```
+
 
 ---
 
@@ -177,9 +186,8 @@ Varie os exemplos entre:
 3. Use APENAS as informações presentes em "TOPIC: serverless/api-gateway"
 4. Não invente informações que não estão nos docs OCI
 5. Não use preços ou limites sem marcar [MUTABLE] ou [CHECK DOCS]
-6. Se EXAMPLE QUESTIONS estiver presente, use como INSPIRAÇÃO para criar questões DIVERSAS e ORIGINAIS (não copie verbatim)
-7. Cada exemplo DEVE ter um cenário diferente - NÃO repita o mesmo caso de uso
-8. Varie os contextos: diferentes personas, diferentes níveis de complexidade, diferentes casos de uso reais
+6. Cada exemplo DEVE ter um cenário diferente - NÃO repita o mesmo caso de uso
+7. Varie os contextos: diferentes personas, diferentes níveis de complexidade, diferentes casos de uso reais
 
 ---
 
@@ -192,7 +200,7 @@ Gere EXATAMENTE 140 exemplos em formato JSONL.
 ```
 {"messages": [...], "metadata": {"category": "serverless/api-gateway", "difficulty": "beginner|intermediate|advanced", "source": "generated"}}
 {"messages": [...], "metadata": {"category": "serverless/api-gateway", "difficulty": "beginner|intermediate|advanced", "source": "generated"}}
-... (10 linhas total)
+... (140 linhas total)
 ```
 
 ---
@@ -230,9 +238,9 @@ Gere EXATAMENTE 140 exemplos em formato JSONL.
 ---
 
 ## DISTRIBUIÇÃO DE DIFICULDADE
-- beginner: ~30% dos exemplos (3 exemplos)
-- intermediate: ~50% dos exemplos (5 exemplos)
-- advanced: ~20% dos exemplos (2 exemplos)
+- beginner: ~30% dos exemplos (42 exemplos)
+- intermediate: ~50% dos exemplos (70 exemplos)
+- advanced: ~20% dos exemplos (28 exemplos)
 
 ---
 
@@ -254,7 +262,7 @@ Gere EXATAMENTE 140 exemplos em formato JSONL.
 
 Gere EXATAMENTE 140 exemplos diversos para o topic: **serverless/api-gateway**
 
-- Mistura de dificuldades: 3 beginner, 5 intermediate, 2 advanced
+- Mistura de dificuldades: 42 beginner, 70 intermediate, 28 advanced
 - Cenários reais de OCI - cada exemplo com um caso de uso diferente
 - Use Português (BR) para perguntas do usuário
 - Formato JSONL, uma linha por exemplo

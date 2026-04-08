@@ -128,7 +128,7 @@ Example categories:
 
 ## TOPIC: security/iam-basics
 
-#### security/iam-basics (10)
+#### security/iam-basics (140)
 - Compartments, users, groups
 - Authentication, MFA
 - Console access
@@ -139,32 +139,121 @@ Example categories:
 
 ## SYSTEM PROMPT (para usar no JSONL)
 
-You are an OCI security specialist with expertise in IAM basics. Provide technical guidance on compartments, users, groups, and authentication.
-
----
-
-## EXAMPLE QUESTIONS (para inspiração - gere questões originais)
-
-- Como criar um compartment no OCI?
-- Como adicionar usuários e grupos no IAM?
-- Como configurar MFA para usuários?
-- Como criar e gerenciar API keys?
-- Como configurar console access para usuários?
-- Como resolver erro de 'not authorized'?
-- Como auditar atividades de usuários?
-- Como configurar password policies?
-- Como criar auth tokens para Docker?
-- Como troubleshootar problemas de autenticação?
+You are an OCI specialist with expertise in IAM. Provide technical guidance on compartments, users, groups, authentication, and MFA.
 
 ---
 
 ## DIVERSITY REQUIREMENTS (OBRIGATÓRIO)
 
 Varie os exemplos entre:
-- Diferentes componentes (IAM, Vault, Cloud Guard, WAF)
-- Diferentes cenários (access control, encryption, compliance)
-- Diferentes personas (security admin, auditor, developer)
-- Diferentes problemas (authorization, authentication, monitoring)
+- Diferentes serviços de segurança (IAM, Vault, Cloud Guard, WAF)
+- Diferentes cenários (access control, encryption, threat detection)
+- Diferentes personas (security engineer, admin, auditor)
+- Diferentes problemas (permission denied, key rotation, false positives)
+
+
+---
+
+## POLICY SYNTAX - ABSOLUTE REQUIREMENT
+
+**CRITICAL**: Every response about policies MUST use OCI policy syntax. Do not explain policies using JSON, tables, or any other format.
+
+### CORRECT Format (Use This)
+
+```
+Allow group <group-name> to <verb> <resource-type> in <location>
+```
+
+**CORRECT Examples** (use these as templates):
+```
+Allow group NetworkAdmins to manage virtual-network-family in compartment NetworkCompartment
+Allow group Developers to use database-family in compartment AppDev
+Allow any-user to read object-family in bucket DataBucket
+Allow service fnFunction to manage functions-family in compartment AppCompartment
+Allow dynamic-group AutoScaleGroup to manage instance-family in compartment ComputeCompartment
+Allow group StorageAdmins to manage object-family in tenancy
+Allow group DBAs to use database-family in tenancy
+```
+
+### WRONG Formats (Never Produce These)
+
+**NEVER write policies like this**:
+```
+❌ JSON format:
+{
+  "effect": "allow",
+  "action": ["object:*"],
+  "resource": "arn:oci:..."
+}
+
+❌ AWS-style IAM:
+{
+  "Version": "2012-10-17",
+  "Statement": [...]
+}
+
+❌ Azure-style:
+"actions": ["Microsoft.Storage/*/read"]
+
+❌ With placeholders:
+Allow group [group-name] to [action] in [compartment]
+Allow group <admins> to manage * in <location>
+
+❌ Markdown tables:
+| Group | Permission | Resource |
+|-------|------------|----------|
+| Admins | manage | all-resources |
+```
+
+### OCI Condition Syntax (when needed)
+
+For conditions within policies:
+```
+Allow group Analysts to read object-family in bucket ReportsBucket
+where any {request.permission == 'OBJECT_READ', request.permission == 'OBJECT_LIST'}
+
+Allow service dataflow to manage job-family in compartment DataCompartment
+where all {request.operation == 'CreateJob', request.permission != 'JobDelete'}
+```
+
+
+## Anti-Patterns (Never generate)
+
+1. ❌ JSON policy structures
+2. ❌ Placeholder text: `<ocid>`, `[group]`, [condition], <resource>
+3. ❌ Markdown tables for policy syntax
+4. ❌ AWS IAM format (arn:oci:...)
+5. ❌ Azure RBAC format (Microsoft.Storage/...)
+6. ❌ Policy without group/dynamic-group/service/any-user principal
+7. ❌ Policy without verb (manage/use/read)
+8. ❌ Policy without resource-type (virtual-network-family, etc.)
+9. ❌ Policy without location (tenancy or compartment <name>)
+
+
+
+## Universal Anti-Patterns (Always Include)
+
+1. ❌ Copiar documentação OCI literalmente
+2. ❌ Inventar serviços Oracle inexistentes
+3. ❌ Usar preços ou limites sem marcar [MUTABLE]
+4. ❌ Criar exemplos vagos como "use best practices"
+5. ❌ Respostas arquiteturais sem steps, risks, justification
+6. ❌ OCID fictícios sem formato válido
+7. ❌ Comandos CLI inventados
+
+
+
+## Universal OCID Format Reference
+
+```
+ocid1.<resource>.<realm>.<region>.<unique-id>
+ocid1.instance.oc1.iad.abcd1234...
+ocid1.compartment.oc1..aaaa2222...
+ocid1.user.oc1.iad.bbbb3333...
+ocid1.group.oc1.iad.cccc4444...
+ocid1.tenancy.oc1..dddd5555...
+```
+
 
 ---
 
@@ -175,9 +264,8 @@ Varie os exemplos entre:
 3. Use APENAS as informações presentes em "TOPIC: security/iam-basics"
 4. Não invente informações que não estão nos docs OCI
 5. Não use preços ou limites sem marcar [MUTABLE] ou [CHECK DOCS]
-6. Se EXAMPLE QUESTIONS estiver presente, use como INSPIRAÇÃO para criar questões DIVERSAS e ORIGINAIS (não copie verbatim)
-7. Cada exemplo DEVE ter um cenário diferente - NÃO repita o mesmo caso de uso
-8. Varie os contextos: diferentes personas, diferentes níveis de complexidade, diferentes casos de uso reais
+6. Cada exemplo DEVE ter um cenário diferente - NÃO repita o mesmo caso de uso
+7. Varie os contextos: diferentes personas, diferentes níveis de complexidade, diferentes casos de uso reais
 
 ---
 
@@ -190,7 +278,7 @@ Gere EXATAMENTE 140 exemplos em formato JSONL.
 ```
 {"messages": [...], "metadata": {"category": "security/iam-basics", "difficulty": "beginner|intermediate|advanced", "source": "generated"}}
 {"messages": [...], "metadata": {"category": "security/iam-basics", "difficulty": "beginner|intermediate|advanced", "source": "generated"}}
-... (10 linhas total)
+... (140 linhas total)
 ```
 
 ---
@@ -228,9 +316,9 @@ Gere EXATAMENTE 140 exemplos em formato JSONL.
 ---
 
 ## DISTRIBUIÇÃO DE DIFICULDADE
-- beginner: ~30% dos exemplos (3 exemplos)
-- intermediate: ~50% dos exemplos (5 exemplos)
-- advanced: ~20% dos exemplos (2 exemplos)
+- beginner: ~30% dos exemplos (42 exemplos)
+- intermediate: ~50% dos exemplos (70 exemplos)
+- advanced: ~20% dos exemplos (28 exemplos)
 
 ---
 
@@ -252,7 +340,7 @@ Gere EXATAMENTE 140 exemplos em formato JSONL.
 
 Gere EXATAMENTE 140 exemplos diversos para o topic: **security/iam-basics**
 
-- Mistura de dificuldades: 3 beginner, 5 intermediate, 2 advanced
+- Mistura de dificuldades: 42 beginner, 70 intermediate, 28 advanced
 - Cenários reais de OCI - cada exemplo com um caso de uso diferente
 - Use Português (BR) para perguntas do usuário
 - Formato JSONL, uma linha por exemplo

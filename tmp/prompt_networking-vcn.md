@@ -128,7 +128,7 @@ Example categories:
 
 ## TOPIC: networking/vcn
 
-#### networking/vcn (10)
+#### networking/vcn (140)
 - VCN design, CIDR blocks
 - Subnets (public/private)
 - Internet Gateway, NAT Gateway
@@ -139,32 +139,44 @@ Example categories:
 
 ## SYSTEM PROMPT (para usar no JSONL)
 
-You are an OCI specialist with expertise in VCN networking. Provide technical guidance on VCN design, subnets, internet gateway, and NAT gateway.
-
----
-
-## EXAMPLE QUESTIONS (para inspiração - gere questões originais)
-
-- Como criar uma VCN com subnets públicas e privadas?
-- Qual a diferença entre Internet Gateway e NAT Gateway?
-- Como configurar route tables para subnets privadas?
-- Como criar VCN com CIDR /16 e planejar subnets?
-- Como configurar DNS custom em uma VCN?
-- Como resolver problemas de conectividade entre subnets?
-- Como migrar workloads para uma nova VCN?
-- Como configurar service gateway para acessar OCI services?
-- Como planejar sobreposição de CIDRs em VCNs?
-- Como monitorar tráfego de rede na VCN?
+You are an OCI specialist with expertise in VCN design. Provide technical guidance on CIDR blocks, subnets, Internet Gateway, and NAT Gateway.
 
 ---
 
 ## DIVERSITY REQUIREMENTS (OBRIGATÓRIO)
 
 Varie os exemplos entre:
-- Diferentes componentes (VCN, subnets, gateways, DRG)
-- Diferentes cenários (single-tier, multi-tier, hybrid)
-- Diferentes personas (network engineer, architect, security admin)
-- Diferentes problemas (connectivity, security, performance)
+- Diferentes topologias de rede (hub-spoke, mesh)
+- Diferentes cenários (hybrid cloud, multi-region)
+- Diferentes personas (network engineer, security architect)
+- Diferentes problemas (connectivity, routing, security)
+
+
+
+
+## Universal Anti-Patterns (Always Include)
+
+1. ❌ Copiar documentação OCI literalmente
+2. ❌ Inventar serviços Oracle inexistentes
+3. ❌ Usar preços ou limites sem marcar [MUTABLE]
+4. ❌ Criar exemplos vagos como "use best practices"
+5. ❌ Respostas arquiteturais sem steps, risks, justification
+6. ❌ OCID fictícios sem formato válido
+7. ❌ Comandos CLI inventados
+
+
+
+## Universal OCID Format Reference
+
+```
+ocid1.<resource>.<realm>.<region>.<unique-id>
+ocid1.instance.oc1.iad.abcd1234...
+ocid1.compartment.oc1..aaaa2222...
+ocid1.user.oc1.iad.bbbb3333...
+ocid1.group.oc1.iad.cccc4444...
+ocid1.tenancy.oc1..dddd5555...
+```
+
 
 ---
 
@@ -175,9 +187,8 @@ Varie os exemplos entre:
 3. Use APENAS as informações presentes em "TOPIC: networking/vcn"
 4. Não invente informações que não estão nos docs OCI
 5. Não use preços ou limites sem marcar [MUTABLE] ou [CHECK DOCS]
-6. Se EXAMPLE QUESTIONS estiver presente, use como INSPIRAÇÃO para criar questões DIVERSAS e ORIGINAIS (não copie verbatim)
-7. Cada exemplo DEVE ter um cenário diferente - NÃO repita o mesmo caso de uso
-8. Varie os contextos: diferentes personas, diferentes níveis de complexidade, diferentes casos de uso reais
+6. Cada exemplo DEVE ter um cenário diferente - NÃO repita o mesmo caso de uso
+7. Varie os contextos: diferentes personas, diferentes níveis de complexidade, diferentes casos de uso reais
 
 ---
 
@@ -190,7 +201,7 @@ Gere EXATAMENTE 140 exemplos em formato JSONL.
 ```
 {"messages": [...], "metadata": {"category": "networking/vcn", "difficulty": "beginner|intermediate|advanced", "source": "generated"}}
 {"messages": [...], "metadata": {"category": "networking/vcn", "difficulty": "beginner|intermediate|advanced", "source": "generated"}}
-... (10 linhas total)
+... (140 linhas total)
 ```
 
 ---
@@ -228,9 +239,9 @@ Gere EXATAMENTE 140 exemplos em formato JSONL.
 ---
 
 ## DISTRIBUIÇÃO DE DIFICULDADE
-- beginner: ~30% dos exemplos (3 exemplos)
-- intermediate: ~50% dos exemplos (5 exemplos)
-- advanced: ~20% dos exemplos (2 exemplos)
+- beginner: ~30% dos exemplos (42 exemplos)
+- intermediate: ~50% dos exemplos (70 exemplos)
+- advanced: ~20% dos exemplos (28 exemplos)
 
 ---
 
@@ -252,7 +263,7 @@ Gere EXATAMENTE 140 exemplos em formato JSONL.
 
 Gere EXATAMENTE 140 exemplos diversos para o topic: **networking/vcn**
 
-- Mistura de dificuldades: 3 beginner, 5 intermediate, 2 advanced
+- Mistura de dificuldades: 42 beginner, 70 intermediate, 28 advanced
 - Cenários reais de OCI - cada exemplo com um caso de uso diferente
 - Use Português (BR) para perguntas do usuário
 - Formato JSONL, uma linha por exemplo

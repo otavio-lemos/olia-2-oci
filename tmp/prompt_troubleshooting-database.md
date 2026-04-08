@@ -128,7 +128,7 @@ Example categories:
 
 ## TOPIC: troubleshooting/database
 
-#### troubleshooting/database (10)
+#### troubleshooting/database (140)
 - Connection issues
 - TNS errors
 - Wallet problems
@@ -139,32 +139,61 @@ Example categories:
 
 ## SYSTEM PROMPT (para usar no JSONL)
 
-You are an OCI troubleshooting specialist with expertise in database. Provide diagnostic guidance on connection issues, TNS errors, and wallet problems.
-
----
-
-## EXAMPLE QUESTIONS (para inspiração - gere questões originais)
-
-- Como resolver erros de conexão ao database?
-- Como troubleshootar erros TNS?
-- Como diagnosticar problemas de wallet?
-- Como resolver database não iniciando?
-- Como troubleshootar replication falhando?
-- Como diagnosticar problemas de backup?
-- Como resolver erros de storage cheio?
-- Como troubleshootar performance lenta?
-- Como diagnosticar problemas de high availability?
-- Como resolver erros de autenticação do database?
+You are an OCI troubleshooting specialist with expertise in database issues. Provide technical guidance on connection issues, TNS errors, and wallet problems.
 
 ---
 
 ## DIVERSITY REQUIREMENTS (OBRIGATÓRIO)
 
 Varie os exemplos entre:
-- Diferentes sintomas (errors, timeouts, performance degradation)
-- Diferentes componentes afetados (compute, network, storage, database)
-- Diferentes personas (support engineer, SRE, developer)
-- Diferentes níveis de severidade (critical, warning, informational)
+- Diferentes tipos de problema (connectivity, performance, auth, database)
+- Diferentes cenários (production outage, degraded performance, migration issues)
+- Diferentes personas (SRE, sysadmin, network engineer)
+- Diferentes metodologias de troubleshooting (bottom-up, top-down)
+
+
+---
+
+## Anti-Patterns
+
+**NEVER generate:**
+
+- ❌ TNS errors without explaining ORA error codes
+- ❌ Wallet troubleshooting without mentioning download/refresh process
+- ❌ Connection string issues without showing actual format
+- ❌ Performance advice without mentioning OCPU/Storage scaling [MUTABLE]
+- ❌ "Enable SSL" without explaining certificate requirements
+- ❌ Copy OCI documentation verbatim
+- ❌ Suggest specific IP addresses or ports without noting as [MUTABLE]
+- ❌ Connection pool tuning without considering application needs
+- ❌ Access from on-prem without mentioning required network setup (VPN/FastConnect)
+- ❌ Never suggest disabling wallet security for "convenience"
+
+
+
+## Universal Anti-Patterns (Always Include)
+
+1. ❌ Copiar documentação OCI literalmente
+2. ❌ Inventar serviços Oracle inexistentes
+3. ❌ Usar preços ou limites sem marcar [MUTABLE]
+4. ❌ Criar exemplos vagos como "use best practices"
+5. ❌ Respostas arquiteturais sem steps, risks, justification
+6. ❌ OCID fictícios sem formato válido
+7. ❌ Comandos CLI inventados
+
+
+
+## Universal OCID Format Reference
+
+```
+ocid1.<resource>.<realm>.<region>.<unique-id>
+ocid1.instance.oc1.iad.abcd1234...
+ocid1.compartment.oc1..aaaa2222...
+ocid1.user.oc1.iad.bbbb3333...
+ocid1.group.oc1.iad.cccc4444...
+ocid1.tenancy.oc1..dddd5555...
+```
+
 
 ---
 
@@ -175,9 +204,8 @@ Varie os exemplos entre:
 3. Use APENAS as informações presentes em "TOPIC: troubleshooting/database"
 4. Não invente informações que não estão nos docs OCI
 5. Não use preços ou limites sem marcar [MUTABLE] ou [CHECK DOCS]
-6. Se EXAMPLE QUESTIONS estiver presente, use como INSPIRAÇÃO para criar questões DIVERSAS e ORIGINAIS (não copie verbatim)
-7. Cada exemplo DEVE ter um cenário diferente - NÃO repita o mesmo caso de uso
-8. Varie os contextos: diferentes personas, diferentes níveis de complexidade, diferentes casos de uso reais
+6. Cada exemplo DEVE ter um cenário diferente - NÃO repita o mesmo caso de uso
+7. Varie os contextos: diferentes personas, diferentes níveis de complexidade, diferentes casos de uso reais
 
 ---
 
@@ -190,7 +218,7 @@ Gere EXATAMENTE 140 exemplos em formato JSONL.
 ```
 {"messages": [...], "metadata": {"category": "troubleshooting/database", "difficulty": "beginner|intermediate|advanced", "source": "generated"}}
 {"messages": [...], "metadata": {"category": "troubleshooting/database", "difficulty": "beginner|intermediate|advanced", "source": "generated"}}
-... (10 linhas total)
+... (140 linhas total)
 ```
 
 ---
@@ -228,9 +256,9 @@ Gere EXATAMENTE 140 exemplos em formato JSONL.
 ---
 
 ## DISTRIBUIÇÃO DE DIFICULDADE
-- beginner: ~30% dos exemplos (3 exemplos)
-- intermediate: ~50% dos exemplos (5 exemplos)
-- advanced: ~20% dos exemplos (2 exemplos)
+- beginner: ~30% dos exemplos (42 exemplos)
+- intermediate: ~50% dos exemplos (70 exemplos)
+- advanced: ~20% dos exemplos (28 exemplos)
 
 ---
 
@@ -252,7 +280,7 @@ Gere EXATAMENTE 140 exemplos em formato JSONL.
 
 Gere EXATAMENTE 140 exemplos diversos para o topic: **troubleshooting/database**
 
-- Mistura de dificuldades: 3 beginner, 5 intermediate, 2 advanced
+- Mistura de dificuldades: 42 beginner, 70 intermediate, 28 advanced
 - Cenários reais de OCI - cada exemplo com um caso de uso diferente
 - Use Português (BR) para perguntas do usuário
 - Formato JSONL, uma linha por exemplo

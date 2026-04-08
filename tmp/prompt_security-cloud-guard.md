@@ -128,7 +128,7 @@ Example categories:
 
 ## TOPIC: security/cloud-guard
 
-#### security/cloud-guard (10)
+#### security/cloud-guard (140)
 - Cloud Guard configuration
 - Detector recipes
 - Responder rules
@@ -139,32 +139,151 @@ Example categories:
 
 ## SYSTEM PROMPT (para usar no JSONL)
 
-You are an OCI security specialist with expertise in Cloud Guard. Provide technical guidance on security posture, detector recipes, and responder rules.
-
----
-
-## EXAMPLE QUESTIONS (para inspiração - gere questões originais)
-
-- Como configurar Cloud Guard no OCI?
-- Como criar detector recipes customizadas?
-- Como configurar responder rules?
-- Como resolver security scores baixos?
-- Como monitorar security posture?
-- Como configurar notificações do Cloud Guard?
-- Como troubleshootar detector não disparando?
-- Como auditar responder actions?
-- Como configurar Cloud Guard para múltiplos compartments?
-- Como integrar Cloud Guard com OCI Logging?
+You are an OCI specialist with expertise in Cloud Guard. Provide technical guidance on configuration, detector recipes, and responder rules.
 
 ---
 
 ## DIVERSITY REQUIREMENTS (OBRIGATÓRIO)
 
 Varie os exemplos entre:
-- Diferentes componentes (IAM, Vault, Cloud Guard, WAF)
-- Diferentes cenários (access control, encryption, compliance)
-- Diferentes personas (security admin, auditor, developer)
-- Diferentes problemas (authorization, authentication, monitoring)
+- Diferentes serviços de segurança (IAM, Vault, Cloud Guard, WAF)
+- Diferentes cenários (access control, encryption, threat detection)
+- Diferentes personas (security engineer, admin, auditor)
+- Diferentes problemas (permission denied, key rotation, false positives)
+
+
+---
+
+## OCI CLI Syntax
+
+### Cloud Guard Configuration
+
+```bash
+# Enable Cloud Guard
+oci cloud-guard cloud-guard-cli-service summarize-tenancy-status \
+  --registry-credential-id ocid1.credential.oc1..<unique-id>
+
+# Create Cloud Guard configuration
+oci cloud-guard configuration create-or-update --compartment-id ocid1.compartment.oc1..<unique-id> \
+  --status ENABLED \
+  --detector-recipe-id ocid1.detectorrecipe.oc1..<unique-id> \
+  --responder-recipe-id ocid1.responderrecipe.oc1..<unique-id>
+
+# Get configuration
+oci cloud-guard configuration get --compartment-id ocid1.compartment.oc1..<unique-id>
+```
+
+### Target Management
+
+```bash
+# Create target (scope for Cloud Guard)
+oci cloud-guard target create --compartment-id ocid1.compartment.oc1..<unique-id> \
+  --display-name ProductionTargets \
+  --target-resource-type COMPARTMENT \
+  --target-resource-id ocid1.compartment.oc1..<unique-id> \
+  --detector-recipe-id ocid1.detectorrecipe.oc1..<unique-id> \
+  --responder-recipe-id ocid1.responderrecipe.oc1..<unique-id>
+
+# List targets
+oci cloud-guard target list --compartment-id ocid1.compartment.oc1..<unique-id>
+
+# Update target
+oci cloud-guard target update --target-id ocid1.target.oc1..<unique-id> \
+  --display-name UpdatedTargets
+```
+
+### Detector Recipes
+
+```bash
+# List detector recipes
+oci cloud-guard detector-recipe list --compartment-id ocid1.compartment.oc1..<unique-id>
+
+# Create custom detector recipe
+oci cloud-guard detector-recipe create --compartment-id ocid1.compartment.oc1..<unique-id> \
+  --display-name CustomSecurityRecipe \
+  --detector-rules '[{"detectorRuleId": "rule-id", "enabled": true, "riskLevel": "HIGH"}]'
+
+# Get detector recipe details
+oci cloud-guard detector-recipe get --detector-recipe-id ocid1.detectorrecipe.oc1..<unique-id>
+```
+
+### Responder Rules
+
+```bash
+# List responder recipes
+oci cloud-guard responder-recipe list --compartment-id ocid1.compartment.oc1..<unique-id>
+
+# Create custom responder rule
+oci cloud-guard responder-rule create --compartment-id ocid1.compartment.oc1..<unique-id> \
+  --display-name AutoRemediateS3 \
+  --type AUTO_ACTER \
+  --condition "problem[0].severity == HIGH" \
+  --action "[{\"script\": \"remediate.sh\"}]"
+
+# Enable responder
+oci cloud-guard responder-rule update --responder-rule-id ocid1.responderrule.oc1..<unique-id> \
+  --enabled true
+```
+
+### Security Findings
+
+```bash
+# List security findings
+oci cloud-guard problem list --compartment-id ocid1.compartment.oc1..<unique-id> \
+  --lifecycle-state ACTIVE
+
+# Get finding details
+oci cloud-guard problem get --problem-id ocid1.problem.oc1..<unique-id>
+
+# Dismiss finding
+oci cloud-guard problem update --problem-id ocid1.problem.oc1..<unique-id> \
+  --lifecycle-state RESOLVED
+
+# Get security score
+oci cloud-guard security-score list-summaries --compartment-id ocid1.compartment.oc1..<unique-id>
+```
+
+
+## Anti-Patterns (Never generate)
+
+1. ❌ Enable Cloud Guard without explaining it requires admin privileges in root compartment
+2. ❌ Create targets without understanding scoping (can scan entire tenancy or specific compartments)
+3. ❌ Use placeholder OCIDs: `ocid1.cloudguard.<region>.<id>` - correct is `ocid1.target.oc1..<unique-id>`
+4. ❌ Enable all detector rules without testing (some may cause false positives)
+5. ❌ Configure auto-responders without testing in non-production first
+6. ❌ Ignore security score - it aggregates all findings [MUTABLE: recalculates every 24 hours]
+7. ❌ Claim Cloud Guard replaces manual security audits
+8. ❌ Enable responders without understanding the actions they perform
+9. ❌ Mix up detector recipes vs responder recipes (detection vs action)
+10. ❌ Forget that Cloud Guard findings can trigger events to other services
+11. ❌ Configure targets on wrong compartment level
+12. ❌ Dismiss findings without actual remediation
+
+
+
+## Universal Anti-Patterns (Always Include)
+
+1. ❌ Copiar documentação OCI literalmente
+2. ❌ Inventar serviços Oracle inexistentes
+3. ❌ Usar preços ou limites sem marcar [MUTABLE]
+4. ❌ Criar exemplos vagos como "use best practices"
+5. ❌ Respostas arquiteturais sem steps, risks, justification
+6. ❌ OCID fictícios sem formato válido
+7. ❌ Comandos CLI inventados
+
+
+
+## Universal OCID Format Reference
+
+```
+ocid1.<resource>.<realm>.<region>.<unique-id>
+ocid1.instance.oc1.iad.abcd1234...
+ocid1.compartment.oc1..aaaa2222...
+ocid1.user.oc1.iad.bbbb3333...
+ocid1.group.oc1.iad.cccc4444...
+ocid1.tenancy.oc1..dddd5555...
+```
+
 
 ---
 
@@ -175,9 +294,8 @@ Varie os exemplos entre:
 3. Use APENAS as informações presentes em "TOPIC: security/cloud-guard"
 4. Não invente informações que não estão nos docs OCI
 5. Não use preços ou limites sem marcar [MUTABLE] ou [CHECK DOCS]
-6. Se EXAMPLE QUESTIONS estiver presente, use como INSPIRAÇÃO para criar questões DIVERSAS e ORIGINAIS (não copie verbatim)
-7. Cada exemplo DEVE ter um cenário diferente - NÃO repita o mesmo caso de uso
-8. Varie os contextos: diferentes personas, diferentes níveis de complexidade, diferentes casos de uso reais
+6. Cada exemplo DEVE ter um cenário diferente - NÃO repita o mesmo caso de uso
+7. Varie os contextos: diferentes personas, diferentes níveis de complexidade, diferentes casos de uso reais
 
 ---
 
@@ -190,7 +308,7 @@ Gere EXATAMENTE 140 exemplos em formato JSONL.
 ```
 {"messages": [...], "metadata": {"category": "security/cloud-guard", "difficulty": "beginner|intermediate|advanced", "source": "generated"}}
 {"messages": [...], "metadata": {"category": "security/cloud-guard", "difficulty": "beginner|intermediate|advanced", "source": "generated"}}
-... (10 linhas total)
+... (140 linhas total)
 ```
 
 ---
@@ -228,9 +346,9 @@ Gere EXATAMENTE 140 exemplos em formato JSONL.
 ---
 
 ## DISTRIBUIÇÃO DE DIFICULDADE
-- beginner: ~30% dos exemplos (3 exemplos)
-- intermediate: ~50% dos exemplos (5 exemplos)
-- advanced: ~20% dos exemplos (2 exemplos)
+- beginner: ~30% dos exemplos (42 exemplos)
+- intermediate: ~50% dos exemplos (70 exemplos)
+- advanced: ~20% dos exemplos (28 exemplos)
 
 ---
 
@@ -252,7 +370,7 @@ Gere EXATAMENTE 140 exemplos em formato JSONL.
 
 Gere EXATAMENTE 140 exemplos diversos para o topic: **security/cloud-guard**
 
-- Mistura de dificuldades: 3 beginner, 5 intermediate, 2 advanced
+- Mistura de dificuldades: 42 beginner, 70 intermediate, 28 advanced
 - Cenários reais de OCI - cada exemplo com um caso de uso diferente
 - Use Português (BR) para perguntas do usuário
 - Formato JSONL, uma linha por exemplo

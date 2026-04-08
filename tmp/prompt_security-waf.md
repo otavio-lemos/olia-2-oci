@@ -128,45 +128,146 @@ Example categories:
 
 ## TOPIC: security/waf
 
-#### security/waf (10)
+#### security/waf (140)
 - Web Application Firewall
 - Access rules, rate limiting
 - Protection patterns
 - **Docs**: https://docs.oracle.com/en-us/iaas/Content/WAF/Concepts/overview.htm
-
----
 
 
 ---
 
 ## SYSTEM PROMPT (para usar no JSONL)
 
-You are an OCI security specialist with expertise in WAF. Provide technical guidance on Web Application Firewall configuration, access rules, and protection.
-
----
-
-## EXAMPLE QUESTIONS (para inspiração - gere questões originais)
-
-- Como configurar Web Application Firewall no OCI?
-- Como criar access rules no WAF?
-- Como configurar rate limiting no WAF?
-- Como proteger contra SQL injection?
-- Como resolver falsos positivos no WAF?
-- Como configurar protection rules?
-- Como monitorar ameaças bloqueadas?
-- Como configurar WAF para múltiplos domínios?
-- Como troubleshootar tráfego bloqueado?
-- Como configurar bot management no WAF?
+You are an OCI specialist with expertise in WAF. Provide technical guidance on access rules, rate limiting, and protection patterns.
 
 ---
 
 ## DIVERSITY REQUIREMENTS (OBRIGATÓRIO)
 
 Varie os exemplos entre:
-- Diferentes componentes (IAM, Vault, Cloud Guard, WAF)
-- Diferentes cenários (access control, encryption, compliance)
-- Diferentes personas (security admin, auditor, developer)
-- Diferentes problemas (authorization, authentication, monitoring)
+- Diferentes serviços de segurança (IAM, Vault, Cloud Guard, WAF)
+- Diferentes cenários (access control, encryption, threat detection)
+- Diferentes personas (security engineer, admin, auditor)
+- Diferentes problemas (permission denied, key rotation, false positives)
+
+
+---
+
+## OCI CLI Syntax
+
+### WAF Policy Commands
+
+```bash
+# Create WAF policy
+oci waf waf-policy create --compartment-id ocid1.compartment.oc1..<unique-id> \
+  --display-name EcommerceWAF \
+  --domain "api.example.com" \
+  --response-code-obj-keep-alive-seconds 30
+
+# List WAF policies
+oci waf waf-policy list --compartment-id ocid1.compartment.oc1..<unique-id>
+
+# Get WAF policy details
+oci waf waf-policy get --waf-policy-id ocid1.wafpolicy.oc1..<unique-id>
+
+# Update WAF policy
+oci waf waf-policy update --waf-policy-id ocid1.wafpolicy.oc1..<unique-id> \
+  --display-name UpdatedWAF
+```
+
+### Access Rules
+
+```bash
+# Create access rule (allow/block)
+oci waf access-rule create --waf-policy-id ocid1.wafpolicy.oc1..<unique-id> \
+  --rule-name BlockSuspiciousIPs \
+  --condition "url = '/admin*'" \
+  --action ALLOW \
+  --type ACCESS_RULE
+
+# Create rate limiting rule
+oci waf rate-limiting-rule create --waf-policy-id ocid1.wafpolicy.oc1..<unique-id> \
+  --rule-name APILimit \
+  --condition "url = '/api/*'" \
+  --requests-limit 100 \
+  --window-seconds 60 \
+  --action DETECT_AND_ALERT \
+  --type RATE_LIMITING
+
+# Create IP address list for blocking
+oci waf address-list create --compartment-id ocid1.compartment.oc1..<unique-id> \
+  --display-name BlockedIPs \
+  --type IP_ADDRESS_LIST \
+  --addresses '["192.0.2.0/24", "198.51.100.0/24"]'
+```
+
+### Protection Rules
+
+```bash
+# Create protection rule (SQL injection)
+oci waf protection-rule create --waf-policy-id ocid1.wafpolicy.oc1..<unique-id> \
+  --rule-name SQLInjectionProtection \
+  --type SQL_INJECTION \
+  --action BLOCK \
+  --description "Block SQL injection attempts"
+
+# Create XSS protection rule
+oci waf protection-rule create --waf-policy-id ocid1.wafpolicy.oc1..<unique-id> \
+  --rule-name XSSProtection \
+  --type XSS \
+  --action BLOCK \
+  --description "Block XSS attacks"
+
+# Create CAPTCHA challenge rule
+oci waf captcha-rule create --waf-policy-id ocid1.wafpolicy.oc1..<unique-id> \
+  --rule-name BotChallenge \
+  --type CAPTCHA \
+  --action BLOCK \
+  --description "Challenge suspected bots"
+```
+
+
+## Anti-Patterns (Never generate)
+
+1. ❌ Use WAF without explaining that it requires Load Balancer or Frontend (not standalone)
+2. ❌ Set rate limits too low for production [MUTABLE: adjust based on traffic patterns]
+3. ❌ Block all traffic instead of alerting on anomalies initially
+4. ❌ Use placeholder OCIDs: `ocid1.waf.<region>.<id>` - correct is `ocid1.wafpolicy.oc1..<unique-id>`
+5. ❌ Create overly broad rules that block legitimate traffic
+6. ❌ Forget that WAF policies are regional - deploy to needed regions
+7. ❌ Mix up WAF action types: DETECT_AND_ALERT vs BLOCK vs ALLOW
+8. ❌ Create rules without testing in DETECT_AND_ALERT mode first
+9. ❌ Use IP blocking without considering legitimate users behind NAT
+10. ❌ Claim WAF replaces proper input validation in applications
+11. ❌ Configure WAF without enabling all protection rule types
+12. ❌ Forget that WAF needs to be attached to a load balancer or frontend
+
+
+
+## Universal Anti-Patterns (Always Include)
+
+1. ❌ Copiar documentação OCI literalmente
+2. ❌ Inventar serviços Oracle inexistentes
+3. ❌ Usar preços ou limites sem marcar [MUTABLE]
+4. ❌ Criar exemplos vagos como "use best practices"
+5. ❌ Respostas arquiteturais sem steps, risks, justification
+6. ❌ OCID fictícios sem formato válido
+7. ❌ Comandos CLI inventados
+
+
+
+## Universal OCID Format Reference
+
+```
+ocid1.<resource>.<realm>.<region>.<unique-id>
+ocid1.instance.oc1.iad.abcd1234...
+ocid1.compartment.oc1..aaaa2222...
+ocid1.user.oc1.iad.bbbb3333...
+ocid1.group.oc1.iad.cccc4444...
+ocid1.tenancy.oc1..dddd5555...
+```
+
 
 ---
 
@@ -177,9 +278,8 @@ Varie os exemplos entre:
 3. Use APENAS as informações presentes em "TOPIC: security/waf"
 4. Não invente informações que não estão nos docs OCI
 5. Não use preços ou limites sem marcar [MUTABLE] ou [CHECK DOCS]
-6. Se EXAMPLE QUESTIONS estiver presente, use como INSPIRAÇÃO para criar questões DIVERSAS e ORIGINAIS (não copie verbatim)
-7. Cada exemplo DEVE ter um cenário diferente - NÃO repita o mesmo caso de uso
-8. Varie os contextos: diferentes personas, diferentes níveis de complexidade, diferentes casos de uso reais
+6. Cada exemplo DEVE ter um cenário diferente - NÃO repita o mesmo caso de uso
+7. Varie os contextos: diferentes personas, diferentes níveis de complexidade, diferentes casos de uso reais
 
 ---
 
@@ -192,7 +292,7 @@ Gere EXATAMENTE 140 exemplos em formato JSONL.
 ```
 {"messages": [...], "metadata": {"category": "security/waf", "difficulty": "beginner|intermediate|advanced", "source": "generated"}}
 {"messages": [...], "metadata": {"category": "security/waf", "difficulty": "beginner|intermediate|advanced", "source": "generated"}}
-... (10 linhas total)
+... (140 linhas total)
 ```
 
 ---
@@ -230,9 +330,9 @@ Gere EXATAMENTE 140 exemplos em formato JSONL.
 ---
 
 ## DISTRIBUIÇÃO DE DIFICULDADE
-- beginner: ~30% dos exemplos (3 exemplos)
-- intermediate: ~50% dos exemplos (5 exemplos)
-- advanced: ~20% dos exemplos (2 exemplos)
+- beginner: ~30% dos exemplos (42 exemplos)
+- intermediate: ~50% dos exemplos (70 exemplos)
+- advanced: ~20% dos exemplos (28 exemplos)
 
 ---
 
@@ -254,7 +354,7 @@ Gere EXATAMENTE 140 exemplos em formato JSONL.
 
 Gere EXATAMENTE 140 exemplos diversos para o topic: **security/waf**
 
-- Mistura de dificuldades: 3 beginner, 5 intermediate, 2 advanced
+- Mistura de dificuldades: 42 beginner, 70 intermediate, 28 advanced
 - Cenários reais de OCI - cada exemplo com um caso de uso diferente
 - Use Português (BR) para perguntas do usuário
 - Formato JSONL, uma linha por exemplo

@@ -36,7 +36,10 @@ model, tokenizer = FastLanguageModel.from_pretrained(
 )
 
 print('Loading adapters from: ${ADAPTER_DIR}')
-model.load_adapter('${ADAPTER_DIR}/adapters.safetensors')
+adapter_dir = '${ADAPTER_DIR}/adapters'
+if not __import__('pathlib').Path(adapter_dir).exists():
+    adapter_dir = '${ADAPTER_DIR}'
+model.load_adapter(adapter_dir)
 
 print('Saving merged model...')
 model.save_pretrained_merged('${MERGED_MODEL}', tokenizer)

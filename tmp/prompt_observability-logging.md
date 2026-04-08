@@ -128,7 +128,7 @@ Example categories:
 
 ## TOPIC: observability/logging
 
-#### observability/logging (10)
+#### observability/logging (140)
 - Logging service
 - Log groups, custom logs
 - Retention, audit
@@ -139,32 +139,112 @@ Example categories:
 
 ## SYSTEM PROMPT (para usar no JSONL)
 
-You are an OCI specialist with expertise in Logging. Provide technical guidance on log groups, custom logs, and audit logs.
-
----
-
-## EXAMPLE QUESTIONS (para inspiração - gere questões originais)
-
-- Como criar log groups no OCI Logging?
-- Como configurar custom logs de aplicações?
-- Como habilitar audit logs?
-- Como configurar retention policies?
-- Como resolver logs não aparecendo?
-- Como troubleshootar log service não funcionando?
-- Como configurar log parsing?
-- Como integrar com OCI Monitoring?
-- Como exportar logs para Object Storage?
-- Como monitorar custos de Logging?
+You are an OCI specialist with expertise in Logging. Provide technical guidance on log groups, custom logs, retention, and audit.
 
 ---
 
 ## DIVERSITY REQUIREMENTS (OBRIGATÓRIO)
 
 Varie os exemplos entre:
-- Diferentes services (Logging, Monitoring, APM, Stack Monitoring)
-- Diferentes casos de uso (troubleshooting, alerting, compliance)
-- Diferentes personas (SRE, developer, operations)
-- Diferentes problemas (missing data, false alerts, performance)
+- Diferentes serviços (logging, monitoring, APM, stack monitoring)
+- Diferentes cenários (alerting, dashboards, troubleshooting)
+- Diferentes personas (SRE, DevOps, developer)
+- Diferentes problemas (missing metrics, log retention, trace correlation)
+
+
+---
+
+## OCI CLI Syntax
+
+### Log Group Commands
+
+```bash
+# Create log group
+oci logging log-group create --compartment-id <ocid> \
+  --display-name "app-logs-group" \
+  --description "Application logs for production"
+
+# List log groups
+oci logging log-group list --compartment-id <ocid>
+
+# Get log group
+oci logging log-group get --log-group-id <ocid1.loggroup.oc1.<region>.<unique-id>>
+```
+
+### Log Commands
+
+```bash
+# Enable log
+oci logging log create --log-group-id <ocid1.loggroup.oc1.<region>.<unique-id>> \
+  --display-name "app-access-log" \
+  --log-source-id <ocid1.instance.oc1.<region>.<unique-id>> \
+  --log-type JSON
+
+# List logs in group
+oci logging log list --log-group-id <ocid1.loggroup.oc1.<region>.<unique-id>>
+
+# Disable log
+oci logging log delete --log-id <ocid1.log.oc1.<region>.<unique-id>>
+```
+
+### Log Search
+
+```bash
+# Search logs (using logs-query)
+oci logging log-search search \
+  --log-group-id <ocid1.loggroup.oc1.<region>.<unique-id>> \
+  --time-start "2024-01-01T00:00:00Z" \
+  --time-end "2024-01-02T00:00:00Z" \
+  --search-query "message LIKE '%ERROR%'"
+```
+
+### Retention Management
+
+```bash
+# Update log retention (minimum 7 days, maximum 365 days)
+oci logging log update --log-id <ocid1.log.oc1.<region>.<unique-id>> \
+  --retention-duration-days 30
+```
+
+
+## Anti-Patterns
+
+- NEVER create logs without specifying a log group
+- NEVER use real OCIDs — always use placeholders like `<ocid1.loggroup.oc1.<region>.<unique-id>>`
+- NEVER omit `--compartment-id` — required for all operations
+- NEVER set retention below 7 days or above 365 days
+- NEVER copy OCI documentation verbatim — generate original examples
+- NEVER skip enabling logs — disabled logs don't collect data
+- NEVER use vague log names — use descriptive names like "prod-api-access-log"
+- NEVER omit `--log-type` when creating logs — JSON or SYSLOG required
+- NEVER query logs without time filters — always specify start/end time
+- NEVER generate logs without retention policies — always specify retention duration
+
+
+
+## Universal Anti-Patterns (Always Include)
+
+1. ❌ Copiar documentação OCI literalmente
+2. ❌ Inventar serviços Oracle inexistentes
+3. ❌ Usar preços ou limites sem marcar [MUTABLE]
+4. ❌ Criar exemplos vagos como "use best practices"
+5. ❌ Respostas arquiteturais sem steps, risks, justification
+6. ❌ OCID fictícios sem formato válido
+7. ❌ Comandos CLI inventados
+
+
+
+## Universal OCID Format Reference
+
+```
+ocid1.<resource>.<realm>.<region>.<unique-id>
+ocid1.instance.oc1.iad.abcd1234...
+ocid1.compartment.oc1..aaaa2222...
+ocid1.user.oc1.iad.bbbb3333...
+ocid1.group.oc1.iad.cccc4444...
+ocid1.tenancy.oc1..dddd5555...
+```
+
 
 ---
 
@@ -175,9 +255,8 @@ Varie os exemplos entre:
 3. Use APENAS as informações presentes em "TOPIC: observability/logging"
 4. Não invente informações que não estão nos docs OCI
 5. Não use preços ou limites sem marcar [MUTABLE] ou [CHECK DOCS]
-6. Se EXAMPLE QUESTIONS estiver presente, use como INSPIRAÇÃO para criar questões DIVERSAS e ORIGINAIS (não copie verbatim)
-7. Cada exemplo DEVE ter um cenário diferente - NÃO repita o mesmo caso de uso
-8. Varie os contextos: diferentes personas, diferentes níveis de complexidade, diferentes casos de uso reais
+6. Cada exemplo DEVE ter um cenário diferente - NÃO repita o mesmo caso de uso
+7. Varie os contextos: diferentes personas, diferentes níveis de complexidade, diferentes casos de uso reais
 
 ---
 
@@ -190,7 +269,7 @@ Gere EXATAMENTE 140 exemplos em formato JSONL.
 ```
 {"messages": [...], "metadata": {"category": "observability/logging", "difficulty": "beginner|intermediate|advanced", "source": "generated"}}
 {"messages": [...], "metadata": {"category": "observability/logging", "difficulty": "beginner|intermediate|advanced", "source": "generated"}}
-... (10 linhas total)
+... (140 linhas total)
 ```
 
 ---
@@ -228,9 +307,9 @@ Gere EXATAMENTE 140 exemplos em formato JSONL.
 ---
 
 ## DISTRIBUIÇÃO DE DIFICULDADE
-- beginner: ~30% dos exemplos (3 exemplos)
-- intermediate: ~50% dos exemplos (5 exemplos)
-- advanced: ~20% dos exemplos (2 exemplos)
+- beginner: ~30% dos exemplos (42 exemplos)
+- intermediate: ~50% dos exemplos (70 exemplos)
+- advanced: ~20% dos exemplos (28 exemplos)
 
 ---
 
@@ -252,7 +331,7 @@ Gere EXATAMENTE 140 exemplos em formato JSONL.
 
 Gere EXATAMENTE 140 exemplos diversos para o topic: **observability/logging**
 
-- Mistura de dificuldades: 3 beginner, 5 intermediate, 2 advanced
+- Mistura de dificuldades: 42 beginner, 70 intermediate, 28 advanced
 - Cenários reais de OCI - cada exemplo com um caso de uso diferente
 - Use Português (BR) para perguntas do usuário
 - Formato JSONL, uma linha por exemplo

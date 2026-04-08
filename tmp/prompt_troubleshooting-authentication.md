@@ -128,7 +128,7 @@ Example categories:
 
 ## TOPIC: troubleshooting/authentication
 
-#### troubleshooting/authentication (10)
+#### troubleshooting/authentication (140)
 - Policy permission denied
 - MFA issues
 - Federation failures
@@ -139,32 +139,60 @@ Example categories:
 
 ## SYSTEM PROMPT (para usar no JSONL)
 
-You are an OCI troubleshooting specialist with expertise in authentication. Provide diagnostic guidance on IAM policies, MFA, and federation issues.
-
----
-
-## EXAMPLE QUESTIONS (para inspiração - gere questões originais)
-
-- Como resolver erro 'not authorized' no OCI?
-- Como troubleshootar problemas de MFA?
-- Como diagnosticar federation failures?
-- Como resolver problemas de dynamic groups?
-- Como troubleshootar API key inválida?
-- Como resolver erros de policy syntax?
-- Como diagnosticar problemas de SSO?
-- Como troubleshootar token expirado?
-- Como resolver problemas de compartment access?
-- Como diagnosticar problemas de instance principal?
+You are an OCI troubleshooting specialist with expertise in authentication issues. Provide technical guidance on policy permissions, MFA, and federation failures.
 
 ---
 
 ## DIVERSITY REQUIREMENTS (OBRIGATÓRIO)
 
 Varie os exemplos entre:
-- Diferentes sintomas (errors, timeouts, performance degradation)
-- Diferentes componentes afetados (compute, network, storage, database)
-- Diferentes personas (support engineer, SRE, developer)
-- Diferentes níveis de severidade (critical, warning, informational)
+- Diferentes tipos de problema (connectivity, performance, auth, database)
+- Diferentes cenários (production outage, degraded performance, migration issues)
+- Diferentes personas (SRE, sysadmin, network engineer)
+- Diferentes metodologias de troubleshooting (bottom-up, top-down)
+
+
+---
+
+## Anti-Patterns
+
+**NEVER generate:**
+
+- ❌ Policy syntax without proper OCI verbs (GET, LIST, CREATE, UPDATE, DELETE, INSPECT)
+- ❌ "NotAuthorized" errors without explaining the evaluation path
+- ❌ Dynamic Group matching without showing matching rules
+- ❌ MFA troubleshooting without mentioning recovery options
+- ❌ Federation without mentioning IdCS/Okta specifics
+- ❌ Copy OCI documentation verbatim
+- ❌ "Just add to Admin group" without explaining security implications
+- ❌ Policy conditions without mentioning supported operators
+- ❌ Never suggest sharing credentials or bypassing auth
+
+
+
+## Universal Anti-Patterns (Always Include)
+
+1. ❌ Copiar documentação OCI literalmente
+2. ❌ Inventar serviços Oracle inexistentes
+3. ❌ Usar preços ou limites sem marcar [MUTABLE]
+4. ❌ Criar exemplos vagos como "use best practices"
+5. ❌ Respostas arquiteturais sem steps, risks, justification
+6. ❌ OCID fictícios sem formato válido
+7. ❌ Comandos CLI inventados
+
+
+
+## Universal OCID Format Reference
+
+```
+ocid1.<resource>.<realm>.<region>.<unique-id>
+ocid1.instance.oc1.iad.abcd1234...
+ocid1.compartment.oc1..aaaa2222...
+ocid1.user.oc1.iad.bbbb3333...
+ocid1.group.oc1.iad.cccc4444...
+ocid1.tenancy.oc1..dddd5555...
+```
+
 
 ---
 
@@ -175,9 +203,8 @@ Varie os exemplos entre:
 3. Use APENAS as informações presentes em "TOPIC: troubleshooting/authentication"
 4. Não invente informações que não estão nos docs OCI
 5. Não use preços ou limites sem marcar [MUTABLE] ou [CHECK DOCS]
-6. Se EXAMPLE QUESTIONS estiver presente, use como INSPIRAÇÃO para criar questões DIVERSAS e ORIGINAIS (não copie verbatim)
-7. Cada exemplo DEVE ter um cenário diferente - NÃO repita o mesmo caso de uso
-8. Varie os contextos: diferentes personas, diferentes níveis de complexidade, diferentes casos de uso reais
+6. Cada exemplo DEVE ter um cenário diferente - NÃO repita o mesmo caso de uso
+7. Varie os contextos: diferentes personas, diferentes níveis de complexidade, diferentes casos de uso reais
 
 ---
 
@@ -190,7 +217,7 @@ Gere EXATAMENTE 140 exemplos em formato JSONL.
 ```
 {"messages": [...], "metadata": {"category": "troubleshooting/authentication", "difficulty": "beginner|intermediate|advanced", "source": "generated"}}
 {"messages": [...], "metadata": {"category": "troubleshooting/authentication", "difficulty": "beginner|intermediate|advanced", "source": "generated"}}
-... (10 linhas total)
+... (140 linhas total)
 ```
 
 ---
@@ -228,9 +255,9 @@ Gere EXATAMENTE 140 exemplos em formato JSONL.
 ---
 
 ## DISTRIBUIÇÃO DE DIFICULDADE
-- beginner: ~30% dos exemplos (3 exemplos)
-- intermediate: ~50% dos exemplos (5 exemplos)
-- advanced: ~20% dos exemplos (2 exemplos)
+- beginner: ~30% dos exemplos (42 exemplos)
+- intermediate: ~50% dos exemplos (70 exemplos)
+- advanced: ~20% dos exemplos (28 exemplos)
 
 ---
 
@@ -252,7 +279,7 @@ Gere EXATAMENTE 140 exemplos em formato JSONL.
 
 Gere EXATAMENTE 140 exemplos diversos para o topic: **troubleshooting/authentication**
 
-- Mistura de dificuldades: 3 beginner, 5 intermediate, 2 advanced
+- Mistura de dificuldades: 42 beginner, 70 intermediate, 28 advanced
 - Cenários reais de OCI - cada exemplo com um caso de uso diferente
 - Use Português (BR) para perguntas do usuário
 - Formato JSONL, uma linha por exemplo

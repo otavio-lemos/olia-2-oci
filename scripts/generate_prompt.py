@@ -15,6 +15,79 @@ from pathlib import Path
 PROJECT_ROOT = Path(__file__).parent.parent
 TAXONOMY_FILE = PROJECT_ROOT / "docs" / "taxonomy.md"
 TMP_DIR = PROJECT_ROOT / "tmp"
+TEMPLATES_DIR = PROJECT_ROOT / ".agents" / "skills" / "generate-oci-dataset" / "prompts"
+
+UNIVERSAL_ANTIPATTERNS = """
+## Universal Anti-Patterns (Always Include)
+
+1. ❌ Copiar documentação OCI literalmente
+2. ❌ Inventar serviços Oracle inexistentes
+3. ❌ Usar preços ou limites sem marcar [MUTABLE]
+4. ❌ Criar exemplos vagos como "use best practices"
+5. ❌ Respostas arquiteturais sem steps, risks, justification
+6. ❌ OCID fictícios sem formato válido
+7. ❌ Comandos CLI inventados
+"""
+
+UNIVERSAL_OCID_REFERENCE = """
+## Universal OCID Format Reference
+
+```
+ocid1.<resource>.<realm>.<region>.<unique-id>
+ocid1.instance.oc1.iad.abcd1234...
+ocid1.compartment.oc1..aaaa2222...
+ocid1.user.oc1.iad.bbbb3333...
+ocid1.group.oc1.iad.cccc4444...
+ocid1.tenancy.oc1..dddd5555...
+```
+"""
+
+
+def load_template(topic_name: str) -> str:
+    """Load topic-specific template if exists."""
+    parts = topic_name.split("/")
+    if len(parts) >= 2:
+        category_dir = f"oci-{parts[0]}"
+        topic_part = parts[1].replace("_", "-")
+
+        template_candidates = [
+            f"{topic_part}.md",
+            f"{topic_part.split('-')[0]}.md",
+            f"{parts[1]}.md",
+        ]
+
+        for candidate in template_candidates:
+            template_path = TEMPLATES_DIR / category_dir / candidate
+            if template_path.exists():
+                content = template_path.read_text()
+
+                sections = []
+
+                for section_marker in [
+                    "## OCI CLI Syntax",
+                    "## OCI Policy Syntax",
+                    "## POLICY SYNTAX",
+                    "## Terraform",
+                ]:
+                    if section_marker in content:
+                        start = content.find(section_marker)
+                        end = content.find("\n## ", start + 1)
+                        if end == -1:
+                            end = len(content)
+                        sections.append(content[start:end])
+
+                if "## Anti-Patterns" in content:
+                    start = content.find("## Anti-Patterns")
+                    end = content.find("\n## ", start + 1)
+                    if end == -1:
+                        end = len(content)
+                    sections.append(content[start:end])
+
+                if sections:
+                    return "\n---\n\n" + "\n\n".join(sections)
+
+    return ""
+
 
 QUALITY_RULES = """# OCI Specialist LLM - Quality Rules
 
@@ -277,6 +350,8 @@ def generate_prompt(topic: dict) -> str:
         f"You are an OCI specialist with expertise in {name}. Provide technical guidance.",
     )
 
+    template_content = load_template(name)
+
     prompt = f"""# OCI Dataset Generation - {name}
 
 ## QUALITY RULES (OBRIGATÓRIO - SIGA À RISCA)
@@ -302,6 +377,12 @@ def generate_prompt(topic: dict) -> str:
 ## DIVERSITY REQUIREMENTS (OBRIGATÓRIO)
 
 {diversity}
+
+{template_content}
+
+{UNIVERSAL_ANTIPATTERNS}
+
+{UNIVERSAL_OCID_REFERENCE}
 
 ---
 

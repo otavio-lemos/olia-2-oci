@@ -128,46 +128,181 @@ Example categories:
 
 ## TOPIC: devops/secrets
 
-#### devops/secrets (10)
+#### devops/secrets (140)
 - Vault secret creation and management
 - Pipeline secret injection
 - Parameter store configuration
 - Secret rotation and lifecycle
 - **Docs**: https://docs.oracle.com/en-us/iaas/Content/KeyManagement/Concepts/keyoverview.htm
 
----
-
 
 ---
 
 ## SYSTEM PROMPT (para usar no JSONL)
 
-You are an OCI DevOps specialist with expertise in secrets. Provide technical guidance on Vault integration and secret injection.
-
----
-
-## EXAMPLE QUESTIONS (para inspiração - gere questões originais)
-
-- Como configurar secrets do OCI Vault em um pipeline de deploy do DevOps?
-- Como injetar credenciais de banco de dados armazenadas no Vault durante um build?
-- Como rotacionar secrets no Vault sem quebrar pipelines em execução?
-- Como usar dynamic groups para permitir que instâncias acessem secrets do Vault?
-- Como configurar variáveis de ambiente sensíveis em um deploy para OKE usando Vault?
-- Como resolver erros de permissão quando um pipeline não consegue ler secrets do Vault?
-- Como armazenar e recuperar certificados SSL do Vault para uso em deployments?
-- Como configurar acesso seguro a API keys de serviços externos via Vault no DevOps?
-- Como auditar acesso a secrets no Vault para compliance?
-- Como usar versionamento de secrets no Vault para rollback de credenciais?
+You are an OCI DevOps specialist with expertise in secrets management. Provide technical guidance on Vault secrets, pipeline injection, and rotation.
 
 ---
 
 ## DIVERSITY REQUIREMENTS (OBRIGATÓRIO)
 
 Varie os exemplos entre:
-- Diferentes componentes (CI/CD, Resource Manager, Artifacts, Secrets)
-- Diferentes cenários (build, deploy, test, monitor)
-- Diferentes personas (DevOps engineer, developer, release manager)
-- Diferentes problemas (failures, performance, security)
+- Diferentes serviços (CI/CD, Resource Manager, Artifacts, Secrets)
+- Diferentes cenários (greenfield, migration, optimization)
+- Diferentes personas (DevOps engineer, developer, platform engineer)
+- Diferentes problemas (pipeline failures, state drift, artifact management)
+
+
+---
+
+## OCI CLI Syntax
+
+### Vault Operations
+```bash
+# Create vault
+oci vault vault create \
+  --compartment-id ocid1.compartment.oc1..aaaaaaaab222... \
+  --display-name "devops-vault" \
+  --vault-type DEFAULT \
+  --region us-sao-1
+
+# List vaults
+oci vault vault list \
+  --compartment-id ocid1.compartment.oc1..aaaaaaaab222... \
+  --lifecycle-state ACTIVE
+
+# Get vault OCID
+oci vault vault get \
+  --vault-id ocid1.vault.oc1.sa-saopaulo-1.vvvvvv...
+```
+
+### Secret Management
+```bash
+# Create secret
+oci vault secret create \
+  --vault-id ocid1.vault.oc1.sa-saopaulo-1.vvvvvv... \
+  --secret-name "db-password" \
+  --secret-content " encrypted-content-here " \
+  --secret-content-type BASE64 \
+  --description "Database password for app" \
+  --region us-sao-1
+
+# Get secret OCID
+oci vault secret list \
+  --vault-id ocid1.vault.oc1.sa-saopaulo-1.vvvvvv... \
+  --lifecycle-state ACTIVE
+
+# Get secret value (requires read permission)
+oci vault secret get-content \
+  --secret-id ocid1.secret.oc1.sa-saopaulo-1.ssssss... \
+  --region us-sao-1
+
+# Update secret (new version)
+oci vault secret update \
+  --secret-id ocid1.secret.oc1.sa-saopaulo-1.ssssss... \
+  --secret-content "new-encrypted-content" \
+  --region us-sao-1
+
+# Rotate secret
+oci vault secret rotate \
+  --secret-id ocid1.secret.oc1.sa-saopaulo-1.ssssss... \
+  --secret-content "new-version-content" \
+  --region us-sao-1
+```
+
+### Secrets in DevOps Pipeline
+```bash
+# Create DevOps secret (wraps Vault)
+oci devops artifact create \
+  --project-id ocid1.devopsproject.oc1.sa-saopaulo-1.aaaaaaaab222... \
+  --display-name "db-password" \
+  --artifact-type OCI_VAULT_SECRET \
+  --artifact-ocid ocid1.secret.oc1.sa-saopaulo-1.ssssss... \
+  --region us-sao-1
+
+# Add as environment variable in deploy stage
+# Via OCI Console UI - cannot set via CLI
+# Add to deploy pipeline stage configuration:
+# ${oci://vault://secret://ocid1.secret.oc1.sa-saopaulo-1.ssssss.@@}
+
+# List secrets in DevOps
+oci devops artifact list \
+  --project-id ocid1.devopsproject.oc1.sa-saopaulo-1.aaaaaaaab222... \
+  --artifact-type OCI_VAULT_SECRET
+```
+
+### Key Management
+```bash
+# Create key
+oci vault key create \
+  --vault-id ocid1.vault.oc1.sa-saopaulo-1.vvvvvv... \
+  --display-name "signing-key" \
+  --key-version-reference "1" \
+  --region us-sao-1
+
+# List keys
+oci vault key list \
+  --vault-id ocid1.vault.oc1.sa-saopaulo-1.vvvvvv... \
+  --lifecycle-state ACTIVE
+
+# Rotate key
+oci vault key rotate \
+  --key-id ocid1.key.oc1.sa-saopaulo-1.kkkkkk... \
+  --key-version-reference "2" \
+  --region us-sao-1
+```
+
+### Dynamic Group for Access
+```bash
+# Get dynamic group OCID
+oci iam dynamic-group get \
+  --dynamic-group-id ocid1.dynamicgroup.oc1.sa-saopaulo-1.dddddd...
+
+# List dynamic groups
+oci iam dynamic-group list \
+  --compartment-id ocid1.compartment.oc1..aaaaaaaab222...
+```
+
+
+## Anti-Patterns
+
+NEVER generate examples that:
+- Use fake OCIDs like `ocid1.key.oc1...` without full resource type prefix
+- Use Vault secrets directly without dynamic groups/policies
+- Suggest putting secrets in pipeline environment variables directly
+- Copy secret values in plain text in logs or outputs
+- Reference AWS Secrets Manager or Azure Key Vault in OCI context
+- Use API key as secret type in OCI Vault
+- Suggest "reading from env vars" without Vault integration
+- Create policies without mentioning compartment scope
+- Mix up Key OCID with Secret OCID
+- Suggest key rotation without version management
+
+
+
+## Universal Anti-Patterns (Always Include)
+
+1. ❌ Copiar documentação OCI literalmente
+2. ❌ Inventar serviços Oracle inexistentes
+3. ❌ Usar preços ou limites sem marcar [MUTABLE]
+4. ❌ Criar exemplos vagos como "use best practices"
+5. ❌ Respostas arquiteturais sem steps, risks, justification
+6. ❌ OCID fictícios sem formato válido
+7. ❌ Comandos CLI inventados
+
+
+
+## Universal OCID Format Reference
+
+```
+ocid1.<resource>.<realm>.<region>.<unique-id>
+ocid1.instance.oc1.iad.abcd1234...
+ocid1.compartment.oc1..aaaa2222...
+ocid1.user.oc1.iad.bbbb3333...
+ocid1.group.oc1.iad.cccc4444...
+ocid1.tenancy.oc1..dddd5555...
+```
+
 
 ---
 
@@ -178,9 +313,8 @@ Varie os exemplos entre:
 3. Use APENAS as informações presentes em "TOPIC: devops/secrets"
 4. Não invente informações que não estão nos docs OCI
 5. Não use preços ou limites sem marcar [MUTABLE] ou [CHECK DOCS]
-6. Se EXAMPLE QUESTIONS estiver presente, use como INSPIRAÇÃO para criar questões DIVERSAS e ORIGINAIS (não copie verbatim)
-7. Cada exemplo DEVE ter um cenário diferente - NÃO repita o mesmo caso de uso
-8. Varie os contextos: diferentes personas, diferentes níveis de complexidade, diferentes casos de uso reais
+6. Cada exemplo DEVE ter um cenário diferente - NÃO repita o mesmo caso de uso
+7. Varie os contextos: diferentes personas, diferentes níveis de complexidade, diferentes casos de uso reais
 
 ---
 
@@ -193,7 +327,7 @@ Gere EXATAMENTE 140 exemplos em formato JSONL.
 ```
 {"messages": [...], "metadata": {"category": "devops/secrets", "difficulty": "beginner|intermediate|advanced", "source": "generated"}}
 {"messages": [...], "metadata": {"category": "devops/secrets", "difficulty": "beginner|intermediate|advanced", "source": "generated"}}
-... (10 linhas total)
+... (140 linhas total)
 ```
 
 ---
@@ -231,9 +365,9 @@ Gere EXATAMENTE 140 exemplos em formato JSONL.
 ---
 
 ## DISTRIBUIÇÃO DE DIFICULDADE
-- beginner: ~30% dos exemplos (3 exemplos)
-- intermediate: ~50% dos exemplos (5 exemplos)
-- advanced: ~20% dos exemplos (2 exemplos)
+- beginner: ~30% dos exemplos (42 exemplos)
+- intermediate: ~50% dos exemplos (70 exemplos)
+- advanced: ~20% dos exemplos (28 exemplos)
 
 ---
 
@@ -255,7 +389,7 @@ Gere EXATAMENTE 140 exemplos em formato JSONL.
 
 Gere EXATAMENTE 140 exemplos diversos para o topic: **devops/secrets**
 
-- Mistura de dificuldades: 3 beginner, 5 intermediate, 2 advanced
+- Mistura de dificuldades: 42 beginner, 70 intermediate, 28 advanced
 - Cenários reais de OCI - cada exemplo com um caso de uso diferente
 - Use Português (BR) para perguntas do usuário
 - Formato JSONL, uma linha por exemplo

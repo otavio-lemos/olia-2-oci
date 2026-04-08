@@ -253,13 +253,13 @@ python scripts/quality/factual_checker.py --text "resposta a verificar"
 | `BATCH_SIZE` | 1 | 1 | 1 |
 | `GRADIENT_ACCUMULATION` | 2 | 2 | 2 |
 | `NUM_LAYERS` | 8 | 8 | 8 |
-| `WARMUP_STEPS` | 20 | 10 | 5 |
-| `GRADIENT_CLIP_NORM` | 1.0 | 1.0 | 1.0 |
+| `WARMUP_STEPS` | 20 | 50 | 25 |
+| `GRADIENT_CLIP_NORM` | 1.0 | 0.5 | 0.5 |
 | `CLEAR_CACHE_GB` | 5 | 5 | 5 |
 | `PREV_ADAPTER` | — | cycle-1 | cycle-2 |
 | `VAL_BATCHES` | 5 | 5 | 5 |
 
-**Comuns:** `LR_SCHEDULER=cosine`, `WEIGHT_DECAY=0.01`, `SEED=42`, `GRADIENT_CHECKPOINTING=true`, `LOGGING_STEPS=5`.
+**Comuns:** `LR_SCHEDULER=cosine`, `SEED=42`, `GRADIENT_CHECKPOINTING=true`, `LOGGING_STEPS=5`. Cycle-1 usa `WEIGHT_DECAY=0.01`, cycle-2/3 usam `0.001`.
 
 ### Configuração Completa (`config/cycle-1.env`)
 

@@ -41,29 +41,26 @@ for prompt in "${EXAMPLE_PROMPTS[@]}"; do
 
     if [ -d "$MERGED_MODEL" ]; then
         echo "Using merged model..."
-        python -m mlx_lm.generate \
+        mlx_lm generate \
             --model "$MERGED_MODEL" \
             --prompt "$prompt" \
             --max-tokens "$MAX_TOKENS" \
-            --temperature "$TEMPERATURE" \
-            --system-prompt "$SYSTEM_PROMPT"
+            --temp "$TEMPERATURE"
     elif [ -d "$ADAPTER_DIR" ] && [ -f "$ADAPTER_DIR/adapters.safetensors" ]; then
         echo "Using LoRA adapter..."
-        python -m mlx_lm.generate \
+        mlx_lm generate \
             --model "$BASE_MODEL" \
             --adapter-path "$ADAPTER_DIR" \
             --prompt "$prompt" \
             --max-tokens "$MAX_TOKENS" \
-            --temperature "$TEMPERATURE" \
-            --system-prompt "$SYSTEM_PROMPT"
+            --temp "$TEMPERATURE"
     else
         echo "No adapter found, using base model"
-        python -m mlx_lm.generate \
+        mlx_lm generate \
             --model "$BASE_MODEL" \
             --prompt "$prompt" \
             --max-tokens "$MAX_TOKENS" \
-            --temperature "$TEMPERATURE" \
-            --system-prompt "$SYSTEM_PROMPT"
+            --temp "$TEMPERATURE"
     fi
 done
 

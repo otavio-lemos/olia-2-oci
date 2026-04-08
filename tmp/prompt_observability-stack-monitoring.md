@@ -128,7 +128,7 @@ Example categories:
 
 ## TOPIC: observability/stack-monitoring
 
-#### observability/stack-monitoring (10)
+#### observability/stack-monitoring (140)
 - Stack Monitoring
 - Resource monitoring
 - Database monitoring
@@ -139,32 +139,123 @@ Example categories:
 
 ## SYSTEM PROMPT (para usar no JSONL)
 
-You are an OCI specialist with expertise in Stack Monitoring. Provide technical guidance on enterprise monitoring and resource monitoring.
-
----
-
-## EXAMPLE QUESTIONS (para inspiração - gere questões originais)
-
-- Como configurar Stack Monitoring no OCI?
-- Como adicionar resources para monitoramento?
-- Como configurar monitoring de databases?
-- Como resolver agente não conectado?
-- Como troubleshootar métricas não coletadas?
-- Como configurar monitoring de middleware?
-- Como integrar com OCI Monitoring?
-- Como criar dashboards customizados?
-- Como configurar alertas de Stack Monitoring?
-- Como monitorar múltiplos compartments?
+You are an OCI specialist with expertise in Stack Monitoring. Provide technical guidance on resource monitoring and database monitoring.
 
 ---
 
 ## DIVERSITY REQUIREMENTS (OBRIGATÓRIO)
 
 Varie os exemplos entre:
-- Diferentes services (Logging, Monitoring, APM, Stack Monitoring)
-- Diferentes casos de uso (troubleshooting, alerting, compliance)
-- Diferentes personas (SRE, developer, operations)
-- Diferentes problemas (missing data, false alerts, performance)
+- Diferentes serviços (logging, monitoring, APM, stack monitoring)
+- Diferentes cenários (alerting, dashboards, troubleshooting)
+- Diferentes personas (SRE, DevOps, developer)
+- Diferentes problemas (missing metrics, log retention, trace correlation)
+
+
+---
+
+## OCI CLI Syntax
+
+### Monitoring Configuration
+
+```bash
+# Create monitor configuration
+oci stack-monitoring monitor-config create --compartment-id <ocid> \
+  --display-name "weblogic-monitor" \
+  --monitor-type ORACLE_WEBSERVER
+
+# List monitor configurations
+oci stack-monitoring monitor-config list --compartment-id <ocid>
+
+# Get monitor configuration
+oci stack-monitoring monitor-config get \
+  --monitor-config-id <ocid1.monconfig.oc1.<region>.<unique-id>>
+```
+
+### Metric Extension
+
+```bash
+# Create metric extension
+oci stack-monitoring metric-extension create --compartment-id <ocid> \
+  --display-name "jvm-memory-metric" \
+  --metric-name "jvm_memory_used" \
+  --metric-type COUNTER \
+  --query "select * from jvm_metrics"
+
+# List metric extensions
+oci stack-monitoring metric-extension list --compartment-id <ocid>
+```
+
+### Alert Rule
+
+```bash
+# Create alert rule
+oci stack-monitoring alert-rule create --compartment-id <ocid> \
+  --display-name "high-memory-alert" \
+  --metric-extensions-id <ocid1.metricext.oc1.<region>.<unique-id>> \
+  --threshold "memory_usage > 80" \
+  --severity CRITICAL
+
+# List alert rules
+oci stack-monitoring alert-rule list --compartment-id <ocid>
+
+# Update alert rule
+oci stack-monitoring alert-rule update \
+  --alert-rule-id <ocid1.alertrule.oc1.<region>.<unique-id>> \
+  --is-enabled true
+```
+
+### Resource Discovery
+
+```bash
+# List monitored resources
+oci stack-monitoring resource list --compartment-id <ocid> \
+  --monitor-id <ocid1.monitor.oc1.<region>.<unique-id>>
+
+# Get resource metrics
+oci stack-monitoring resource-metric list \
+  --resource-id <ocid1.monitoredresource.oc1.<region>.<unique-id>>
+```
+
+
+## Anti-Patterns
+
+- NEVER create Stack Monitoring configurations without specifying monitor type
+- NEVER use real OCIDs — always use placeholders like `<ocid1.monconfig.oc1.<region>.<unique-id>>`
+- NEVER omit `--compartment-id` — required for all operations
+- NEVER copy OCI documentation verbatim — generate original examples
+- NEVER skip metric extension definition — custom metrics require proper definition
+- NEVER create alerts without thresholds — always specify trigger conditions
+- NEVER use generic metric names — use descriptive names like "jvm_heap_usage"
+- NEVER use deprecated monitor types — use current Oracle types only
+- NEVER omit Enterprise Manager credential configuration when required
+- NEVER create alerts without notification destination — specify where alerts go
+
+
+
+## Universal Anti-Patterns (Always Include)
+
+1. ❌ Copiar documentação OCI literalmente
+2. ❌ Inventar serviços Oracle inexistentes
+3. ❌ Usar preços ou limites sem marcar [MUTABLE]
+4. ❌ Criar exemplos vagos como "use best practices"
+5. ❌ Respostas arquiteturais sem steps, risks, justification
+6. ❌ OCID fictícios sem formato válido
+7. ❌ Comandos CLI inventados
+
+
+
+## Universal OCID Format Reference
+
+```
+ocid1.<resource>.<realm>.<region>.<unique-id>
+ocid1.instance.oc1.iad.abcd1234...
+ocid1.compartment.oc1..aaaa2222...
+ocid1.user.oc1.iad.bbbb3333...
+ocid1.group.oc1.iad.cccc4444...
+ocid1.tenancy.oc1..dddd5555...
+```
+
 
 ---
 
@@ -175,9 +266,8 @@ Varie os exemplos entre:
 3. Use APENAS as informações presentes em "TOPIC: observability/stack-monitoring"
 4. Não invente informações que não estão nos docs OCI
 5. Não use preços ou limites sem marcar [MUTABLE] ou [CHECK DOCS]
-6. Se EXAMPLE QUESTIONS estiver presente, use como INSPIRAÇÃO para criar questões DIVERSAS e ORIGINAIS (não copie verbatim)
-7. Cada exemplo DEVE ter um cenário diferente - NÃO repita o mesmo caso de uso
-8. Varie os contextos: diferentes personas, diferentes níveis de complexidade, diferentes casos de uso reais
+6. Cada exemplo DEVE ter um cenário diferente - NÃO repita o mesmo caso de uso
+7. Varie os contextos: diferentes personas, diferentes níveis de complexidade, diferentes casos de uso reais
 
 ---
 
@@ -190,7 +280,7 @@ Gere EXATAMENTE 140 exemplos em formato JSONL.
 ```
 {"messages": [...], "metadata": {"category": "observability/stack-monitoring", "difficulty": "beginner|intermediate|advanced", "source": "generated"}}
 {"messages": [...], "metadata": {"category": "observability/stack-monitoring", "difficulty": "beginner|intermediate|advanced", "source": "generated"}}
-... (10 linhas total)
+... (140 linhas total)
 ```
 
 ---
@@ -228,9 +318,9 @@ Gere EXATAMENTE 140 exemplos em formato JSONL.
 ---
 
 ## DISTRIBUIÇÃO DE DIFICULDADE
-- beginner: ~30% dos exemplos (3 exemplos)
-- intermediate: ~50% dos exemplos (5 exemplos)
-- advanced: ~20% dos exemplos (2 exemplos)
+- beginner: ~30% dos exemplos (42 exemplos)
+- intermediate: ~50% dos exemplos (70 exemplos)
+- advanced: ~20% dos exemplos (28 exemplos)
 
 ---
 
@@ -252,7 +342,7 @@ Gere EXATAMENTE 140 exemplos em formato JSONL.
 
 Gere EXATAMENTE 140 exemplos diversos para o topic: **observability/stack-monitoring**
 
-- Mistura de dificuldades: 3 beginner, 5 intermediate, 2 advanced
+- Mistura de dificuldades: 42 beginner, 70 intermediate, 28 advanced
 - Cenários reais de OCI - cada exemplo com um caso de uso diferente
 - Use Português (BR) para perguntas do usuário
 - Formato JSONL, uma linha por exemplo

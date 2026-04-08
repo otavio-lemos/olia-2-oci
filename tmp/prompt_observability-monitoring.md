@@ -128,7 +128,7 @@ Example categories:
 
 ## TOPIC: observability/monitoring
 
-#### observability/monitoring (10)
+#### observability/monitoring (140)
 - Metrics, alarms
 - Notifications
 - Custom metrics
@@ -139,32 +139,120 @@ Example categories:
 
 ## SYSTEM PROMPT (para usar no JSONL)
 
-You are an OCI specialist with expertise in Monitoring. Provide technical guidance on metrics, alarms, and notifications.
-
----
-
-## EXAMPLE QUESTIONS (para inspiração - gere questões originais)
-
-- Como criar alarms no OCI Monitoring?
-- Como configurar métricas customizadas?
-- Como configurar notificações de alarm?
-- Como resolver alarm não disparando?
-- Como troubleshootar métricas não coletadas?
-- Como configurar dashboard de monitoring?
-- Como integrar com OCI Notifications?
-- Como monitorar métricas de instâncias?
-- Como configurar alertas de threshold?
-- Como exportar métricas para análise?
+You are an OCI specialist with expertise in Monitoring. Provide technical guidance on metrics, alarms, notifications, and custom metrics.
 
 ---
 
 ## DIVERSITY REQUIREMENTS (OBRIGATÓRIO)
 
 Varie os exemplos entre:
-- Diferentes services (Logging, Monitoring, APM, Stack Monitoring)
-- Diferentes casos de uso (troubleshooting, alerting, compliance)
-- Diferentes personas (SRE, developer, operations)
-- Diferentes problemas (missing data, false alerts, performance)
+- Diferentes serviços (logging, monitoring, APM, stack monitoring)
+- Diferentes cenários (alerting, dashboards, troubleshooting)
+- Diferentes personas (SRE, DevOps, developer)
+- Diferentes problemas (missing metrics, log retention, trace correlation)
+
+
+---
+
+## OCI CLI Syntax
+
+### Alarm Commands
+
+```bash
+# Create alarm
+oci monitoring alarm create --compartment-id <ocid> \
+  --display-name "High CPU Alarm" \
+  --metric-compartment-id <ocid> \
+  --namespace "oci_compute" \
+  --resource-group "INSTANCE_NAME" \
+  --query "cpu_utilization > 80" \
+  --severity CRITICAL \
+  --notification-topic-id <ocid1.topic.oc1.<region>.<unique-id>>
+
+# List alarms
+oci monitoring alarm list --compartment-id <ocid> \
+  --query "[?displayName=='High CPU Alarm']"
+
+# Get alarm
+oci monitoring alarm get --alarm-id <ocid1.alarm.oc1.<region>.<unique-id>>
+
+# Update alarm
+oci monitoring alarm update --alarm-id <ocid1.alarm.oc1.<region>.<unique-id>> \
+  --severity WARNING
+
+# Delete alarm
+oci monitoring alarm delete --alarm-id <ocid1.alarm.oc1.<region>.<unique-id>>
+```
+
+### Metric Commands
+
+```bash
+# Post custom metric
+oci monitoring metric post \
+  --metric-details '{"datapoints":[{"timestamp":"2024-01-01T00:00:00Z","value":85.5}]}' \
+  --namespace "custom_namespace" \
+  --resource-id <ocid1.instance.oc1.<region>.<unique-id>> \
+  --compartment-id <ocid>
+
+# Query metrics
+oci monitoring metric-data query \
+  --compartment-id <ocid> \
+  --namespace "oci_compute" \
+  --query "cpu_utilization" \
+  --start-time "2024-01-01T00:00:00Z" \
+  --end-time "2024-01-02T00:00:00Z"
+```
+
+### Notification Commands
+
+```bash
+# Create topic
+oci ons topic create --compartment-id <ocid> \
+  --name "alarms-topic"
+
+# Publish message
+oci ons message publish --topic-id <ocid1.topic.oc1.<region>.<unique-id>> \
+  --message '{"title":"Alarm","body":"CPU high"}'
+```
+
+
+## Anti-Patterns
+
+- NEVER use generic alarm names like "my alarm" — use descriptive names like "prod-webserver-cpu-alarm"
+- NEVER omit `--compartment-id` — required for all operations
+- NEVER use real OCIDs — always use placeholder `<ocid1.alarm.oc1.<region>.<unique-id>>`
+- NEVER copy OCI documentation verbatim — generate original examples
+- NEVER skip alarm destinations — always specify notification target
+- NEVER use deprecated alarm states — use only ACTIVE, DELETED, DISABLED
+- NEVER omit severity level — CRITICAL, ERROR, WARNING, INFO are valid values
+- NEVER create alarms without query validation — queries must be syntactically correct
+- NEVER use hardcoded thresholds without context — explain the reasoning
+
+
+
+## Universal Anti-Patterns (Always Include)
+
+1. ❌ Copiar documentação OCI literalmente
+2. ❌ Inventar serviços Oracle inexistentes
+3. ❌ Usar preços ou limites sem marcar [MUTABLE]
+4. ❌ Criar exemplos vagos como "use best practices"
+5. ❌ Respostas arquiteturais sem steps, risks, justification
+6. ❌ OCID fictícios sem formato válido
+7. ❌ Comandos CLI inventados
+
+
+
+## Universal OCID Format Reference
+
+```
+ocid1.<resource>.<realm>.<region>.<unique-id>
+ocid1.instance.oc1.iad.abcd1234...
+ocid1.compartment.oc1..aaaa2222...
+ocid1.user.oc1.iad.bbbb3333...
+ocid1.group.oc1.iad.cccc4444...
+ocid1.tenancy.oc1..dddd5555...
+```
+
 
 ---
 
@@ -175,9 +263,8 @@ Varie os exemplos entre:
 3. Use APENAS as informações presentes em "TOPIC: observability/monitoring"
 4. Não invente informações que não estão nos docs OCI
 5. Não use preços ou limites sem marcar [MUTABLE] ou [CHECK DOCS]
-6. Se EXAMPLE QUESTIONS estiver presente, use como INSPIRAÇÃO para criar questões DIVERSAS e ORIGINAIS (não copie verbatim)
-7. Cada exemplo DEVE ter um cenário diferente - NÃO repita o mesmo caso de uso
-8. Varie os contextos: diferentes personas, diferentes níveis de complexidade, diferentes casos de uso reais
+6. Cada exemplo DEVE ter um cenário diferente - NÃO repita o mesmo caso de uso
+7. Varie os contextos: diferentes personas, diferentes níveis de complexidade, diferentes casos de uso reais
 
 ---
 
@@ -190,7 +277,7 @@ Gere EXATAMENTE 140 exemplos em formato JSONL.
 ```
 {"messages": [...], "metadata": {"category": "observability/monitoring", "difficulty": "beginner|intermediate|advanced", "source": "generated"}}
 {"messages": [...], "metadata": {"category": "observability/monitoring", "difficulty": "beginner|intermediate|advanced", "source": "generated"}}
-... (10 linhas total)
+... (140 linhas total)
 ```
 
 ---
@@ -228,9 +315,9 @@ Gere EXATAMENTE 140 exemplos em formato JSONL.
 ---
 
 ## DISTRIBUIÇÃO DE DIFICULDADE
-- beginner: ~30% dos exemplos (3 exemplos)
-- intermediate: ~50% dos exemplos (5 exemplos)
-- advanced: ~20% dos exemplos (2 exemplos)
+- beginner: ~30% dos exemplos (42 exemplos)
+- intermediate: ~50% dos exemplos (70 exemplos)
+- advanced: ~20% dos exemplos (28 exemplos)
 
 ---
 
@@ -252,7 +339,7 @@ Gere EXATAMENTE 140 exemplos em formato JSONL.
 
 Gere EXATAMENTE 140 exemplos diversos para o topic: **observability/monitoring**
 
-- Mistura de dificuldades: 3 beginner, 5 intermediate, 2 advanced
+- Mistura de dificuldades: 42 beginner, 70 intermediate, 28 advanced
 - Cenários reais de OCI - cada exemplo com um caso de uso diferente
 - Use Português (BR) para perguntas do usuário
 - Formato JSONL, uma linha por exemplo

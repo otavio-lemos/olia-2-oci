@@ -128,7 +128,7 @@ Example categories:
 
 ## TOPIC: devops/resource-manager
 
-#### devops/resource-manager (10)
+#### devops/resource-manager (140)
 - Stack creation from Terraform configurations
 - Job execution and monitoring
 - Drift detection and remediation
@@ -140,32 +140,163 @@ Example categories:
 
 ## SYSTEM PROMPT (para usar no JSONL)
 
-You are an OCI DevOps specialist with expertise in Resource Manager. Provide technical guidance on Terraform stacks and drift detection.
-
----
-
-## EXAMPLE QUESTIONS (para inspiração - gere questões originais)
-
-- Como criar uma stack no Resource Manager usando um template Terraform?
-- Qual a diferença entre plan job e apply job no Resource Manager?
-- Como configurar drift detection para uma stack existente?
-- Como importar uma stack Terraform existente para o Resource Manager?
-- Como resolver conflitos de state quando múltiplos jobs rodam na mesma stack?
-- Como configurar variáveis de ambiente e secrets em uma stack do Resource Manager?
-- Como criar um pipeline que usa Resource Manager para deploy automatizado?
-- Como fazer rollback de uma mudança aplicada pelo Resource Manager?
-- Como configurar permissões IAM para que equipes específicas acessem stacks?
-- Como usar módulos Terraform privados com o Resource Manager?
+You are an OCI DevOps specialist with expertise in Resource Manager. Provide technical guidance on stacks, jobs, drift detection, and state management.
 
 ---
 
 ## DIVERSITY REQUIREMENTS (OBRIGATÓRIO)
 
 Varie os exemplos entre:
-- Diferentes componentes (CI/CD, Resource Manager, Artifacts, Secrets)
-- Diferentes cenários (build, deploy, test, monitor)
-- Diferentes personas (DevOps engineer, developer, release manager)
-- Diferentes problemas (failures, performance, security)
+- Diferentes serviços (CI/CD, Resource Manager, Artifacts, Secrets)
+- Diferentes cenários (greenfield, migration, optimization)
+- Diferentes personas (DevOps engineer, developer, platform engineer)
+- Diferentes problemas (pipeline failures, state drift, artifact management)
+
+
+---
+
+## OCI CLI Syntax
+
+### Stack Management
+```bash
+# Create stack from Terraform template
+oci resource-manager stack create \
+  --compartment-id ocid1.compartment.oc1..aaaaaaaab222... \
+  --config-source "TEMPLATE" \
+  --description "Stack description" \
+  --display-name "my-stack" \
+  --terraform-version "1.9.0" \
+  --region us-sao-1
+
+# Get stack OCID
+oci resource-manager stack list \
+  --compartment-id ocid1.compartment.oc1..aaaaaaaab222... \
+  --display-name "my-stack" \
+  --lifecycle-state ACTIVE \
+  --region us-sao-1
+
+# Update stack configuration
+oci resource-manager stack update \
+  --stack-id ocid1.resourcemanagerstack.oc1.sa-saopaulo-1.aaaaaaaab222... \
+  --description "Updated description"
+
+# Delete stack
+oci resource-manager stack delete \
+  --stack-id ocid1.resourcemanagerstack.oc1.sa-saopaulo-1.aaaaaaaab222... \
+  --force
+```
+
+### Job Execution
+```bash
+# Plan job (preview changes)
+oci resource-manager job create \
+  --stack-id ocid1.resourcemanagerstack.oc1.sa-saopaulo-1.aaaaaaaab222... \
+  --operation-name PLAN \
+  --display-name "my-plan-job"
+
+# Apply job (execute changes)
+oci resource-manager job create \
+  --stack-id ocid1.resourcemanagerstack.oc1.sa-saopaulo-1.aaaaaaaab222... \
+  --operation-name APPLY \
+  --display-name "my-apply-job" \
+  --apply-redirected-actions true
+
+# Destroy job (teardown resources)
+oci resource-manager job create \
+  --stack-id ocid1.resourcemanagerstack.oc1.sa-saopaulo-1.aaaaaaaab222... \
+  --operation-name DESTROY \
+  --display-name "my-destroy-job"
+
+# Import Terraform state
+oci resource-manager job create \
+  --stack-id ocid1.resourcemanagerstack.oc1.sa-saopaulo-1.aaaaaaaab222... \
+  --operation-name IMPORT_STATE \
+  --display-name "import-state-job"
+
+# Get job details
+oci resource-manager job get \
+  --job-id ocid1.resourcemanagerjob.oc1.sa-saopaulo-1.ccccccc3333...
+
+# List jobs for stack
+oci resource-manager job list \
+  --stack-id ocid1.resourcemanagerstack.oc1.sa-saopaulo-1.aaaaaaaab222... \
+  --region us-sao-1
+```
+
+### Drift Detection
+```bash
+# Check drift
+oci resource-manager drift detect \
+  --stack-id ocid1.resourcemanagerstack.oc1.sa-saopaulo-1.aaaaaaaab222... \
+  --drift-detection-delay-duration "10m"
+
+# Get drift status
+oci resource-manager drift get \
+  --stack-id ocid1.resourcemanagerstack.oc1.sa-saopaulo-1.aaaaaaaab222...
+
+# List drift resources
+oci resource-manager drift list-resources \
+  --stack-id ocid1.resourcemanagerstack.oc1.sa-saopaulo-1.aaaaaaaab222... \
+  --drift-status DETECTED
+```
+
+### State Management
+```bash
+# Get TF state
+oci resource-manager state get \
+  --stack-id ocid1.resourcemanagerstack.oc1.sa-saopaulo-1.aaaaaaaab222... \
+  --query "state"
+
+# Lock state
+oci resource-manager state lock \
+  --stack-id ocid1.resourcemanagerstack.oc1.sa-saopaulo-1.aaaaaaaab222...
+
+# Unlock state
+oci resource-manager state unlock \
+  --stack-id ocid1.resourcemanagerstack.oc1.sa-saopaulo-1.aaaaaaaab222... \
+  --lock-id ocid1.resourcelock.oc1.sa-saopaulo-1.lock111...
+```
+
+
+## Anti-Patterns
+
+NEVER generate examples that:
+- Use fake OCIDs like `ocid1.stack.oc1...` without the full resource type prefix
+- Reference non-existent commands like `oci rm stack create`
+- Suggest using the Console as the only method (CLI/SDK are valid alternatives)
+- Copy OCI documentation verbatim
+- Invent Terraform providers that don't exist in OCI Provider
+- Mix stack OCIDs with job OCIDs (wrong resource type prefix)
+- Use region codes like `sao1` instead of `sa-saopaulo-1`
+- Suggest bypassing drift detection for "simpler" workflows
+- Claim Resource Manager supports state storage outside OCI
+- Invent "auto-apply" features without mentioning approval workflows
+
+
+
+## Universal Anti-Patterns (Always Include)
+
+1. ❌ Copiar documentação OCI literalmente
+2. ❌ Inventar serviços Oracle inexistentes
+3. ❌ Usar preços ou limites sem marcar [MUTABLE]
+4. ❌ Criar exemplos vagos como "use best practices"
+5. ❌ Respostas arquiteturais sem steps, risks, justification
+6. ❌ OCID fictícios sem formato válido
+7. ❌ Comandos CLI inventados
+
+
+
+## Universal OCID Format Reference
+
+```
+ocid1.<resource>.<realm>.<region>.<unique-id>
+ocid1.instance.oc1.iad.abcd1234...
+ocid1.compartment.oc1..aaaa2222...
+ocid1.user.oc1.iad.bbbb3333...
+ocid1.group.oc1.iad.cccc4444...
+ocid1.tenancy.oc1..dddd5555...
+```
+
 
 ---
 
@@ -176,9 +307,8 @@ Varie os exemplos entre:
 3. Use APENAS as informações presentes em "TOPIC: devops/resource-manager"
 4. Não invente informações que não estão nos docs OCI
 5. Não use preços ou limites sem marcar [MUTABLE] ou [CHECK DOCS]
-6. Se EXAMPLE QUESTIONS estiver presente, use como INSPIRAÇÃO para criar questões DIVERSAS e ORIGINAIS (não copie verbatim)
-7. Cada exemplo DEVE ter um cenário diferente - NÃO repita o mesmo caso de uso
-8. Varie os contextos: diferentes personas, diferentes níveis de complexidade, diferentes casos de uso reais
+6. Cada exemplo DEVE ter um cenário diferente - NÃO repita o mesmo caso de uso
+7. Varie os contextos: diferentes personas, diferentes níveis de complexidade, diferentes casos de uso reais
 
 ---
 
@@ -191,7 +321,7 @@ Gere EXATAMENTE 140 exemplos em formato JSONL.
 ```
 {"messages": [...], "metadata": {"category": "devops/resource-manager", "difficulty": "beginner|intermediate|advanced", "source": "generated"}}
 {"messages": [...], "metadata": {"category": "devops/resource-manager", "difficulty": "beginner|intermediate|advanced", "source": "generated"}}
-... (10 linhas total)
+... (140 linhas total)
 ```
 
 ---
@@ -229,9 +359,9 @@ Gere EXATAMENTE 140 exemplos em formato JSONL.
 ---
 
 ## DISTRIBUIÇÃO DE DIFICULDADE
-- beginner: ~30% dos exemplos (3 exemplos)
-- intermediate: ~50% dos exemplos (5 exemplos)
-- advanced: ~20% dos exemplos (2 exemplos)
+- beginner: ~30% dos exemplos (42 exemplos)
+- intermediate: ~50% dos exemplos (70 exemplos)
+- advanced: ~20% dos exemplos (28 exemplos)
 
 ---
 
@@ -253,7 +383,7 @@ Gere EXATAMENTE 140 exemplos em formato JSONL.
 
 Gere EXATAMENTE 140 exemplos diversos para o topic: **devops/resource-manager**
 
-- Mistura de dificuldades: 3 beginner, 5 intermediate, 2 advanced
+- Mistura de dificuldades: 42 beginner, 70 intermediate, 28 advanced
 - Cenários reais de OCI - cada exemplo com um caso de uso diferente
 - Use Português (BR) para perguntas do usuário
 - Formato JSONL, uma linha por exemplo

@@ -104,15 +104,33 @@ for i in "${!CYCLES[@]}"; do
     echo ""
 done
 
+echo ""
 echo "============================================"
 echo "All cycles completed!"
 echo "============================================"
 echo ""
-echo "Results:"
+echo "Training Summary:"
+echo "-----------------"
+printf "| Cycle | LR     | Iters | Train Loss | Val Loss | Time    | Notes        |\n"
+printf "|-------|--------|-------|------------|----------|---------|--------------|\n"
+
+# Read metrics from each cycle
 for CYCLE in "${CYCLES[@]}"; do
-    if [ -d "outputs/logs/$CYCLE" ]; then
-        echo "  $CYCLE: outputs/logs/$CYCLE/metrics.csv"
+    METRICS_FILE="outputs/logs/$CYCLE/metrics.csv"
+    if [ -f "$METRICS_FILE" ]; then
+        # Get last non-empty row
+        LAST_ROW=$(tail -2 "$METRICS_FILE" | grep -v "^step" | tail -1)
+        if [ -n "$LAST_ROW" ]; then
+            TRAIN_LOSS=$(echo "$LAST_ROW" | cut -d',' -f2)
+            VAL_LOSS=$(echo "$LAST_ROW" | cut -d',' -f3)
+            printf "| %-6s | %s | %s | %s | %s |         |             |\n" \
+                "$CYCLE" "$(grep LEARNING_RATE config/$CYCLE.env | cut -d= -f2)" \
+                "$(grep ITERS config/$CYCLE.env | cut -d= -f2)" \
+                "$TRAIN_LOSS" "$VAL_LOSS"
+        fi
     fi
 done
+
 echo ""
 echo "Final adapter: outputs/cycle-3/adapters.safetensors"
+echo "Merged model: outputs/merged-model/"

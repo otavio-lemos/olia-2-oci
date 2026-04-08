@@ -128,7 +128,7 @@ Example categories:
 
 ## TOPIC: storage/object
 
-#### storage/object (10)
+#### storage/object (140)
 - Object Storage buckets
 - Pre-authenticated requests
 - Lifecycle policies, versioning
@@ -143,28 +143,40 @@ You are an OCI specialist with expertise in Object Storage. Provide technical gu
 
 ---
 
-## EXAMPLE QUESTIONS (para inspiração - gere questões originais)
-
-- Como criar um bucket no OCI Object Storage?
-- Como configurar lifecycle policies para expirar objetos antigos?
-- Como criar pre-authenticated requests para acesso temporário?
-- Como habilitar versioning em um bucket?
-- Como configurar replicação entre regiões?
-- Como fazer upload de arquivos grandes com multipart?
-- Como restringir acesso público a um bucket?
-- Como configurar Object Storage como backend de static website?
-- Como monitorar custos de Object Storage?
-- Como migrar dados de S3 para OCI Object Storage?
-
----
-
 ## DIVERSITY REQUIREMENTS (OBRIGATÓRIO)
 
 Varie os exemplos entre:
 - Diferentes tipos de storage (block, object, file)
-- Diferentes casos de uso (backup, archive, active data)
-- Diferentes personas (DBA, developer, data engineer)
-- Diferentes problemas (performance, cost, security)
+- Diferentes cenários (backup, archive, shared storage)
+- Diferentes personas (DBA, sysadmin, data engineer)
+- Diferentes problemas (performance, access, cost optimization)
+
+
+
+
+## Universal Anti-Patterns (Always Include)
+
+1. ❌ Copiar documentação OCI literalmente
+2. ❌ Inventar serviços Oracle inexistentes
+3. ❌ Usar preços ou limites sem marcar [MUTABLE]
+4. ❌ Criar exemplos vagos como "use best practices"
+5. ❌ Respostas arquiteturais sem steps, risks, justification
+6. ❌ OCID fictícios sem formato válido
+7. ❌ Comandos CLI inventados
+
+
+
+## Universal OCID Format Reference
+
+```
+ocid1.<resource>.<realm>.<region>.<unique-id>
+ocid1.instance.oc1.iad.abcd1234...
+ocid1.compartment.oc1..aaaa2222...
+ocid1.user.oc1.iad.bbbb3333...
+ocid1.group.oc1.iad.cccc4444...
+ocid1.tenancy.oc1..dddd5555...
+```
+
 
 ---
 
@@ -175,9 +187,8 @@ Varie os exemplos entre:
 3. Use APENAS as informações presentes em "TOPIC: storage/object"
 4. Não invente informações que não estão nos docs OCI
 5. Não use preços ou limites sem marcar [MUTABLE] ou [CHECK DOCS]
-6. Se EXAMPLE QUESTIONS estiver presente, use como INSPIRAÇÃO para criar questões DIVERSAS e ORIGINAIS (não copie verbatim)
-7. Cada exemplo DEVE ter um cenário diferente - NÃO repita o mesmo caso de uso
-8. Varie os contextos: diferentes personas, diferentes níveis de complexidade, diferentes casos de uso reais
+6. Cada exemplo DEVE ter um cenário diferente - NÃO repita o mesmo caso de uso
+7. Varie os contextos: diferentes personas, diferentes níveis de complexidade, diferentes casos de uso reais
 
 ---
 
@@ -190,7 +201,7 @@ Gere EXATAMENTE 140 exemplos em formato JSONL.
 ```
 {"messages": [...], "metadata": {"category": "storage/object", "difficulty": "beginner|intermediate|advanced", "source": "generated"}}
 {"messages": [...], "metadata": {"category": "storage/object", "difficulty": "beginner|intermediate|advanced", "source": "generated"}}
-... (10 linhas total)
+... (140 linhas total)
 ```
 
 ---
@@ -228,9 +239,9 @@ Gere EXATAMENTE 140 exemplos em formato JSONL.
 ---
 
 ## DISTRIBUIÇÃO DE DIFICULDADE
-- beginner: ~30% dos exemplos (3 exemplos)
-- intermediate: ~50% dos exemplos (5 exemplos)
-- advanced: ~20% dos exemplos (2 exemplos)
+- beginner: ~30% dos exemplos (42 exemplos)
+- intermediate: ~50% dos exemplos (70 exemplos)
+- advanced: ~20% dos exemplos (28 exemplos)
 
 ---
 
@@ -252,7 +263,7 @@ Gere EXATAMENTE 140 exemplos em formato JSONL.
 
 Gere EXATAMENTE 140 exemplos diversos para o topic: **storage/object**
 
-- Mistura de dificuldades: 3 beginner, 5 intermediate, 2 advanced
+- Mistura de dificuldades: 42 beginner, 70 intermediate, 28 advanced
 - Cenários reais de OCI - cada exemplo com um caso de uso diferente
 - Use Português (BR) para perguntas do usuário
 - Formato JSONL, uma linha por exemplo
