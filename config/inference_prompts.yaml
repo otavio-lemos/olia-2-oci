@@ -1,0 +1,60 @@
+prompts:
+  - id: compute_basic
+    category: oci-core/compute
+    difficulty: beginner
+    prompt: "Como criar uma instância de compute no OCI?"
+    max_tokens: 512
+  
+  - id: storage_bucket
+    category: oci-core/storage
+    difficulty: intermediate
+    prompt: "Qual é o processo para criar um Object Storage bucket com versionamento?"
+    max_tokens: 768
+  
+  - id: networking_vcn
+    category: oci-core/networking
+    difficulty: intermediate
+    prompt: "Explique como criar um VCN com subnet pública e privada no OCI."
+    max_tokens: 768
+  
+  - id: database_dbcs
+    category: oci-core/database
+    difficulty: advanced
+    prompt: "Quais são os passos para configurar um Autonomous Database com ATP?"
+    max_tokens: 1024
+  
+  - id: security_iam
+    category: oci-security/iam
+    difficulty: intermediate
+    prompt: "Como criar uma política IAM para permitir que um grupo inicie instâncias?"
+    max_tokens: 512
+  
+  - id: terraform_basic
+    category: terraform/compute
+    difficulty: beginner
+    prompt: "Mostre um exemplo de provider Terraform para OCI."
+    max_tokens: 512
+  
+  - id: migration_aws
+    category: migration/aws
+    difficulty: advanced
+    prompt: "Quais são as ferramentas disponíveis para migrar workloads AWS para OCI?"
+    max_tokens: 768
+  
+  - id: troubleshooting
+    category: troubleshooting
+    difficulty: intermediate
+    prompt: "Uma instância não consegue acessar a internet. Quais verificações fazer?"
+    max_tokens: 768
+
+system_prompt: "Você é um arquiteto especialista em Oracle Cloud Infrastructure (OCI). Forneça respostas técnicas precisas, com passos claros, código quando necessário, e explicaçao dos custos e riscos quando aplicável."
+
+sampling:
+  temperature: 0.1
+  top_p: 0.9
+  top_k: 40
+
+output:
+  format: json
+  include_metrics: true
+  save_to: outputs/inference_results.json

@@ -130,7 +130,18 @@ python scripts/export_gguf.py --cycle cycle-1 --quant q4,q5,q8 --ollama
 ```bash
 python scripts/evaluate_model.py --cycle cycle-1 outputs/cycle-1 data/eval.jsonl outputs/benchmarks
 python scripts/evaluate_ft_only.py --cycle cycle-1 outputs/cycle-1 data/eval.jsonl outputs/benchmarks
+python scripts/eval_semantic.py data/eval.jsonl  # Avaliação com similarity semântica
 ```
+
+### 7. Inference
+
+```bash
+python scripts/run_inference_v2.py --config config/inference_prompts.yaml
+python scripts/run_inference_v2.py --config config/inference_prompts.yaml --adapter outputs/cycle-1/adapters
+python scripts/run_inference_v2.py --config config/inference_prompts.yaml --base-only
+```
+
+Prompts em `config/inference_prompts.yaml`, output JSON estruturado em `outputs/inference_results.json`.
 
 ---
 
@@ -148,19 +159,19 @@ python scripts/evaluate_ft_only.py --cycle cycle-1 outputs/cycle-1 data/eval.jso
 │   └── eval.jsonl                     # 325
 ├── scripts/
 │   ├── generate_diverse_v2.py         # Gerador
-│   ├── validate_jsonl.py             # Validação estrutural
-│   ├── clean_dataset.py              # Limpeza
-│   ├── dedupe_dataset.py             # Deduplicação
-│   ├── build_dataset_fixed.py        # Split estratificado
+│   ├── validate_jsonl.py              # Validação estrutural
+│   ├── clean_dataset.py               # Limpeza
+│   ├── dedupe_dataset.py              # Deduplicação character-level
+│   ├── dedupe_embedding.py            # Deduplicação semantic (embeddings)
+│   ├── build_dataset_fixed.py         # Split estratificado
 │   ├── export_gguf.py                 # Export GGUF
-│   ├── evaluate_model.py             # Avaliação
-│   └── evaluate_ft_only.py           # Avaliação FT
-├── training/
-│   ├── train_mlx_tune.py             # Treino principal
-│   └── run_all_cycles.sh             # Orquestrador
-└── outputs/
-    └── cycle-1/                       # Adapter output
-```
+│   ├── evaluate_model.py              # Avaliação
+│   ├── evaluate_ft_only.py            # Avaliação FT
+│   ├── eval_semantic.py               # Avaliação com similarity semântica
+│   └── run_inference_v2.py            # Inference estruturado (YAML)
+├── config/
+│   ├── cycle-1.env                    # Configuração do treino
+│   └── inference_prompts.yaml        # Prompts para inference
 
 ---
 
@@ -180,7 +191,4 @@ pip install -r requirements.txt
 ## Limitações
 
 1. **100% single-turn** - Dataset não tem conversas multi-turn.
-2. **Scoring regex-based** - Avaliação usa regex, não embeddings. (existe `semantic_scorer.py` mas não integrado).
-3. **Inference manual** - `run_inference.sh` com 4 prompts hardcoded, sem output estruturado.
-4. **Deduplicação character-level** - `dedupe_dataset.py` usa similarity por caracter, não embeddings.
-5. **Sem RAG** - Não há acesso à documentação OCI em tempo real.
+2. **Sem RAG** - Não há acesso à documentação OCI em tempo real.
