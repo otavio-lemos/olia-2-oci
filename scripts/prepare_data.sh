@@ -33,19 +33,9 @@ else
 fi
 
 echo ""
-echo "=== Step 4b: Deduplicate (embedding-based, semantic) ==="
-echo "Note: Requires sentence-transformers installed"
-if python3 -c "import sentence_transformers" 2>/dev/null; then
-    python3 scripts/dedupe_embedding.py \
-        --input data/all_curated_clean.jsonl \
-        --output data/all_curated_semantic_dedup.jsonl \
-        --threshold 0.90
-    cp data/all_curated_semantic_dedup.jsonl data/all_curated_clean.jsonl
-    echo "Deduplicated (semantic): $(wc -l < data/all_curated_clean.jsonl) lines"
-else
-    echo "SKIP: sentence-transformers not installed"
-    echo "Install with: pip install sentence-transformers"
-fi
+echo "=== Step 4b: Deduplicate (embedding-based, semantic) - OPTIONAL ==="
+echo "NOTE: Semantic dedup disabled - too aggressive, removes valid examples"
+echo "Enable manually if needed - see scripts/dedupe_embedding.py --help"
 
 echo ""
 echo "=== Step 5: Build dataset splits ==="
