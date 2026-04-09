@@ -16,12 +16,53 @@ Fine-tuning de LLM especialista em Oracle Cloud Infrastructure (OCI) usando Appl
 
 Pipeline completo: geração dataset → validação → treino MLX LoRA → avaliação.
 
-```
-generate_diverse_v2.py → data/curated/ (71 topics) → build_dataset_fixed.py → train/valid/eval.jsonl
-                                                                                           ↓
-CYCLE=cycle-1 python training/train_mlx_tune.py → outputs/cycle-1/adapters/
-                                                                                           ↓
-evaluate_model.py → outputs/benchmarks/
+```mermaid
+flowchart TB
+    subgraph GERAÇÃO["FASE 1: Geração (Agente/LLM)"]
+        A["generate_diverse_v2.py"]
+        A --> B["data/curated/<br/>71 arquivos JSONL"]
+    end
+
+    subgraph PREPARAÇÃO["FASE 2: Preparação (scripts/prepare_data.sh)"]
+        B --> C1["Step 1: Concatena<br/>all_curated.jsonl"]
+        C1 --> C2["Step 2: Valida<br/>validate_jsonl.py"]
+        C2 --> C3["Step 3: Limpa<br/>clean_dataset.py"]
+        C3 --> C4["Step 4: Dedup<br/>dedupe_dataset.py"]
+        C4 --> C5["Step 5: Split<br/>build_dataset_fixed.py"]
+        C5 --> D["train.jsonl<br/>valid.jsonl<br/>eval.jsonl"]
+    end
+
+    subgraph TREINO["FASE 3: Treinamento"]
+        D --> E["CYCLE=cycle-1<br/>train_mlx_tune.py"]
+        E --> F["outputs/cycle-1/adapters/<br/>adapters.safetensors"]
+    end
+
+    subgraph EXPORT["FASE 4: Export"]
+        F --> G1["mlx_lm fuse<br/>→ merged-model"]
+        F --> G2["export_gguf.py<br/>→ GGUF (Q4/Q5/Q8)"]
+    end
+
+    subgraph AVALIAÇÃO["FASE 5: Avaliação"]
+        F --> H1["evaluate_model.py<br/>base vs FT"]
+        F --> H2["evaluate_ft_only.py<br/>FT apenas"]
+        F --> H3["eval_semantic.py<br/>com embeddings"]
+        H1 --> I["outputs/benchmarks/"]
+        H2 --> I
+        H3 --> I
+    end
+
+    subgraph INFERENCE["FASE 6: Inference"]
+        F --> J1["run_inference_v2.py<br/>YAML estruturado"]
+        F --> J2["run_inference.sh<br/>4 prompts hardcoded"]
+        F --> J3["mlx_lm generate<br/>online"]
+    end
+
+    style GERAÇÃO fill:#e1f5fe
+    style PREPARAÇÃO fill:#fff3e0
+    style TREINO fill:#e8f5e9
+    style EXPORT fill:#f3e5f5
+    style AVALIAÇÃO fill:#ffebee
+    style INFERENCE fill:#e0f2f1
 ```
 
 **Stack:** Python 3.12, MLX 0.31.1, MLX-LM 0.31.1, MLX-Tune 0.4.18, JSONL chat format.
