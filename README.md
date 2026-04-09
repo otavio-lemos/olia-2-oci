@@ -181,6 +181,8 @@ python scripts/performance/eval_cache.py --stats
 
 ### 5. Export e Inferência
 
+#### Opção 1: Export para MLX (padrão)
+
 ```bash
 # Fundir adapter com base model (safetensors)
 CYCLE=cycle-3 bash training/export_adapter.sh
@@ -190,6 +192,39 @@ CYCLE=cycle-3 bash training/export_adapter.sh
 
 # Testar inferência (4 prompts hardcoded, fallback: merged → adapter → base)
 bash training/run_inference.sh
+```
+
+#### Opção 2: Export para GGUF (Ollama/llama.cpp)
+
+```bash
+# Export para GGUF com quantização e importação para Ollama
+python scripts/export_gguf.py --cycle cycle-1 --quant q4,q5,q8 --ollama
+
+# Apenas Q4 (mais comum)
+python scripts/export_gguf.py --cycle cycle-1 --quant q4 --ollama
+
+# Skip fuse (usar merged model existente)
+python scripts/export_gguf.py --cycle cycle-1 --skip-fuse
+
+# O script gera em outputs/cycle-N/gguf/:
+#   model-f16.gguf   — FP16 (~16GB para 8B)
+#   model-q4.gguf    — Q4_K_M (~4.5GB, recomendado)
+#   model-q5.gguf    — Q5_K_M (~5.3GB)
+#   model-q8.gguf    — Q8_0 (~8GB)
+#   Modelfile-oc*   — arquivo para Ollama
+```
+
+**Quantização recomendada:**
+| Tipo | Tamanho (8B) | Qualidade |
+|------|--------------|-----------|
+| Q4_K_M | ~4.5 GB | Melhor custo-benefício |
+| Q5_K_M | ~5.3 GB | Alta qualidade |
+| Q8_0 | ~8 GB | Quase sem perda |
+
+Para importar manualmente para Ollama:
+```bash
+ollama create oci-cycle-1 -f outputs/cycle-1/gguf/Modelfile-oc*
+ollama run oci-cycle-1
 ```
 
 ### 6. Avaliação
