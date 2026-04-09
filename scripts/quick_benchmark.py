@@ -22,6 +22,9 @@ def main():
         "--output", default="outputs/benchmarks/quick", help="Output dir"
     )
     parser.add_argument("--samples", type=int, default=50, help="Number of samples")
+    parser.add_argument(
+        "--max-tokens", type=int, default=512, help="Max tokens to generate"
+    )
     args = parser.parse_args()
 
     output_dir = Path(args.output)
@@ -32,7 +35,7 @@ def main():
     print("=" * 60)
     print(f"Model: {args.model}")
     print(f"Samples: {args.samples}")
-    print(f"Max tokens: 512")
+    print(f"Max tokens: {args.max_tokens}")
     print("=" * 60)
 
     with open(args.eval_file, "r", encoding="utf-8") as f:
@@ -92,7 +95,7 @@ def main():
                 model,
                 tokenizer,
                 prompt=prompt_tokens,
-                max_tokens=512,
+                max_tokens=args.max_tokens,
                 sampler=sampler,
                 verbose=False,
             )

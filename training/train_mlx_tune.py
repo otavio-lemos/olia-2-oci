@@ -1,26 +1,29 @@
 #!/usr/bin/env python3
 """
 training/train_mlx_tune.py
-OCI Specialist LLM - MLX-Tune Training
+OCI Specialist LLM - MLX-Tune Training (SFTTrainer API)
 
-Usa a CLI oficial mlx_lm.lora para treinamento (metodo testado pela Apple).
+Uses mlx-tune library with SFTTrainer API (Unsloth-compatible).
+Supports: warmup, weight_decay, grad_clip, lr_scheduler.
 
-Uso:
-    CYCLE=cycle-1 python training/train_mlx_tune.py
-    CYCLE=cycle-2 python training/train_mlx_tune.py
-    CYCLE=cycle-3 python training/train_mlx_tune.py
+Usage:
+    bash training/run_all_cycles.sh                 # treina 1 ciclo
+    bash training/run_all_cycles.sh --fresh       # limpa e treina 1 ciclo
 """
 
 import argparse
-import csv
 import json
 import os
 import shutil
-import subprocess
+import signal
 import sys
 import time
+import csv
 from datetime import datetime, timezone
 from pathlib import Path
+
+from datasets import load_dataset, Dataset
+from mlx_tune import FastLanguageModel, SFTTrainer, SFTConfig
 
 
 def load_cycle_config(cycle_name):
@@ -50,6 +53,14 @@ def load_dataset_jsonl(path):
     return dataset
 
 
+def prepare_chat_dataset(messages_list, tokenizer):
+    texts = []
+    for example in messages_list:
+        text = tokenizer.apply_chat_template(example["messages"], tokenize=False)
+        texts.append({"text": text})
+    return texts
+
+
 class MetricsLogger:
     def __init__(self, cycle_name):
         self.cycle_name = cycle_name
@@ -64,21 +75,27 @@ class MetricsLogger:
         print(line, flush=True)
         self.all_lines.append(line)
 
-    def record_metric(self, step, train_loss, val_loss=None):
+    def record_metric(self, step, train_loss, val_loss=None, elapsed=None):
         self.metrics.append(
             {
                 "step": step,
                 "train_loss": train_loss,
                 "val_loss": val_loss or "",
+                "elapsed": elapsed or "",
                 "timestamp": datetime.now(timezone.utc).isoformat(),
             }
         )
 
-    def save(self):
+    def save(self, training_output=None):
+        if training_output:
+            self.all_lines.append("\n--- Training Output ---\n")
+            self.all_lines.append(training_output)
+            self.all_lines.append("\n--- End Training Output ---\n")
+
         with open(self.log_file, "w") as f:
             f.write("\n".join(self.all_lines) + "\n")
         if self.metrics:
-            fieldnames = ["step", "train_loss", "val_loss", "timestamp"]
+            fieldnames = ["step", "train_loss", "val_loss", "elapsed", "timestamp"]
             with open(self.metrics_file, "w", newline="") as f:
                 writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction="ignore")
                 writer.writeheader()
@@ -86,6 +103,21 @@ class MetricsLogger:
             self.log(
                 f"\n[metrics] Exported {len(self.metrics)} rows to {self.metrics_file}"
             )
+
+
+class TrainingCallback:
+    def __init__(self, logger, total_steps):
+        self.logger = logger
+        self.total_steps = total_steps
+
+    def on_train_begin(self, args, control, logs=None):
+        self.logger.log(f"Training started at step 1/{self.total_steps}")
+
+    def on_step_end(self, args, control, logs=None):
+        if logs:
+            step = logs.get("step", 0)
+            loss = logs.get("loss", 0)
+            self.logger.log(f"Step {step}: loss={loss:.4f}")
 
 
 def main():
@@ -99,183 +131,201 @@ def main():
     cfg = load_cycle_config(cycle)
     logger = MetricsLogger(cycle)
 
-    # All params from .env
     model_name = cfg["MODEL"]
     train_data = cfg["TRAIN_DATA"]
     valid_data = cfg.get("VALID_DATA", "data/valid.jsonl")
-    output_dir = cfg["OUTPUT_DIR"]
-    prev_adapter = cfg.get("PREV_ADAPTER", "")
     iters = int(cfg["ITERS"])
-    max_seq_length = int(cfg["MAX_SEQ_LENGTH"])
     batch_size = int(cfg["BATCH_SIZE"])
     lr = float(cfg["LEARNING_RATE"])
     rank = int(cfg["LORA_RANK"])
     alpha = int(cfg["LORA_ALPHA"])
     dropout = float(cfg["LORA_DROPOUT"])
+    target_modules = cfg.get(
+        "TARGET_MODULES", "q_proj,k_proj,v_proj,o_proj,gate_proj,up_proj,down_proj"
+    ).split(",")
     grad_accum = int(cfg["GRADIENT_ACCUMULATION"])
-    val_batches = int(cfg.get("VAL_BATCHES", "5"))
-    num_layers = int(cfg.get("NUM_LAYERS", "20"))
+    num_layers = int(cfg.get("NUM_LAYERS", "32"))
     weight_decay = float(cfg.get("WEIGHT_DECAY", "0.01"))
     warmup_steps = int(cfg.get("WARMUP_STEPS", "0"))
-    logging_steps = int(cfg.get("LOGGING_STEPS", "10"))
-    save_steps = int(cfg.get("SAVE_STEPS", "50"))
+    lr_scheduler = cfg.get("LR_SCHEDULER", "cosine")
+    grad_clip = float(cfg.get("GRADIENT_CLIP_NORM", "1.0"))
+    max_seq_length = int(cfg.get("MAX_SEQ_LENGTH", "2048"))
     seed = int(cfg.get("SEED", "42"))
     grad_checkpoint = cfg.get("GRADIENT_CHECKPOINTING", "false").lower() == "true"
+    output_dir = cfg["OUTPUT_DIR"]
+    prev_adapter = cfg.get("PREV_ADAPTER", "")
+    val_batches = int(cfg.get("VAL_BATCHES", "5"))
+    logging_steps = int(cfg.get("LOGGING_STEPS", "10"))
+    save_steps = int(cfg.get("SAVE_STEPS", "250"))
+    eval_steps = int(cfg.get("EVAL_STEPS", "250"))
 
-    # Clean output directory if --fresh
-    if args.fresh and Path(output_dir).exists():
-        logger.log(f"[fresh] Cleaning output directory: {output_dir}")
-        shutil.rmtree(output_dir)
+    output_path = Path(output_dir)
+    if args.fresh and output_path.exists():
+        logger.log(f"[fresh] Cleaning output directory: {output_path}")
+        shutil.rmtree(output_path)
         logger.log(f"[fresh] Directory cleaned. Starting fresh.")
+    output_path.mkdir(parents=True, exist_ok=True)
+
+    adapter_path = output_path / "adapters"
 
     logger.log("=" * 60)
-    logger.log("OCI Specialist LLM - MLX Training (mlx_lm.lora)")
+    logger.log("OCI Specialist LLM - MLX-Tune v2 (SFTTrainer API)")
     logger.log("=" * 60)
     logger.log(f"Cycle: {cycle}")
     logger.log(f"Model: {model_name}")
     logger.log(f"Train: {train_data}")
-    logger.log(f"Output: {output_dir}")
+    logger.log(f"Output: {output_path}")
     logger.log(f"Resume: {prev_adapter or '(none, training from scratch)'}")
     logger.log(f"Batch Size: {batch_size}")
     logger.log(f"Grad Accum: {grad_accum}")
-    logger.log(f"Val Batches: {val_batches}")
     logger.log(f"Learning Rate: {lr}")
     logger.log(f"Weight Decay: {weight_decay}")
     logger.log(f"Warmup Steps: {warmup_steps}")
+    logger.log(f"LR Scheduler: {lr_scheduler}")
+    logger.log(f"Grad Clip: {grad_clip}")
     logger.log(f"LoRA Rank: {rank}")
     logger.log(f"LoRA Alpha: {alpha}")
-    logger.log(f"LoRA Dropout: {dropout}")
     logger.log(f"LoRA Layers: {num_layers}")
     logger.log(f"Iters: {iters}")
     logger.log(f"Max Seq Length: {max_seq_length}")
-    logger.log(f"Logging Steps: {logging_steps}")
-    logger.log(f"Save Steps: {save_steps}")
     logger.log(f"Seed: {seed}")
     logger.log(f"Grad Checkpoint: {grad_checkpoint}")
+    logger.log(f"Adapter Path: {adapter_path}")
+    if prev_adapter and Path(prev_adapter).exists():
+        logger.log(f"Resuming from: {prev_adapter}")
     logger.log("=" * 60)
     logger.log("")
 
-    # Prepare data directory for mlx_lm format
-    data_dir = Path(output_dir) / "data"
-    data_dir.mkdir(parents=True, exist_ok=True)
-
-    # Convert chat format to text format for mlx_lm
-    try:
-        from transformers import AutoTokenizer
-
-        tokenizer = AutoTokenizer.from_pretrained(model_name)
-    except Exception:
-        logger.log("ERROR: Failed to load tokenizer")
-        sys.exit(1)
-
-    logger.log("Preparing dataset...")
-    train_dataset = load_dataset_jsonl(train_data)
-    with open(data_dir / "train.jsonl", "w") as f:
-        for example in train_dataset:
-            text = tokenizer.apply_chat_template(example["messages"], tokenize=False)
-            f.write(json.dumps({"text": text}) + "\n")
-    logger.log(f"  Train: {len(train_dataset)} examples")
-
-    valid_dataset = load_dataset_jsonl(valid_data)
-    with open(data_dir / "valid.jsonl", "w") as f:
-        for example in valid_dataset:
-            text = tokenizer.apply_chat_template(example["messages"], tokenize=False)
-            f.write(json.dumps({"text": text}) + "\n")
-    logger.log(f"  Valid: {len(valid_dataset)} examples")
-
-    # Build mlx_lm.lora command
-    cmd = [
-        sys.executable,
-        "-m",
-        "mlx_lm",
-        "lora",
-        "--model",
+    logger.log("Loading model...")
+    model, tokenizer = FastLanguageModel.from_pretrained(
         model_name,
-        "--train",
-        "--data",
-        str(data_dir),
-        "--iters",
-        str(iters),
-        "--learning-rate",
-        str(lr),
-        "--batch-size",
-        str(batch_size),
-        "--grad-accumulation-steps",
-        str(grad_accum),
-        "--num-layers",
-        str(num_layers),
-        "--adapter-path",
-        str(Path(output_dir) / "adapters"),
-        "--steps-per-report",
-        str(logging_steps),
-        "--save-every",
-        str(save_steps),
-        "--seed",
-        str(seed),
-    ]
+        max_seq_length=max_seq_length,
+        load_in_4bit=True,
+        trust_remote_code=True,
+    )
+    logger.log("Model loaded")
 
-    if grad_checkpoint:
-        cmd.append("--grad-checkpoint")
-
+    # Load previous adapter weights if resuming
     if prev_adapter and Path(prev_adapter).exists():
         adapter_file = Path(prev_adapter) / "adapters.safetensors"
         if adapter_file.exists():
-            cmd.extend(["--resume-adapter-file", str(adapter_file)])
-            logger.log(f"Resuming from: {adapter_file}")
+            logger.log(f"Loading adapter from: {prev_adapter}")
+            model.load_adapter(str(prev_adapter))
+            model.configure_lora(
+                r=rank,
+                lora_alpha=alpha,
+                target_modules=target_modules,
+                lora_dropout=dropout,
+            )
+            model._lora_applied = True  # Skip _apply_lora in SFTTrainer
+            logger.log("Adapter loaded and LoRA configured (skipping _apply_lora)")
+    else:
+        model = FastLanguageModel.get_peft_model(
+            model,
+            r=rank,
+            lora_alpha=alpha,
+            target_modules=target_modules,
+            lora_dropout=dropout,
+            bias="none",
+            use_gradient_checkpointing=grad_checkpoint,
+        )
+
+    logger.log("Loading datasets...")
+    train_dataset = load_dataset_jsonl(train_data)
+    valid_dataset = load_dataset_jsonl(valid_data)
+
+    logger.log("Converting to chat format...")
+    train_texts = prepare_chat_dataset(train_dataset, tokenizer)
+    valid_texts = prepare_chat_dataset(valid_dataset, tokenizer)
+
+    train_hf = Dataset.from_list(train_texts)
+    valid_hf = Dataset.from_list(valid_texts)
+
+    logger.log(f"  Train: {len(train_hf)} examples")
+    logger.log(f"  Valid: {len(valid_hf)} examples")
+
+    sft_config = SFTConfig(
+        output_dir=str(output_path),
+        per_device_train_batch_size=batch_size,
+        per_device_eval_batch_size=val_batches,
+        learning_rate=lr,
+        warmup_steps=warmup_steps,
+        weight_decay=weight_decay,
+        max_grad_norm=grad_clip,
+        max_steps=iters,
+        gradient_accumulation_steps=grad_accum,
+        lr_scheduler_type=lr_scheduler,
+        eval_steps=eval_steps,
+        save_steps=save_steps,
+        logging_steps=logging_steps,
+        logging_first_step=True,
+        save_total_limit=3,
+        report_to="none",
+        seed=seed,
+        data_seed=seed,
+        num_layers=num_layers,
+        grad_checkpoint=grad_checkpoint,
+    )
+
+    logger.log("Creating trainer...")
+    trainer = SFTTrainer(
+        model=model,
+        train_dataset=train_hf,
+        eval_dataset=valid_hf,
+        tokenizer=tokenizer,
+        args=sft_config,
+        adapter_path="adapters",
+    )
 
     logger.log("")
-    logger.log(f"Running: {' '.join(cmd)}")
+    logger.log(f"Starting training for {iters} steps...")
     logger.log("")
 
+    def save_on_interrupt(signum, frame):
+        logger.log("\n[INTERRUPTED] Saving logs before exit...")
+        logger.save()
+        sys.exit(1)
+
+    signal.signal(signal.SIGINT, save_on_interrupt)
+
+    logger.log("Starting training...")
     start_time = time.time()
-    result = subprocess.run(cmd, capture_output=False, text=True)
+
+    # Train and capture metrics
+    train_result = trainer.train()
     elapsed = time.time() - start_time
 
-    # Parse final metrics from output
-    final_train_loss = None
-    final_val_loss = None
-    for line in logger.all_lines:
-        if "Iter " in line and ": Train loss " in line:
-            parts = line.split("Train loss ")
-            if len(parts) > 1:
-                final_train_loss = float(parts[1].split(",")[0].strip())
-        if "Iter " in line and ": Val loss " in line:
-            parts = line.split("Val loss ")
-            if len(parts) > 1:
-                final_val_loss = float(parts[1].split(",")[0].strip())
-
-    if final_train_loss is not None:
-        logger.record_metric(iters, final_train_loss, final_val_loss)
+    # Extract training metrics
+    if hasattr(train_result, "metrics"):
+        metrics_dict = train_result.metrics
+        train_loss = metrics_dict.get("train_loss", "N/A")
+        logger.record_metric(step=iters, train_loss=train_loss, elapsed=elapsed)
 
     logger.log("")
     logger.log(f"  Training completed in {elapsed:.1f}s ({elapsed / 60:.1f} min)")
 
-    # Save adapter config
-    adapter_dir = Path(output_dir) / "adapters"
-    if adapter_dir.exists():
-        logger.log("[6/6] Adapters saved")
-        logger.log(f"  Adapters saved to: {output_dir}")
+    logger.save()
+    logger.log("[METRICS] Logs saved!")
 
+    adapter_file = Path(adapter_path) / "adapters.safetensors"
+    if not adapter_file.exists():
+        logger.log("[6/6] Saving adapter...")
+        model.save_pretrained(str(adapter_path))
+    else:
+        logger.log("[6/6] Adapter already saved by trainer")
+
+    logger.log(f"  Adapters saved to: {adapter_path}")
     logger.log("")
     logger.log("=" * 60)
     logger.log("Training complete!")
-    logger.log(f"Adapters: {output_dir}")
+    logger.log(f"Adapters: {adapter_path}")
     logger.log(f"Logs: outputs/logs/{cycle}/")
-    if final_train_loss is not None:
-        logger.log("")
-        logger.log("Final Metrics:")
-        logger.log(f"  Train Loss: {final_train_loss:.3f}")
-        logger.log(
-            f"  Val Loss:   {final_val_loss:.3f}"
-            if final_val_loss
-            else "  Val Loss:   N/A"
-        )
     logger.log("=" * 60)
 
     logger.save()
 
-    if result.returncode != 0:
-        sys.exit(result.returncode)
+    logger.log("")
+    logger.log("Done!")
 
 
 if __name__ == "__main__":

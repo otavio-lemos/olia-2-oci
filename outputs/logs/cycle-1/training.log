@@ -1,5 +1,5 @@
 ============================================================
-OCI Specialist LLM - MLX Training (mlx_lm.lora)
+OCI Specialist LLM - MLX-Tune v2 (SFTTrainer API)
 ============================================================
 Cycle: cycle-1
 Model: mlx-community/Meta-Llama-3.1-8B-Instruct-4bit
@@ -8,35 +8,31 @@ Output: outputs/cycle-1
 Resume: (none, training from scratch)
 Batch Size: 1
 Grad Accum: 2
-Val Batches: 5
-Learning Rate: 2e-05
+Learning Rate: 0.0002
 Weight Decay: 0.01
-Warmup Steps: 20
+Warmup Steps: 200
+LR Scheduler: cosine
+Grad Clip: 1.0
 LoRA Rank: 8
 LoRA Alpha: 16
-LoRA Dropout: 0.0
-LoRA Layers: 8
-Iters: 200
+LoRA Layers: 32
+Iters: 2583
 Max Seq Length: 2048
-Logging Steps: 5
-Save Steps: 50
 Seed: 42
 Grad Checkpoint: True
+Adapter Path: outputs/cycle-1/adapters
 ============================================================
 
-Preparing dataset...
-  Train: 7455 examples
-  Valid: 1491 examples
+Loading model...
+Model loaded
+Loading datasets...
+Converting to chat format...
+  Train: 2583 examples
+  Valid: 495 examples
+Creating trainer...
 
-Running: /Users/otaviolemos/ml/olia-2-oci/venv/bin/python -m mlx_lm lora --model mlx-community/Meta-Llama-3.1-8B-Instruct-4bit --train --data outputs/cycle-1/data --iters 200 --learning-rate 2e-05 --batch-size 1 --grad-accumulation-steps 2 --num-layers 8 --adapter-path outputs/cycle-1/adapters --steps-per-report 5 --save-every 50 --seed 42 --grad-checkpoint
+Starting training for 2583 steps...
 
+Starting training...
 
-  Training completed in 724.5s (12.1 min)
-[6/6] Adapters saved
-  Adapters saved to: outputs/cycle-1
-
-============================================================
-Training complete!
-Adapters: outputs/cycle-1
-Logs: outputs/logs/cycle-1/
-============================================================
+[INTERRUPTED] Saving logs before exit...

@@ -3,13 +3,14 @@
 # Exporta adapter LoRA para modelo merged usando mlx-tune
 #
 # Uso:
-#   CYCLE=cycle-3 bash training/export_adapter.sh
+#   bash training/export_adapter.sh              # exporta cycle-1 (padrão)
+#   CYCLE=cycle-2 bash training/export_adapter.sh # exporta cycle-2
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 
-CYCLE=${CYCLE:-"cycle-3"}
+CYCLE=${CYCLE:-"cycle-1"}  # Padrão: cycle-1
 source "${PROJECT_DIR}/config/${CYCLE}.env"
 
 BASE_MODEL=${BASE_MODEL:-${MODEL:-"mlx-community/Meta-Llama-3.1-8B-Instruct-4bit"}}

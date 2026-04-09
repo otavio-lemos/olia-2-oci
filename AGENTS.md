@@ -38,11 +38,12 @@ scikit-learn==1.8.0
 ### MLX-Tune Training Script
 - **Main script**: `training/train_mlx_tune.py`
 - **Config**: `config/cycle-N.env` (via `CYCLE` env var)
-- **Patches aplicados**:
-  - `grad_accumulation_steps` passado corretamente para `TrainingArgs`
-  - Gradient clipping via `mx.clip(grad, -norm, norm)` no step function
-  - Clear cache threshold para gerenciamento de memória (5GB)
-  - Dataset loading corrigido: `mlx_lm.tuner.datasets.load_dataset`
+- **API**: mlx-tune SFTTrainer (Unsloth-compatible)
+- **Suporte nativo**:
+  - Warmup steps
+  - Weight decay
+  - Gradient clipping (max_grad_norm)
+  - LR schedulers (cosine, linear, etc)
 
 ### Como rodar treinamento
 ```bash
@@ -68,11 +69,11 @@ CYCLE=cycle-3 python training/train_mlx_tune.py
 | Batch | 1 | 1 | 1 |
 | Grad Accum | 2 | 2 | 2 |
 | Layers | 8 | 8 | 8 |
-| Iters | 200 | 100 | 50 |
+| Iters | 250 | 125 | 75 |
 | Max Seq | 2048 | 2048 | 2048 |
-| Warmup | 20 | 10 | 5 |
+| Warmup | 25 (10%) | 12 (10%) | 8 (10%) |
 | Weight Decay | 0.01 | 0.01 | 0.01 |
-| Grad Clip | 1.0 | 1.0 | 1.0 |
+| Grad Clip | 1.0 | 0.5 | 0.5 |
 | Clear Cache | 5GB | 5GB | 5GB |
 | Logging | 5 | 5 | 5 |
 

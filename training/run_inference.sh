@@ -7,7 +7,7 @@ VENV_DIR="${PROJECT_DIR}/venv"
 
 source "${VENV_DIR}/bin/activate"
 
-CYCLE=${CYCLE:-"cycle-3"}
+CYCLE=${CYCLE:-"cycle-1"}
 source "${PROJECT_DIR}/config/${CYCLE}.env"
 
 BASE_MODEL=${BASE_MODEL:-${MODEL:-"mlx-community/Meta-Llama-3.1-8B-Instruct-4bit"}}

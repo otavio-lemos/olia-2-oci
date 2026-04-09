@@ -1,17 +1,11 @@
 #!/bin/bash
 # training/run_all_cycles.sh
-# Orquestra treinamento multi-ciclo sequencial com LR decrescente
-#
-# Cada ciclo continua do adapter do anterior (config em config/cycle-N.env):
-#   cycle-1: from scratch, LR=3e-5, 2450 iters, rank=16, seq=2048
-#   cycle-2: resume cycle-1, LR=1e-5, 2450 iters, rank=16, seq=2048
-#   cycle-3: resume cycle-2, LR=5e-6, 500 iters, rank=16, seq=2048
+# Orquestra treinamento - padrão é 1 ciclo (cycle-1)
 #
 # Uso:
-#   bash training/run_all_cycles.sh           # roda todos os ciclos
-#   bash training/run_all_cycles.sh 2         # roda a partir do cycle-2
-#   bash training/run_all_cycles.sh --fresh   # limpa outputs e roda do zero
-#   bash training/run_all_cycles.sh 2 --fresh # limpa outputs e roda do cycle-2
+#   bash training/run_all_cycles.sh           # roda apenas cycle-1 (padrão)
+#   bash training/run_all_cycles.sh --fresh  # limpa e roda cycle-1 do zero
+#   bash training/run_all_cycles.sh 3         # roda até cycle-3 (se necessário)
 set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -20,133 +14,52 @@ PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 # Parse arguments
 FRESH=""
 START_CYCLE=1
+MAX_CYCLE=1
 for arg in "$@"; do
     if [ "$arg" = "--fresh" ]; then
         FRESH="--fresh"
     elif [[ "$arg" =~ ^[0-9]+$ ]]; then
-        START_CYCLE="$arg"
+        MAX_CYCLE="$arg"
     fi
 done
 
-CYCLES=("cycle-1" "cycle-2" "cycle-3")
+CYCLE="cycle-1"  # Padrão: apenas 1 ciclo
 
 mkdir -p "outputs/logs"
 
-# Clean all outputs if --fresh
+# Clean outputs if --fresh
 if [ -n "$FRESH" ]; then
-    echo "[fresh] Cleaning all cycle outputs..."
-    for c in "${CYCLES[@]}"; do
-        if [ -d "outputs/$c" ]; then
-            rm -rf "outputs/$c"
-            echo "[fresh] Cleaned: outputs/$c"
+    echo "[fresh] Cleaning outputs..."
+    for dir in outputs/cycle-1 outputs/logs outputs/benchmarks outputs/merged-model; do
+        if [ -d "$dir" ]; then
+            rm -rf "$dir"
+            echo "[fresh] Cleaned: $dir"
         fi
     done
-    
-    # Clean additional outputs
-    if [ -d "outputs/logs" ]; then
-        rm -rf "outputs/logs"
-        echo "[fresh] Cleaned: outputs/logs"
-    fi
-    if [ -d "outputs/benchmarks" ]; then
-        rm -rf "outputs/benchmarks"
-        echo "[fresh] Cleaned: outputs/benchmarks"
-    fi
-    if [ -d "outputs/merged-model" ]; then
-        rm -rf "outputs/merged-model"
-        echo "[fresh] Cleaned: outputs/merged-model"
-    fi
-    
-    echo "[fresh] All outputs cleaned. Starting fresh."
+    echo "[fresh] Starting fresh with single cycle."
     echo ""
 fi
 
 echo "============================================"
-echo "OCI Specialist LLM - Multi-Cycle Training"
+echo "OCI Specialist LLM - Training (Single Cycle)"
 echo "============================================"
-echo "Starting from cycle: $START_CYCLE"
-CYCLES_TO_RUN=("${CYCLES[@]:$((START_CYCLE-1))}")
-echo "Cycles to run: ${CYCLES_TO_RUN[*]}"
+echo "Cycle: $CYCLE"
 echo "============================================"
 echo ""
 
-for i in "${!CYCLES[@]}"; do
-    CYCLE="${CYCLES[$i]}"
-    CYCLE_NUM=$((i + 1))
+# Source config
+ENV_FILE="${PROJECT_DIR}/config/${CYCLE}.env"
+if [ ! -f "$ENV_FILE" ]; then
+    echo "ERROR: Config not found: $ENV_FILE"
+    exit 1
+fi
+source "$ENV_FILE"
 
-    if [ "$CYCLE_NUM" -lt "$START_CYCLE" ]; then
-        continue
-    fi
-
-    # Source config for this cycle — single source of truth
-    ENV_FILE="${PROJECT_DIR}/config/${CYCLE}.env"
-    if [ ! -f "$ENV_FILE" ]; then
-        echo "ERROR: Config not found: $ENV_FILE"
-        exit 1
-    fi
-    source "$ENV_FILE"
-
-    echo ""
-    echo "############################################"
-    echo "# Starting $CYCLE"
-    echo "#   LR: $LEARNING_RATE"
-    echo "#   Iters: $ITERS"
-    echo "#   Rank: $LORA_RANK"
-    echo "#   Seq Length: $MAX_SEQ_LENGTH"
-    echo "############################################"
-    echo ""
-
-    # Verify previous adapter exists for cycles > 1
-    if [ "$CYCLE_NUM" -gt 1 ] && [ -n "${PREV_ADAPTER:-}" ]; then
-        if [ ! -e "$PREV_ADAPTER" ]; then
-            echo "ERROR: Previous adapter not found: $PREV_ADAPTER"
-            echo "Cannot resume training. Aborting."
-            exit 1
-        fi
-        echo "Resuming from: $PREV_ADAPTER"
-    fi
-
-    CYCLE="$CYCLE" python "${SCRIPT_DIR}/train_mlx_tune.py" $FRESH
-    EXIT_CODE=$?
-
-    if [ $EXIT_CODE -ne 0 ]; then
-        echo ""
-        echo "ERROR: $CYCLE failed with exit code $EXIT_CODE"
-        echo "Aborting multi-cycle training."
-        exit $EXIT_CODE
-    fi
-
-    echo ""
-    echo "$CYCLE completed successfully."
-    echo ""
-done
-
+echo "Configuration:"
+echo "  LR: $LEARNING_RATE"
+echo "  Iters: $ITERS"
+echo "  Rank: $LORA_RANK"
+echo "  Seq Length: $MAX_SEQ_LENGTH"
 echo ""
-echo "============================================"
-echo "All cycles completed!"
-echo "============================================"
-echo ""
-echo "Training Summary:"
-echo "-----------------"
-printf "| Cycle | LR     | Iters | Train Loss | Val Loss | Time    | Notes        |\n"
-printf "|-------|--------|-------|------------|----------|---------|--------------|\n"
 
-# Read metrics from each cycle
-for CYCLE in "${CYCLES[@]}"; do
-    METRICS_FILE="outputs/logs/$CYCLE/metrics.csv"
-    if [ -f "$METRICS_FILE" ]; then
-        # Get last non-empty row
-        LAST_ROW=$(tail -2 "$METRICS_FILE" | grep -v "^step" | tail -1)
-        if [ -n "$LAST_ROW" ]; then
-            TRAIN_LOSS=$(echo "$LAST_ROW" | cut -d',' -f2)
-            VAL_LOSS=$(echo "$LAST_ROW" | cut -d',' -f3)
-            printf "| %-6s | %s | %s | %s | %s |         |             |\n" \
-                "$CYCLE" "$(grep LEARNING_RATE config/$CYCLE.env | cut -d= -f2)" \
-                "$(grep ITERS config/$CYCLE.env | cut -d= -f2)" \
-                "$TRAIN_LOSS" "$VAL_LOSS"
-        fi
-    fi
-done
-
-echo ""
-echo "Final adapter: outputs/cycle-3/adapters.safetensors"
-echo "Merged model: outputs/merged-model/"
+CYCLE="$CYCLE" python "${SCRIPT_DIR}/train_mlx_tune.py" $FRESH

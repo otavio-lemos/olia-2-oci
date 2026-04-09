@@ -4673,6 +4673,20 @@ def _generate_questions(category: str) -> list:
     # Strategy: use a unique (format, action) combo for each question
     # 14 formats × 20 actions = 280 combos, we need 140 unique ones
     # Use a deterministic pairing that ensures no two questions share the same format+action
+    # Only add compute/storage context for relevant categories
+    # Other categories should NOT have shape/CIDR context
+    compute_categories = {
+        "instances",
+        "scaling",
+        "custom-images",
+        "block",
+        "object",
+        "file",
+    }
+    network_categories = {"vcn", "networking", "security", "connectivity"}
+
+    has_context = subcat in compute_categories
+
     for i in range(140):
         comp = COMPS[i % len(COMPS)]
         company = COMPANIES[i % len(COMPANIES)]
@@ -4684,28 +4698,30 @@ def _generate_questions(category: str) -> list:
         ad = ADS[i % len(ADS)]
         cidr = CIDRS[i % len(CIDRS)]
 
-        # Unique (format, action) pairing: offset action by format index
-        # This ensures no two questions share the same format+action combo
         fmt_idx = i % len(question_formats)
         action_idx = (i // len(question_formats) + fmt_idx) % len(action_resources)
         action, resource = action_resources[action_idx]
 
-        # Get question format - varies structure
         qfmt = question_formats[fmt_idx]
 
-        # Create fully unique question
-        questions.append(
-            qfmt.format(
-                action=action,
-                resource=resource,
-                company=company,
-                project=project,
-                comp=comp,
-                region=region,
-                subcat=subcat,
-            )
-            + f" [context: shape={shape}, {ocus}OCPUs, {storage}GB, AD={ad}, CIDR={cidr}, ticket#{i + 1}]"
+        question = qfmt.format(
+            action=action,
+            resource=resource,
+            company=company,
+            project=project,
+            comp=comp,
+            region=region,
+            subcat=subcat,
         )
+
+        # Only add compute/storage context for compute/storage categories
+        if has_context:
+            if subcat in network_categories:
+                question += f" [context: CIDR={cidr}, AD={ad}, ticket#{i + 1}]"
+            else:
+                question += f" [context: shape={shape}, {ocus}OCPUs, {storage}GB, AD={ad}, CIDR={cidr}, ticket#{i + 1}]"
+
+        questions.append(question)
 
     return questions
 
@@ -5212,10 +5228,35 @@ def _answer_best_practices(
     """Best practices response structure."""
     region = REGIONS[idx % len(REGIONS)]
     comp = COMPS[idx % len(COMPS)]
-    shape = SHAPES[idx % len(SHAPES)]
-    ocus = OCPUS[idx % len(OCPUS)]
-    storage = STORAGE_SIZES[idx % len(STORAGE_SIZES)]
     doc = DOC_LINKS.get(category, "https://docs.oracle.com/en-us/iaas/")
+
+    # Only add compute-specific details for appropriate categories
+    compute_specific_categories = {
+        "instances",
+        "scaling",
+        "custom-images",  # compute/
+        "block",
+        "object",
+        "file",  # storage/
+        "vcn",
+        "networking",
+        "security",
+        "connectivity",  # networking/
+    }
+
+    has_compute_details = subcat in compute_specific_categories
+
+    if has_compute_details:
+        shape = SHAPES[idx % len(SHAPES)]
+        ocus = OCPUS[idx % len(OCPUS)]
+        storage = STORAGE_SIZES[idx % len(STORAGE_SIZES)]
+        config_ref = f"""**Configuracao de referencia:**
+- Shape: `{shape}`
+- OCPUs: `{ocus}`
+- Storage: `{storage} GB`
+- Region: `{region}`"""
+    else:
+        config_ref = ""
 
     return f"""Best practices para {subcat} - {scenario}:
 
@@ -5252,11 +5293,7 @@ def _answer_best_practices(
 - Considere preemptible instances para workloads tolerantes
 - Revise configuracoes periodicamente
 
-**Configuracao de referencia:**
-- Shape: `{shape}`
-- OCPUs: `{ocus}`
-- Storage: `{storage} GB`
-- Region: `{region}`
+{config_ref}
 
 **Avisos importantes:**
 - [MUTABLE] Precos variam por regiao e configuracao
@@ -5425,8 +5462,28 @@ def _answer_performance_tuning(
 ) -> str:
     """Generate performance tuning responses with OCI benchmarking guidance."""
     doc = DOC_LINKS.get(category, "https://docs.oracle.com/iaas/")
-    shape = SHAPES[idx % len(SHAPES)]
-    ocpus = OCPUS[idx % len(OCPUS)]
+
+    # Define categories that should have compute-specific details
+    compute_performance_categories = {
+        "instances",
+        "scaling",  # compute/
+        "block",
+        "object",
+        "file",  # storage/
+        "autonomous",
+        "mysql",
+        "postgresql",
+        "nosql",
+        "exadata",  # database/
+    }
+
+    has_compute_details = subcat in compute_performance_categories
+
+    if has_compute_details:
+        shape = SHAPES[idx % len(SHAPES)]
+        ocpus = OCPUS[idx % len(OCPUS)]
+    else:
+        shape = ocpus = ""
 
     if subcat in ("instances", "scaling"):
         perf_content = f"""**Performance Tuning — Compute ({scenario})**
@@ -5525,6 +5582,23 @@ def _answer_disaster_recovery(
     doc = DOC_LINKS.get(category, "https://docs.oracle.com/iaas/")
     region = REGIONS[idx % len(REGIONS)]
     comp = COMPS[idx % len(COMPS)]
+
+    # Define categories that should have compute-specific details
+    compute_dr_categories = {
+        "instances",
+        "scaling",
+        "custom-images",  # compute/
+        "block",
+        "object",
+        "file",  # storage/
+        "autonomous",
+        "mysql",
+        "postgresql",
+        "nosql",
+        "exadata",  # database/
+    }
+
+    has_compute_details = subcat in compute_dr_categories
 
     if subcat in ("instances", "scaling", "custom-images"):
         dr_content = f"""**Disaster Recovery — Compute ({scenario})**
