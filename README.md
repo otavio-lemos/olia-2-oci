@@ -179,9 +179,8 @@ pip install -r requirements.txt
 
 ## Limitações
 
-1. **Geração template-based** - Dados gerados por código, não por LLM. ~6000 linhas de templates hardcoded.
-2. **100% single-turn** - Dataset não tem conversas multi-turn.
-3. **Scoring regex-based** - Avaliação usa regex, não embeddings. (existe `semantic_scorer.py` mas não integrado).
-4. **Inference manual** - `run_inference.sh` com 4 prompts hardcoded, sem output estruturado.
-5. **Deduplicação character-level** - `dedupe_dataset.py` não usa embeddings.
-6. **Sem RAG** - Não há acesso à documentação OCI em tempo real.
+1. **100% single-turn** - Dataset não tem conversas multi-turn.
+2. **Scoring regex-based** - Avaliação usa regex, não embeddings. (existe `semantic_scorer.py` mas não integrado).
+3. **Inference manual** - `run_inference.sh` com 4 prompts hardcoded, sem output estruturado.
+4. **Deduplicação character-level** - `dedupe_dataset.py` usa similarity por caracter, não embeddings.
+5. **Sem RAG** - Não há acesso à documentação OCI em tempo real.
