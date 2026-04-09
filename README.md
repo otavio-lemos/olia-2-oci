@@ -6,7 +6,7 @@ Fine-tuning de LLM especialista em Oracle Cloud Infrastructure (OCI) usando Appl
 [![Python](https://img.shields.io/badge/Python-3.12-blue?style=flat-square&logo=python&logoColor=white)](https://www.python.org)
 [![MLX](https://img.shields.io/badge/MLX-Apple%20Silicon-orange?style=flat-square)](https://mlx.ai)
 [![Model](https://img.shields.io/badge/Base%20Model-Meta--Llama--3.1--8B--Instruct--4bit-purple?style=flat-square)](https://huggingface.co/mlx-community/Meta-Llama-3.1-8B-Instruct-4bit)
-[![Dataset](https://img.shields.io/badge/Dataset-3467_examples-green?style=flat-square)](docs/taxonomy.md)
+[![Dataset](https://img.shields.io/badge/Dataset-3403_examples-green?style=flat-square)](docs/taxonomy.md)
 
 > **Idioma**: Dados e prompts em PT-BR.
 
@@ -18,9 +18,9 @@ Pipeline completo: geração dataset → validação → treino MLX LoRA → ava
 
 ```
 generate_diverse_v2.py → data/curated/ (71 topics) → build_dataset_fixed.py → train/valid/eval.jsonl
-                                                                                          ↓
+                                                                                           ↓
 CYCLE=cycle-1 python training/train_mlx_tune.py → outputs/cycle-1/adapters/
-                                                                                          ↓
+                                                                                           ↓
 evaluate_model.py → outputs/benchmarks/
 ```
 
@@ -32,7 +32,7 @@ evaluate_model.py → outputs/benchmarks/
 
 | Métrica | Valor |
 |---------|-------|
-| **Total** | 3,467 exemplos |
+| **Total** | 3,403 exemplos |
 | **Categorias** | 71 topics OCI |
 | **Removidos na limpeza** | 6,473 (templates genéricos, duplicatas) |
 
@@ -40,9 +40,9 @@ evaluate_model.py → outputs/benchmarks/
 
 | Split | Exemplos | % |
 |-------|----------|---|
-| Train | 2,583 | 74.5% |
-| Valid | 495 | 14.3% |
-| Eval | 325 | 9.4% |
+| Train | 2,583 | 75.9% |
+| Valid | 495 | 14.5% |
+| Eval | 325 | 9.6% |
 
 ### Categorias
 
@@ -107,8 +107,9 @@ CYCLE=cycle-1 python training/train_mlx_tune.py --fresh
 | BATCH_SIZE | 1 |
 | GRADIENT_ACCUMULATION | 2 |
 | MAX_SEQ_LENGTH | 2048 |
-| NUM_LAYERS | 8 |
 | WARMUP_STEPS | 200 |
+
+> **Nota:** `NUM_LAYERS` não está definido no config - usa padrão 32. O treinamento aplica LoRA em 32 camadas.
 
 ### 5. Export
 
@@ -149,29 +150,47 @@ Prompts em `config/inference_prompts.yaml`, output JSON estruturado em `outputs/
 
 ```
 ├── config/
-│   └── cycle-1.env                    # Configuração do treino
+│   ├── cycle-1.env                    # Configuração do treino
+│   ├── cycle-2.env
+│   ├── cycle-3.env
+│   ├── gguf.env
+│   └── inference_prompts.yaml        # Prompts para inference
 ├── data/
-│   ├── curated/                       # 71 arquivos JSONL
+│   ├── curated/                       # 71 arquivos JSONL (topics)
 │   ├── all_curated.jsonl              # Combinado
 │   ├── all_curated_clean.jsonl        # Limpo
 │   ├── train.jsonl                    # 2,583
 │   ├── valid.jsonl                    # 495
 │   └── eval.jsonl                     # 325
+├── docs/
+│   ├── taxonomy.md
+│   ├── quality-rules.md
+│   ├── eval-rubric.md
+│   └── *.md
 ├── scripts/
-│   ├── generate_diverse_v2.py         # Gerador
+│   ├── generate_diverse_v2.py         # Gerador de dataset
 │   ├── validate_jsonl.py              # Validação estrutural
-│   ├── clean_dataset.py               # Limpeza
+│   ├── clean_dataset.py               # Limpeza de conteúdo
 │   ├── dedupe_dataset.py              # Deduplicação character-level
-│   ├── dedupe_embedding.py            # Deduplicação semantic (embeddings)
 │   ├── build_dataset_fixed.py         # Split estratificado
-│   ├── export_gguf.py                 # Export GGUF
-│   ├── evaluate_model.py              # Avaliação
-│   ├── evaluate_ft_only.py            # Avaliação FT
-│   ├── eval_semantic.py               # Avaliação com similarity semântica
-│   └── run_inference_v2.py            # Inference estruturado (YAML)
-├── config/
-│   ├── cycle-1.env                    # Configuração do treino
-│   └── inference_prompts.yaml        # Prompts para inference
+│   ├── export_gguf.py                 # Export GGUF para Ollama
+│   ├── evaluate_model.py              # Avaliação base vs FT
+│   ├── evaluate_ft_only.py            # Avaliação FT apenas
+│   ├── eval_semantic.py               # Avaliação com embeddings
+│   └── run_inference_v2.py            # Inference estruturado
+├── training/
+│   ├── train_mlx_tune.py              # Treino principal (SFTTrainer API)
+│   ├── train_mlx_tune_old.py          # Treino antigo (deprecated)
+│   ├── run_all_cycles.sh              # Orquestrador de ciclos
+│   ├── export_adapter.sh              # Merge LoRA + base model
+│   └── run_inference.sh               # Inference básico
+├── outputs/
+│   └── cycle-1/                       # Adapter treinado
+│       ├── adapters/
+│       │   └── adapters.safetensors
+│       └── train.jsonl
+└── venv/                              # Ambiente virtual Python 3.12
+```
 
 ---
 
@@ -183,7 +202,7 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-- Apple Silicon Mac (M1/M2/M3/M4)
+- Apple Silicon Mac (M1/M2/M3/M4/M5)
 - Python 3.12
 
 ---
