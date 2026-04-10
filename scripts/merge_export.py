@@ -212,14 +212,106 @@ def check_fp16_exists(fp16_path: Path) -> bool:
     return True
 
 
+def download_convert_script():
+    import urllib.request
+
+    scripts_dir = Path(__file__).parent
+    convert_script = scripts_dir / "convert_hf_to_gguf.py"
+
+    if convert_script.exists() and convert_script.stat().st_size > 100:
+        try:
+            with open(convert_script, "r") as f:
+                content = f.read(500)
+                if "GEMMA4" in content:
+                    print("[WARN] Old convert script has GEMMA4, re-downloading...")
+                    convert_script.unlink()
+                else:
+                    return convert_script
+        except:
+            pass
+
+    print("\n=== Downloading convert_hf_to_gguf.py ===")
+    # Use v1.9.4 tag (before GEMMA4 added)
+    url = "https://raw.githubusercontent.com/ggerrits/llama.cpp/v1.9.4/convert_hf_to_gguf.py"
+    try:
+        urllib.request.urlretrieve(url, convert_script)
+        print(f"Downloaded to: {convert_script}")
+        return convert_script
+    except:
+        url2 = "https://raw.githubusercontent.com/ggml-org/llama.cpp/v1.9.4/convert_hf_to_gguf.py"
+        try:
+            urllib.request.urlretrieve(url2, convert_script)
+            print(f"Downloaded to: {convert_script}")
+            return convert_script
+        except Exception as e2:
+            raise FileNotFoundError(f"Could not download convert_hf_to_gguf.py: {e2}")
+
+
 def convert_to_gguf(merged_dir: str, output_file: str, quant_type: str = None):
     print("\n=== Step 2: Converting to GGUF ===")
+    import gguf
+    import numpy as np
 
-    llama_cpp_dir = Path(__file__).parent.parent / "llama.cpp"
-    convert_script = llama_cpp_dir / "convert_hf_to_gguf.py"
+    merged_path = Path(merged_dir)
+    output_path = Path(output_file)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    if not convert_script.exists():
-        raise FileNotFoundError(f"convert_hf_to_gguf.py not found: {convert_script}")
+    # Read model files
+    import json
+
+    index_path = merged_path / "model.safetensors.index.json"
+    with open(index_path) as f:
+        index = json.load(f)
+
+    # Get all tensor files
+    tensor_files = list(merged_path.glob("model-*.safetensors"))
+    if not tensor_files:
+        tensor_files = [merged_path / "model.safetensors"]
+
+    # Map tensors to GGUF
+    writer = gguf.GGUFWriter(output_file, "llama")
+
+    # Add metadata
+    config_path = merged_path / "config.json"
+    if config_path.exists():
+        with open(config_path) as f:
+            config = json.load(f)
+        writer.add_entity_name(config.get("name", "Merged Model"))
+        writer.add_uint32("llama.block_count", config.get("num_hidden_layers", 32))
+        writer.add_uint32(
+            "llama.context_length", config.get("max_position_embeddings", 4096)
+        )
+        writer.add_uint32("llama.embedding_length", config.get("hidden_size", 4096))
+        writer.add_uint32(
+            "llama.feed_forward_length", config.get("intermediate_size", 11008)
+        )
+        writer.add_uint32(
+            "llama.attention.head_count", config.get("num_attention_heads", 32)
+        )
+        writer.add_uint32(
+            "llama.attention.head_count_kv", config.get("num_key_value_heads", 32)
+        )
+        writer.add_uint32("llama.vocab_size", config.get("vocab_size", 32000))
+        writer.add_float32(
+            "llama.attention.layer_norm_rms_eps", config.get("rms_norm_eps", 1e-5)
+        )
+
+    # Add vocab
+    vocab_path = merged_path / "tokenizer.json"
+    if vocab_path.exists():
+        with open(vocab_path) as f:
+            vocab = json.load(f)
+        if "model" in vocab:
+            tokens = vocab.get("model", {}).get("vocab", {})
+            for token, _ in tokens.items():
+                writer.add_token(int(token))
+
+    writer.write_header()
+    writer.write_kv()
+    writer.write_tensors()
+    writer.close()
+
+    print(f"GGUF written to: {output_file}")
 
     cmd = [
         sys.executable,
@@ -327,8 +419,8 @@ def main():
     for q in quant_types:
         quant_type = QUANT_MAP.get(q, q.upper())
 
-        # Always append quant suffix to avoid overwriting
-        output_gguf = gguf_dir / f"{model_name}-{q}.gguf"
+        # Use quant type in filename (e.g., Q4_K_M)
+        output_gguf = gguf_dir / f"{model_name}-{quant_type}.gguf"
 
         if output_gguf.exists():
             print(f"[SKIP] {output_gguf.name} already exists")
