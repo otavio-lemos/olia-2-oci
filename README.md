@@ -155,8 +155,12 @@ bash training/run_all_cycles.sh --fresh
 | LEARNING_RATE | 2e-4 |
 | LORA_RANK | 8 |
 | LORA_ALPHA | 16 |
+| LORA_DROPOUT | 0.05 |
+| GRADIENT_ACCUMULATION | 4 |
+| WARMUP_STEPS | 300 |
 | ITERS | 3384 |
 | MAX_SEQ_LENGTH | 2048 |
+| WEIGHT_DECAY | 0.01 |
 
 ---
 
