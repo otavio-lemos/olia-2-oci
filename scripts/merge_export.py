@@ -251,82 +251,19 @@ def download_gguf_libs():
 
 def convert_to_gguf(merged_dir: str, output_file: str, quant_type: str = None):
     print("\n=== Step 2: Converting to GGUF (FP16) ===")
-    import gguf
-    import json
-    import numpy as np
-    import torch
-    from safetensors import safe_open
-    from safetensors.torch import save_file
-    from pathlib import Path
 
-    merged_path = Path(merged_dir)
-    output_path = Path(output_file)
-    output_path.parent.mkdir(parents=True, exist_ok=True)
+    convert_script = Path(__file__).parent / "convert_hf_to_gguf.py"
 
-    # Read config
-    config_path = merged_path / "config.json"
-    with open(config_path) as f:
-        config = json.load(f)
-
-    # Create GGUF writer
-    writer = gguf.GGUFWriter(output_file, "llama")
-
-    # Add metadata
-    writer.add_name(config.get("name", "Merged Model"))
-    writer.add_uint32("llama.block_count", config.get("num_hidden_layers", 32))
-    writer.add_uint32(
-        "llama.context_length", config.get("max_position_embeddings", 131072)
-    )
-    writer.add_uint32("llama.embedding_length", config.get("hidden_size", 4096))
-    writer.add_uint32(
-        "llama.feed_forward_length", config.get("intermediate_size", 14336)
-    )
-    writer.add_uint32(
-        "llama.attention.head_count", config.get("num_attention_heads", 32)
-    )
-    writer.add_uint32(
-        "llama.attention.head_count_kv", config.get("num_key_value_heads", 8)
-    )
-    writer.add_float32(
-        "llama.attention.layer_norm_rms_epsilon", config.get("rms_norm_eps", 1e-5)
-    )
-    writer.add_uint32("llama.vocab_size", config.get("vocab_size", 128256))
-    writer.add_float32("llama.rope.freq_base", config.get("rope_theta", 500000.0))
-    writer.add_uint32("general.file_type", 1)  # F16
-
-    # Read tokenizer
-    tokenizer_path = merged_path / "tokenizer.json"
-    if tokenizer_path.exists():
-        with open(tokenizer_path) as f:
-            tokenizer = json.load(f)
-        vocab = tokenizer.get("model", {}).get("vocab", {})
-        tokens = list(vocab.keys())
-        writer.add_token_list(tokens)
-
-    # Load and write tensors
-    safetensors_files = list(merged_path.glob("model-*.safetensors"))
-    if not safetensors_files:
-        safetensors_files = [merged_path / "model.safetensors"]
-
-    tensor_count = 0
-    for sf in safetensors_files:
-        with safe_open(sf, framework="pt") as f:
-            for key in f.keys():
-                tensor = f.get_tensor(key)
-                # Convert to numpy
-                arr = tensor.cpu().numpy()
-                # Swap dims if needed ( PyTorch: [hidden, vocab] -> GGUF: [vocab, hidden])
-                if key in ["model.embed_tokens.weight", "lm_head.weight"]:
-                    arr = arr.T
-                writer.add_tensor(key, arr)
-                tensor_count += 1
-
-    writer.write_header_to_file(path=output_file)
-    writer.write_kv_data_to_file()
-    writer.write_tensors_to_file(progress=True)
-    writer.close()
-
-    print(f"GGUF written to: {output_file} ({tensor_count} tensors)")
+    cmd = [
+        sys.executable,
+        str(convert_script),
+        merged_dir,
+        "--outfile",
+        output_file,
+        "--outtype",
+        "f16",
+    ]
+    run_cmd(cmd)
 
 
 def quantize_model(input_file: str, output_file: str, quant_type: str):
