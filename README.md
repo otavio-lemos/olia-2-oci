@@ -90,9 +90,9 @@ flowchart LR
 
 | Split | Examples | % |
 |-------|----------|---|
-| Train | 13,533 | 75% |
-| Valid | 1,606 | 9% |
-| Eval | 770 | 4% |
+| Train | 11,932 | 75% |
+| Valid | 2,386 | 15% |
+| Eval | 1,591 | 10% |
 
 ### Categories
 
@@ -243,9 +243,9 @@ make -j
 │   └── gguf.env
 ├── data/                    # Datasets
 │   ├── curated/            # 87 topic files
-│   ├── train.jsonl         # 13,533 examples
-│   ├── valid.jsonl         # 1,606 examples
-│   └── eval.jsonl          # 770 examples
+│   ├── train.jsonl         # 11,932 examples
+│   ├── valid.jsonl         # 2,386 examples
+│   └── eval.jsonl          # 1,591 examples
 ├── docs/                   # Documentation
 │   ├── taxonomy.md
 │   ├── quality-rules.md
