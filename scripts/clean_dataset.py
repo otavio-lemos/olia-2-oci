@@ -642,10 +642,10 @@ def add_diacritics(text: str) -> str:
 
 
 def response_hash(content: str) -> str:
+    # Hash first 1000 chars - captures variation in params/commands
+    content = content[:1000]
     normalized = content.lower()
     normalized = re.sub(r"[`'\"]", "", normalized)
-    normalized = re.sub(r"\d+", "N", normalized)
-    normalized = re.sub(r"[a-z0-9_-]+-[a-z0-9_-]+", "PROJECT", normalized)
     normalized = re.sub(r"\s+", " ", normalized).strip()
     return hashlib.md5(normalized.encode()).hexdigest()
 

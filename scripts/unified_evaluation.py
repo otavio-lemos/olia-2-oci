@@ -1,0 +1,830 @@
+#!/usr/bin/env python3
+"""Unified Evaluation Script for OCI Specialist LLM.
+
+Consolida: base vs FT comparison, scoring, similarity semântica, relatórios com gráficos.
+Modos: --test (10 samples), --full (325 samples)
+"""
+
+import argparse
+import json
+import re
+import time
+from datetime import datetime
+from pathlib import Path
+from typing import Dict, List, Any, Optional
+import random
+
+import mlx.core as mx
+from mlx_lm import load, generate
+from mlx_lm.sample_utils import make_sampler
+
+# Dependências opcionais
+try:
+    import numpy as np
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+
+    HAS_PLOTTING = True
+except ImportError:
+    HAS_PLOTTING = False
+
+
+class ScoringEngine:
+    """Engine for evaluating OCI Specialist LLM responses."""
+
+    @staticmethod
+    def score_technical_correctness(
+        response: str, reference: str, category: str
+    ) -> float:
+        score = 3.0
+        if not response or response.startswith("Error:"):
+            return 1.0
+        if len(response) < 100:
+            score -= 1.0
+        real_cli_patterns = [
+            r"oci\s+(compute|network|db|bv|os|ce|fn|kms|vault|iam|logging|monitoring|resource-manager|devops|container-instance|nosql|mysql|cloud-guard|waas|apm|stack-monitoring|file-storage|load-balancer|api-gateway)",
+            r"oci_core_instance",
+            r"oci_objectstorage_bucket",
+            r"oci_database_autonomous_database",
+            r"oci_containerengine_cluster",
+            r"oci\.core\.ComputeClient",
+            r"oci\.object_storage\.ObjectStorageClient",
+            r"oci\.database\.DatabaseClient",
+        ]
+        fake_cli_patterns = [
+            r"oci\s+instances\s+",
+            r"oci\s+storage\s+",
+            r"oci\s+connectivity\s+",
+            r"oci\s+block\s+",
+            r"oci\s+autonomous-json\s+",
+            r"oci\s+azure-storage\s+",
+            r"oci\s+onprem-storage\s+",
+            r"oci\s+observability\s+",
+            r"oci\s+authentication\s+",
+            r"oci\.Compute\.InstancesClient",
+            r"oci\.Storage\.BlockClient",
+            r"oci\.ConnectivityClient",
+            r"oci_compute_instances",
+            r"oci_storage_block",
+            r"oci_connectivity",
+        ]
+        has_real = any(re.search(p, response) for p in real_cli_patterns)
+        has_fake = any(re.search(p, response) for p in fake_cli_patterns)
+        cross_cloud_patterns = [
+            r"provider\s+[\"']?aws[\"']?",
+            r"resource\s+[\"']?aws_",
+            r"resource\s+[\"']?azurerm_",
+            r"aws_instance",
+            r"aws_lb",
+            r"aws_vpc",
+            r"aws_security_group",
+            r"aws_s3",
+            r"aws_iam",
+            r"azurerm_network_security_group",
+            r"azurerm_virtual_network",
+            r"azurerm_subnet",
+            r"azurerm_public_ip",
+            r"\bEC2\b",
+            r"\bCloudWatch\b",
+            r"AWS Management Console",
+            r"Azure Portal",
+        ]
+        has_cross_cloud = any(re.search(p, response) for p in cross_cloud_patterns)
+        if has_fake:
+            score -= 2.0
+        if has_cross_cloud:
+            score -= 2.5
+        if has_real:
+            score += 1.0
+        terraform_cats = [
+            "terraform/provider",
+            "terraform/compute",
+            "terraform/storage",
+            "terraform/networking",
+            "terraform/database",
+            "terraform/container",
+            "terraform/serverless",
+            "terraform/security",
+            "terraform/observability",
+            "terraform/devops",
+            "terraform/state",
+        ]
+        if category in terraform_cats:
+            if "terraform" in response.lower() and (
+                "resource" in response.lower() or "provider" in response.lower()
+            ):
+                score += 0.5
+            if "oci_" in response:
+                score += 0.5
+        if (
+            "Allow group" in response
+            and "to" in response
+            and "in compartment" in response
+        ):
+            score += 0.5
+        if "Doc:" in response or "docs.oracle.com" in response:
+            score += 0.3
+        return max(1.0, min(5.0, score))
+
+    @staticmethod
+    def score_depth(response: str, reference: str) -> float:
+        score = 3.0
+        if not response or response.startswith("Error:"):
+            return 1.0
+        depth_indicators = [
+            (r"\d+\.\s+", 0.3),
+            (r"```", 0.5),
+            (r"- ", 0.2),
+            (r"\* ", 0.2),
+            (r"best practice", 0.3),
+            (r"recomenda[çc][aã]o", 0.2),
+            (r"trade.?off", 0.3),
+            (r"vantagem", 0.2),
+            (r"desvantagem", 0.2),
+            (r"risco", 0.3),
+            (r"mitiga[çc][aã]o", 0.3),
+            (r"pr[ée]-requisito", 0.2),
+            (r"valida[çc][aã]o", 0.2),
+        ]
+        for pattern, points in depth_indicators:
+            if re.search(pattern, response, re.IGNORECASE):
+                score += points
+        word_count = len(response.split())
+        if word_count > 200:
+            score += 0.5
+        if word_count > 500:
+            score += 0.5
+        if word_count < 50:
+            score -= 1.0
+        return max(1.0, min(5.0, score))
+
+    @staticmethod
+    def score_structure(response: str) -> float:
+        score = 3.0
+        if not response or response.startswith("Error:"):
+            return 1.0
+        has_numbered_list = bool(re.search(r"\d+\.\s+", response))
+        has_bullet_list = bool(re.search(r"^[-*]\s+", response, re.MULTILINE))
+        has_code_block = "```" in response
+        has_sections = bool(re.search(r"#+\s+", response))
+        has_table = "|" in response and "---" in response
+        structural_elements = sum(
+            [
+                has_numbered_list,
+                has_bullet_list,
+                has_code_block,
+                has_sections,
+                has_table,
+            ]
+        )
+        if structural_elements >= 3:
+            score += 1.5
+        elif structural_elements >= 2:
+            score += 1.0
+        elif structural_elements >= 1:
+            score += 0.5
+        if len(response.split("\n")) > 10:
+            score += 0.3
+        return max(1.0, min(5.0, score))
+
+    @staticmethod
+    def score_hallucination(response: str) -> float:
+        score = 5.0
+        if not response or response.startswith("Error:"):
+            return 1.0
+        hallucination_patterns = [
+            (r"oci\s+instances\s+", 1.5),
+            (r"oci\s+storage\s+(?!gateway)", 1.5),
+            (r"oci\s+connectivity\s+", 1.5),
+            (r"oci\s+block\s+(?!volume)", 1.5),
+            (r"oci\s+autonomous-json", 1.5),
+            (r"oci\s+azure-storage", 1.5),
+            (r"oci\s+onprem-storage", 1.5),
+            (r"oci\s+observability\s+", 1.5),
+            (r"oci\s+authentication\s+", 1.5),
+            (r"oci\.Compute\.InstancesClient", 1.5),
+            (r"oci\.Storage\.BlockClient", 1.5),
+            (r"oci\.ConnectivityClient", 1.5),
+            (r"oci_compute_instances", 1.5),
+            (r"oci_storage_block", 1.5),
+            (r"oci_connectivity", 1.5),
+            (r"semidesenvolvimento", 1.0),
+            (r"Carneval", 1.0),
+            (r"Insurance", 0.5),
+            (r"deletar", 0.3),
+        ]
+        cross_cloud_patterns = [
+            (r"provider\s+[\"']?aws[\"']?", 2.0),
+            (r"resource\s+[\"']?aws_", 2.0),
+            (r"resource\s+[\"']?azurerm_", 2.0),
+            (r"aws_instance", 2.0),
+            (r"aws_lb", 2.0),
+            (r"aws_vpc", 2.0),
+            (r"aws_security_group", 2.0),
+            (r"aws_s3", 2.0),
+            (r"aws_iam", 2.0),
+            (r"azurerm_network_security_group", 2.0),
+            (r"azurerm_virtual_network", 2.0),
+            (r"azurerm_subnet", 2.0),
+            (r"azurerm_public_ip", 2.0),
+            (r"EC2", 1.5),
+            (r"CloudWatch", 1.0),
+            (r"AWS Management Console", 1.5),
+            (r"AWS Console", 1.0),
+            (r"Amazon Web Services", 1.0),
+            (r"Azure Portal", 1.0),
+            (r"Azure Resource Manager", 1.0),
+        ]
+        for pattern, penalty in hallucination_patterns:
+            if re.search(pattern, response, re.IGNORECASE):
+                score -= penalty
+        for pattern, penalty in cross_cloud_patterns:
+            if re.search(pattern, response, re.IGNORECASE):
+                score -= penalty
+        fake_urls = [
+            r"/Content/\w+/Con/\w+\.htm",
+            r"/Content/\w+/-\w+\.htm",
+        ]
+        for pattern in fake_urls:
+            if re.search(pattern, response):
+                score -= 1.0
+        return max(1.0, min(5.0, score))
+
+    @staticmethod
+    def score_clarity(response: str) -> float:
+        score = 3.0
+        if not response or response.startswith("Error:"):
+            return 1.0
+        if len(response) < 50:
+            score -= 1.5
+        elif len(response) < 100:
+            score -= 0.5
+        if len(response) > 2000:
+            score -= 0.3
+        sentences = re.split(r"[.!?]+", response)
+        avg_sentence_length = len(response.split()) / max(len(sentences), 1)
+        if 10 <= avg_sentence_length <= 25:
+            score += 0.5
+        if re.search(
+            r"\b(portanto|assim|consequentemente|dessa forma|em resumo)\b",
+            response,
+            re.IGNORECASE,
+        ):
+            score += 0.3
+        if re.search(
+            r"\b(exemplo|por exemplo|como segue|veja que)\b", response, re.IGNORECASE
+        ):
+            score += 0.3
+        return max(1.0, min(5.0, score))
+
+    @classmethod
+    def evaluate_response(
+        cls, response: str, reference: str, category: str
+    ) -> Dict[str, Any]:
+        scores = {
+            "technical_correctness": cls.score_technical_correctness(
+                response, reference, category
+            ),
+            "depth": cls.score_depth(response, reference),
+            "structure": cls.score_structure(response),
+            "hallucination": cls.score_hallucination(response),
+            "clarity": cls.score_clarity(response),
+        }
+        scores["overall"] = sum(scores.values()) / len(scores)
+        return scores
+
+
+class SemanticScorer:
+    def __init__(
+        self, model_name: str = "sentence-transformers/paraphrase-MiniLM-L6-v2"
+    ):
+        self.model_name = model_name
+        self.model = None
+        self.embedding_cache = {}
+
+    def load_model(self):
+        if self.model is None:
+            from sentence_transformers import SentenceTransformer
+
+            self.model = SentenceTransformer(self.model_name)
+
+    def get_embedding(self, text: str):
+        if text in self.embedding_cache:
+            return self.embedding_cache[text]
+        if self.model is None:
+            self.load_model()
+        embedding = self.model.encode(text, convert_to_numpy=True)
+        self.embedding_cache[text] = embedding
+        return embedding
+
+    def cosine_similarity(self, a, b):
+        import numpy as np
+
+        a = a / (np.linalg.norm(a) + 1e-8)
+        b = b / (np.linalg.norm(b) + 1e-8)
+        return float(np.dot(a, b))
+
+    def score(self, response: str, reference: str) -> float:
+        resp_emb = self.get_embedding(response)
+        ref_emb = self.get_embedding(reference)
+        if resp_emb is None or ref_emb is None:
+            return 0.5
+        return self.cosine_similarity(resp_emb, ref_emb)
+
+
+class ReportGenerator:
+    """Generates markdown reports and charts for evaluation results."""
+
+    def __init__(self, output_dir: Path):
+        self.output_dir = output_dir
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+
+    def generate_comparison_report(
+        self,
+        base_results: List[Dict],
+        ft_results: List[Dict],
+        total_eval: int,
+    ) -> Path:
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        report_path = self.output_dir / f"comparison_report_{timestamp}.md"
+
+        base_avg = self._compute_average(base_results) if base_results else {}
+        ft_avg = self._compute_average(ft_results) if ft_results else {}
+
+        lines = [
+            "# Evaluation Comparison Report",
+            "",
+            f"**Generated:** {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}",
+            f"**Total Evaluated:** {total_eval}",
+            "",
+            "## Summary",
+            "",
+            "| Metric | Base Model | Fine-Tuned | Delta |",
+            "|--------|-------------|------------|-------|",
+        ]
+
+        metrics = [
+            "technical_correctness",
+            "depth",
+            "structure",
+            "hallucination",
+            "clarity",
+            "overall",
+        ]
+        for metric in metrics:
+            base_val = base_avg.get(metric, 0)
+            ft_val = ft_avg.get(metric, 0)
+            delta = ft_val - base_val
+            delta_str = f"+{delta:.2f}" if delta >= 0 else f"{delta:.2f}"
+            lines.append(f"| {metric} | {base_val:.2f} | {ft_val:.2f} | {delta_str} |")
+
+        if base_results and ft_results:
+            lines.extend(
+                [
+                    "",
+                    "## Detailed Results",
+                    "",
+                    "| # | Category | Base | FT | Delta |",
+                    "|---|---------|------|----|-------|",
+                ]
+            )
+            categories = set()
+            for r in base_results + ft_results:
+                if "category" in r:
+                    categories.add(r["category"])
+            for i, cat in enumerate(sorted(categories), 1):
+                base_cat = next(
+                    (
+                        r.get("scores", {}).get("overall", 0)
+                        for r in base_results
+                        if r.get("category") == cat
+                    ),
+                    0,
+                )
+                ft_cat = next(
+                    (
+                        r.get("scores", {}).get("overall", 0)
+                        for r in ft_results
+                        if r.get("category") == cat
+                    ),
+                    0,
+                )
+                delta = ft_cat - base_cat
+                delta_str = f"+{delta:.2f}" if delta >= 0 else f"{delta:.2f}"
+                lines.append(
+                    f"| {i} | {cat} | {base_cat:.2f} | {ft_cat:.2f} | {delta_str} |"
+                )
+
+        with open(report_path, "w") as f:
+            f.write("\n".join(lines))
+
+        print(f"Report generated: {report_path}")
+        return report_path
+
+    def generate_charts(
+        self,
+        base_results: List[Dict],
+        ft_results: List[Dict],
+    ) -> List[Path]:
+        if not HAS_PLOTTING:
+            return []
+
+        import numpy as np
+        import matplotlib.pyplot as plt
+        import seaborn as sns
+
+        chart_paths = []
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+        base_avg = self._compute_average(base_results) if base_results else {}
+        ft_avg = self._compute_average(ft_results) if ft_results else {}
+
+        metrics = [
+            "technical_correctness",
+            "depth",
+            "structure",
+            "hallucination",
+            "clarity",
+            "overall",
+        ]
+        base_vals = [base_avg.get(m, 0) for m in metrics]
+        ft_vals = [ft_avg.get(m, 0) for m in metrics]
+
+        fig, ax = plt.subplots(figsize=(10, 6))
+        x = np.arange(len(metrics))
+        width = 0.35
+        ax.bar(x - width / 2, base_vals, width, label="Base Model", alpha=0.8)
+        ax.bar(x + width / 2, ft_vals, width, label="Fine-Tuned", alpha=0.8)
+        ax.set_ylabel("Score")
+        ax.set_title("Model Comparison by Metric")
+        ax.set_xticks(x)
+        ax.set_xticklabels(metrics, rotation=45, ha="right")
+        ax.legend()
+        ax.set_ylim(1, 5.5)
+        plt.tight_layout()
+
+        chart_path = self.output_dir / f"comparison_chart_{timestamp}.png"
+        plt.savefig(chart_path, dpi=150)
+        plt.close()
+        chart_paths.append(chart_path)
+
+        categories = set()
+        for r in base_results + ft_results:
+            if "category" in r:
+                categories.add(r["category"])
+
+        if categories:
+            cat_metrics = []
+            for cat in sorted(categories):
+                base_cat = next(
+                    (
+                        r.get("scores", {}).get("overall", 0)
+                        for r in base_results
+                        if r.get("category") == cat
+                    ),
+                    0,
+                )
+                ft_cat = next(
+                    (
+                        r.get("scores", {}).get("overall", 0)
+                        for r in ft_results
+                        if r.get("category") == cat
+                    ),
+                    0,
+                )
+                cat_metrics.append((cat, base_cat, ft_cat))
+
+            fig, ax = plt.subplots(figsize=(12, 6))
+            cats = [c[0] for c in cat_metrics]
+            base_cats = [c[1] for c in cat_metrics]
+            ft_cats = [c[2] for c in cat_metrics]
+            x = np.arange(len(cats))
+            ax.bar(x - width / 2, base_cats, width, label="Base Model", alpha=0.8)
+            ax.bar(x + width / 2, ft_cats, width, label="Fine-Tuned", alpha=0.8)
+            ax.set_ylabel("Score")
+            ax.set_title("Model Comparison by Category")
+            ax.set_xticks(x)
+            ax.set_xticklabels(cats, rotation=45, ha="right")
+            ax.legend()
+            ax.set_ylim(1, 5.5)
+            plt.tight_layout()
+
+            cat_chart_path = self.output_dir / f"category_chart_{timestamp}.png"
+            plt.savefig(cat_chart_path, dpi=150)
+            plt.close()
+            chart_paths.append(cat_chart_path)
+
+        for chart_path in chart_paths:
+            print(f"Chart generated: {chart_path}")
+
+        return chart_paths
+
+    def _compute_average(self, results: List[Dict]) -> Dict[str, float]:
+        if not results:
+            return {}
+        metric_keys = [
+            "technical_correctness",
+            "depth",
+            "structure",
+            "hallucination",
+            "clarity",
+            "overall",
+        ]
+        totals = {k: 0.0 for k in metric_keys}
+        count = 0
+        for r in results:
+            scores = r.get("scores", {})
+            for key in metric_keys:
+                if key in scores:
+                    totals[key] += scores[key]
+            count += 1
+        if count == 0:
+            return {}
+        return {k: v / count for k, v in totals.items()}
+
+
+class UnifiedEvaluator:
+    def __init__(
+        self,
+        base_model_id: str,
+        adapter_path: str = "",
+        merged_model_path: str = "",
+    ):
+        self.base_model_id = base_model_id
+        self.adapter_path = adapter_path
+        self.merged_model_path = merged_model_path
+        self.model = None
+        self.tokenizer = None
+        self._loaded = False
+
+    def load_model(self):
+        """Carrega modelo base ou FT."""
+        if self._loaded:
+            return
+
+        if self.merged_model_path:
+            print(f"Loading merged model: {self.merged_model_path}")
+            self.model, self.tokenizer = load(path_or_hf_repo=self.merged_model_path)
+        else:
+            print(f"Loading model: {self.base_model_id}")
+            if self.adapter_path:
+                print(f"  With adapter: {self.adapter_path}")
+            self.model, self.tokenizer = load(
+                path_or_hf_repo=self.base_model_id,
+                adapter_path=self.adapter_path if self.adapter_path else None,
+            )
+
+        self.sampler = make_sampler(temp=0.5, top_p=0.9, min_p=0.0, top_k=50)
+        self._loaded = True
+        print("Model loaded successfully")
+
+    def generate_response(
+        self, prompt: str, system_prompt: str = "", max_tokens: int = 1024
+    ) -> str:
+        if not self._loaded:
+            self.load_model()
+
+        messages = []
+        if system_prompt:
+            messages.append({"role": "system", "content": system_prompt})
+        messages.append({"role": "user", "content": prompt})
+
+        prompt_tokens = self.tokenizer.apply_chat_template(
+            messages, add_generation_prompt=True
+        )
+
+        start = time.time()
+        response = generate(
+            self.model,
+            self.tokenizer,
+            prompt=prompt_tokens,
+            max_tokens=max_tokens,
+            sampler=self.sampler,
+            verbose=False,
+        )
+        elapsed = time.time() - start
+
+        return response, elapsed
+
+
+def load_eval_data(eval_file: str) -> List[Dict]:
+    """Load evaluation data from JSONL file."""
+    data = []
+    with open(eval_file, "r", encoding="utf-8") as f:
+        for line in f:
+            if line.strip():
+                data.append(json.loads(line))
+    return data
+
+
+def sample_per_category(data: List[Dict], samples: int = 10) -> List[Dict]:
+    """Sample n examples from different categories (max 1 per category)."""
+    random.seed(42)
+    by_category = {}
+    for item in data:
+        cat = item.get("metadata", {}).get("category", "unknown")
+        if cat not in by_category:
+            by_category[cat] = []
+        by_category[cat].append(item)
+
+    categories = list(by_category.keys())
+    random.shuffle(categories)
+
+    selected_cats = categories[:samples]
+    sampled = []
+    for cat in selected_cats:
+        sampled.append(random.choice(by_category[cat]))
+    return sampled
+
+
+def evaluate_model(
+    evaluator: UnifiedEvaluator,
+    eval_data: List[Dict],
+    semantic_scorer: Optional[SemanticScorer] = None,
+    mode: str = "base",
+) -> List[Dict]:
+    """Run evaluation loop for a model."""
+    results = []
+    total = len(eval_data)
+
+    for i, item in enumerate(eval_data):
+        messages = item.get("messages", [])
+        system_prompt = ""
+        user_prompt = ""
+
+        for msg in messages:
+            role = msg.get("role", "")
+            content = msg.get("content", "")
+            if role == "system":
+                system_prompt = content
+            elif role == "user":
+                user_prompt = content
+
+        reference = ""
+        for msg in messages:
+            if msg.get("role") == "assistant":
+                reference = msg.get("content", "")
+                break
+
+        category = item.get("metadata", {}).get("category", "unknown")
+
+        print(f"[{mode}] {i + 1}/{total}: {category}")
+
+        try:
+            response, elapsed = evaluator.generate_response(
+                user_prompt, system_prompt=system_prompt, max_tokens=1024
+            )
+        except Exception as e:
+            response = f"Error: {str(e)}"
+            elapsed = 0.0
+
+        scores = ScoringEngine.evaluate_response(response, reference, category)
+
+        sem_sim = 0.5
+        if semantic_scorer and reference:
+            try:
+                sem_sim = semantic_scorer.score(response, reference)
+            except Exception:
+                pass
+
+        result = {
+            "category": category,
+            "prompt": user_prompt,
+            "response": response,
+            "reference": reference,
+            "scores": scores,
+            "semantic_similarity": sem_sim,
+            "elapsed_seconds": elapsed,
+            "model": mode,
+        }
+        results.append(result)
+
+        if (i + 1) % 10 == 0:
+            avg_time = sum(r["elapsed_seconds"] for r in results) / len(results)
+            print(f"  Avg time: {avg_time:.2f}s")
+
+    return results
+
+
+def save_results(results: List[Dict], output_path: Path):
+    """Save evaluation results to JSON."""
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(results, f, ensure_ascii=False, indent=2)
+    print(f"Results saved: {output_path}")
+
+
+def main():
+    parser = argparse.ArgumentParser(description="Unified OCI Specialist Evaluation")
+    parser.add_argument("--base-model", required=True, help="Base model ID")
+    parser.add_argument("--adapter", default="", help="LoRA adapter path")
+    parser.add_argument("--merged", default="", help="Merged model path")
+    parser.add_argument("--eval-file", default="data/eval.jsonl", help="Eval JSONL")
+    parser.add_argument("--output-dir", default="outputs/benchmarks", help="Output dir")
+    parser.add_argument(
+        "--mode", choices=["test", "full"], default="full", help="Eval mode"
+    )
+    parser.add_argument(
+        "--test-samples", type=int, default=10, help="Test samples count"
+    )
+    parser.add_argument("--seed", type=int, default=42, help="Random seed")
+    args = parser.parse_args()
+
+    random.seed(args.seed)
+
+    print("=" * 60)
+    print("Unified Evaluation Script")
+    print("=" * 60)
+    print(f"Mode: {args.mode}")
+    print(f"Base: {args.base_model}")
+    print(f"Adapter: {args.adapter or 'None'}")
+    print(f"Eval file: {args.eval_file}")
+    print(f"Output: {args.output_dir}")
+
+    output_dir = Path(args.output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    print("\n[1/5] Loading eval data...")
+    eval_data = load_eval_data(args.eval_file)
+    print(f"Loaded {len(eval_data)} examples")
+
+    if args.mode == "test":
+        eval_data = sample_per_category(eval_data, samples=args.test_samples)
+        print(f"Test mode: {len(eval_data)} samples from different categories")
+
+    categories = set(
+        d.get("metadata", {}).get("category", "unknown") for d in eval_data
+    )
+    print(f"Categories: {len(categories)}")
+
+    print("\n[2/5] Initializing scorers...")
+    semantic_scorer = SemanticScorer()
+    try:
+        semantic_scorer.load_model()
+        print("Semantic scorer loaded")
+    except Exception as e:
+        print(f"Warning: Semantic scorer unavailable: {e}")
+        semantic_scorer = None
+
+    print("\n[3/5] Evaluating base model...")
+    base_evaluator = UnifiedEvaluator(
+        base_model_id=args.base_model,
+        adapter_path="",
+        merged_model_path=args.merged,
+    )
+
+    if args.mode == "test":
+        base_results = evaluate_model(
+            base_evaluator, eval_data, semantic_scorer, mode="base"
+        )
+    else:
+        base_results = evaluate_model(
+            base_evaluator, eval_data, semantic_scorer, mode="base"
+        )
+
+    base_path = output_dir / "base_results.json"
+    save_results(base_results, base_path)
+
+    del base_evaluator
+
+    print("\n[4/5] Evaluating fine-tuned model...")
+    ft_evaluator = UnifiedEvaluator(
+        base_model_id=args.base_model,
+        adapter_path=args.adapter,
+        merged_model_path=args.merged,
+    )
+
+    if args.mode == "test":
+        ft_results = evaluate_model(ft_evaluator, eval_data, semantic_scorer, mode="ft")
+    else:
+        ft_results = evaluate_model(ft_evaluator, eval_data, semantic_scorer, mode="ft")
+
+    ft_path = output_dir / "ft_results.json"
+    save_results(ft_results, ft_path)
+
+    del ft_evaluator
+
+    print("\n[5/5] Generating reports...")
+    reporter = ReportGenerator(output_dir)
+
+    report_path = reporter.generate_comparison_report(
+        base_results, ft_results, len(eval_data)
+    )
+
+    chart_paths = reporter.generate_charts(base_results, ft_results)
+
+    print("\n" + "=" * 60)
+    print("Evaluation Complete")
+    print("=" * 60)
+    print(f"Base model samples: {len(base_results)}")
+    print(f"FT model samples: {len(ft_results)}")
+    print(f"Report: {report_path}")
+    if chart_paths:
+        print("Charts:")
+        for cp in chart_paths:
+            print(f"  - {cp}")
+    print("=" * 60)
+
+
+if __name__ == "__main__":
+    main()

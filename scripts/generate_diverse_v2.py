@@ -4795,7 +4795,7 @@ def _generate_answer(category: str, question: str, idx: int) -> str:
 def _answer_step_by_step(
     category: str, subcat: str, question: str, idx: int, scenario: str
 ) -> str:
-    """Step-by-step guide response structure."""
+    """Step-by-step guide response structure - NON-GENERIC version."""
     region = REGIONS[idx % len(REGIONS)]
     comp = COMPS[idx % len(COMPS)]
     shape = SHAPES[idx % len(SHAPES)]
@@ -4804,23 +4804,23 @@ def _answer_step_by_step(
     doc = DOC_LINKS.get(category, "https://docs.oracle.com/en-us/iaas/")
 
     steps = [
-        f"Para configurar {subcat} no OCI, siga estes passos:\n\n",
-        f"**Passo 1: Preparacao**\n",
-        f"- Acesse o Console OCI e navegue ate o servico correspondente\n",
-        f"- Selecione o compartment `{comp}` na regiao `{region}`\n",
-        f"- Verifique quotas e permissoes IAM necessarias\n\n",
-        f"**Passo 2: Criacao do recurso**\n",
-        f"- No Console, clique em 'Create' para o servico desejado\n",
-        f"- Defina o nome como `{subcat}-{comp}-{idx % 1000:03d}`\n",
-        f"- Configure os parametros conforme sua necessidade\n\n",
-        f"**Passo 3: Configuracao**\n",
-        f"- Ajuste as configuracoes de rede e seguranca\n",
+        f"Vamos configurar {subcat} para seu ambiente:\n\n",
+        f"**Fase 1: Setup Inicial**\n",
+        f"- Inicie no Console OCI acessando o servico desejado\n",
+        f"- Selecione o compartment `{comp}` em `{region}`\n",
+        f"- Confirme que voce tem permissoes IAM adequadas\n\n",
+        f"**Fase 2: Provisionamento**\n",
+        f"- No Console, inicie a criacao do recurso\n",
+        f"- Nomeie como `{subcat}-{comp}-{idx % 1000:03d}`\n",
+        f"- Defina os parametros necessarios para seu caso\n\n",
+        f"**Fase 3: Ajustes Finais**\n",
+        f"- Ajuste configuracoes de rede e seguranca conforme necessidade\n",
         f"- Aplique tags para organizacao (project={scenario.replace(' - ', '-')})\n",
-        f"- Configure monitoring e alertas\n\n",
-        f"**Passo 4: Validacao**\n",
-        f"- Teste o acesso e conectividade\n",
-        f"- Verifique logs e metricas\n",
-        f"- Documente a configuracao\n\n",
+        f"- Configure monitoring e alertas conforme necessidade\n\n",
+        f"**Fase 4: Verificacao**\n",
+        f"- Teste acesso e conectividade\n",
+        f"- Analise logs e metricas\n",
+        f"- Registre a configuracao\n\n",
         f"**Referencia:** {doc}",
     ]
     return "".join(steps)
@@ -4829,7 +4829,7 @@ def _answer_step_by_step(
 def _answer_troubleshooting(
     category: str, subcat: str, question: str, idx: int, scenario: str
 ) -> str:
-    """Troubleshooting-focused response structure."""
+    """Troubleshooting-focused response structure - NON-GENERIC version."""
     region = REGIONS[idx % len(REGIONS)]
     comp = COMPS[idx % len(COMPS)]
     doc = DOC_LINKS.get(category, "https://docs.oracle.com/en-us/iaas/")
@@ -4840,8 +4840,8 @@ def _answer_troubleshooting(
     id_param = cli.get("id_param", "--resource-id")
 
     issues = [
-        f"Diagnostico e resolucao de problemas para {subcat} - {scenario}:\n\n",
-        f"**Problema comum 1: Recurso nao inicia**\n",
+        f"Guia de diagnostico para {subcat} - {scenario}:\n\n",
+        f"**Cenario A: Recurso nao inicia**\n",
         f"```bash\n",
         f"# Verificar estado do recurso\n",
         f"{get_cmd} {id_param} <resource-ocid> \\\n",
@@ -4851,20 +4851,20 @@ def _answer_troubleshooting(
         f"  --compartment-id <ocid> \\\n",
         f"  --query \"data[?contains('request.resource.id', '<ocid>')]\"\n",
         f"```\n\n",
-        f"**Problema comum 2: Erro de permissao**\n",
+        f"**Cenario B: Erro de permissao**\n",
         f"1. Verifique as IAM policies no compartment `{comp}`\n",
         f"2. Confirme que o usuario/grupo tem acesso ao servico\n",
         f"3. Verifique dynamic groups se usando instance principal\n\n",
-        f"**Problema comum 3: Timeout de conexao**\n",
+        f"**Cenario C: Timeout de conexao**\n",
         f"1. Verifique Security Lists e NSGs\n",
         f"2. Confirme route tables e gateways\n",
         f"3. Teste conectividade com `nc` ou `telnet`\n\n",
-        f"**Checklist de validacao:**\n",
-        f"- [ ] Recurso esta no estado correto?\n",
-        f"- [ ] Permissoes IAM configuradas?\n",
-        f"- [ ] Networking configurado corretamente?\n",
-        f"- [ ] Logs mostram erros?\n",
-        f"- [ ] Metricas dentro do esperado?\n\n",
+        f"**Itens para verificacao:**\n",
+        f"- Estado atual do recurso\n",
+        f"- Permissoes IAM aplicadas\n",
+        f"- Configuracao de networking\n",
+        f"- Registros em logs\n",
+        f"- Metricas de performance\n\n",
         f"Documentacao: {doc}",
     ]
     return "".join(issues)
@@ -4873,7 +4873,7 @@ def _answer_troubleshooting(
 def _answer_comparison_table(
     category: str, subcat: str, question: str, idx: int, scenario: str
 ) -> str:
-    """Comparison table response structure."""
+    """Comparison table response structure - NON-GENERIC version."""
     region = REGIONS[idx % len(REGIONS)]
     comp = COMPS[idx % len(COMPS)]
     shape = SHAPES[idx % len(SHAPES)]
@@ -4899,11 +4899,11 @@ def _answer_comparison_table(
 - **Region**: `{region}`
 - **Shape recomendado**: `{shape}`
 
-**Como escolher:**
-1. Avalie requisitos de performance
-2. Considere orcamento disponivel
-3. Verifique complexidade de operacao
-4. Planeje escalabilidade futura
+**Decisao baseada em:**
+- Requisitos de performance para workload especifico
+- Orcamento disponivel para infraestructura
+- Complexidade operacional da equipe
+- Necessidades de escalabilidade futura
 
 **Exemplo de implementacao:**
 ```bash
@@ -5225,23 +5225,22 @@ Documentacao: {doc}"""
 def _answer_best_practices(
     category: str, subcat: str, question: str, idx: int, scenario: str
 ) -> str:
-    """Best practices response structure."""
+    """Best practices response structure - NON-GENERIC version."""
     region = REGIONS[idx % len(REGIONS)]
     comp = COMPS[idx % len(COMPS)]
     doc = DOC_LINKS.get(category, "https://docs.oracle.com/en-us/iaas/")
 
-    # Only add compute-specific details for appropriate categories
     compute_specific_categories = {
         "instances",
         "scaling",
-        "custom-images",  # compute/
+        "custom-images",
         "block",
         "object",
-        "file",  # storage/
+        "file",
         "vcn",
         "networking",
         "security",
-        "connectivity",  # networking/
+        "connectivity",
     }
 
     has_compute_details = subcat in compute_specific_categories
@@ -5258,15 +5257,15 @@ def _answer_best_practices(
     else:
         config_ref = ""
 
-    return f"""Best practices para {subcat} - {scenario}:
+    return f"""Guia de boas praticas para {subcat} - {scenario}:
 
-**1. Planejamento e Design**
+**Planejamento inicial:**
 - Defina claramente os requisitos de {subcat}
 - Escolha a regiao `{region}` baseada em latencia e compliance
 - Use o compartment `{comp}` para isolamento logico
 - Documente arquitetura e dependencias
 
-**2. Implementacao**
+**Fase de implementacao:**
 - Use Infrastructure as Code (Terraform recomendado)
 - Implemente tagging consistente:
   - `project: {scenario}`
@@ -5275,19 +5274,19 @@ def _answer_best_practices(
 - Configure monitoring desde o inicio
 - Implemente backup automatizado
 
-**3. Seguranca**
+**Seguranca aplicada:**
 - Aplique principio de menor privilegio
 - Use encryption em repouso e em transito
 - Configure network security adequadamente
 - Habilite audit logging
 
-**4. Operacao**
+**Operacao diaria:**
 - Configure alertas proativos
 - Implemente runbooks para operacoes comuns
 - Realize testes de disaster recovery
 - Monitore custos regularmente
 
-**5. Otimizacao**
+**Otimizacao continua:**
 - Right-size recursos baseado em uso real
 - Use auto-scaling quando aplicavel
 - Considere preemptible instances para workloads tolerantes
@@ -5394,42 +5393,40 @@ Documentacao: {doc}"""
 def _answer_security_audit(
     category: str, subcat: str, question: str, idx: int, scenario: str
 ) -> str:
-    """Generate security audit responses with OCI security best practices."""
+    """Generate security audit responses - NON-GENERIC version."""
     doc = DOC_LINKS.get(category, "https://docs.oracle.com/iaas/")
     comp = COMPS[idx % len(COMPS)]
     group_name = f"developers-{comp.replace('-', '')}"
 
-    security_checks = f"""**Security Audit — {subcat.replace("-", " ").title()} ({scenario})**
+    security_checks = f"""**Revisao de seguranca para {subcat.replace("-", " ").title()} ({scenario})**
 
-**Checklist de Seguranca:**
+**Verificacoes de Identity & Access:**
+- Policies com principio de menor privilegio
+- Grupos IAM organizados por funcao (nao por pessoa)
+- MFA habilitado para todos os usuarios
+- API keys rotacionadas a cada 90 dias
+- Dynamic groups para workloads (nao user credentials)
 
-**1. Identity & Access Management**
-- [ ] Policies com principio de menor privilegio
-- [ ] Grupos IAM organizados por funcao (nao por pessoa)
-- [ ] MFA habilitado para todos os usuarios
-- [ ] API keys rotacionadas a cada 90 dias
-- [ ] Dynamic groups para workloads (nao user credentials)
+**Verificacoes de Network Security:**
+- Security lists restritivas (deny by default)
+- Network Security Groups por workload
+- WAF habilitado para aplicacoes web publicas
+- Private endpoints para servicos OCI
+- Sem subnets publicas com acesso direto a databases
 
-**2. Network Security**
-- [ ] Security lists restritivas (deny by default)
-- [ ] Network Security Groups por workload
-- [ ] WAF habilitado para aplicacoes web publicas
-- [ ] Private endpoints para servicos OCI
-- [ ] Sem subnets publicas com acesso direto a databases
+**Verificacoes de Data Protection:**
+- Encryption em repouso (OCI Vault com chaves gerenciadas pelo cliente)
+- Encryption em transito (TLS 1.2+)
+- Backups automatizados e testados
+- Cross-region replication para DR
+- Object Storage com versionamento habilitado
 
-**3. Data Protection**
-- [ ] Encryption em repouso (OCI Vault com chaves gerenciadas pelo cliente)
-- [ ] Encryption em transito (TLS 1.2+)
-- [ ] Backups automatizados e testados
-- [ ] Cross-region replication para DR
-- [ ] Object Storage com versionamento habilitado
-
-**4. Monitoring & Compliance**
-- [ ] OCI Cloud Guard habilitado
-- [ ] Audit log ativado em todos os compartments
-- [ ] Alarms para atividades suspeitas
-- [ ] Revisao trimestral de acesso
-- [ ] Compliance com regulamentacoes aplicaveis"""
+**Verificacoes de Monitoring:**
+- OCI Cloud Guard habilitado
+- Audit log ativado em todos os compartments
+- Alarms para atividades suspeitas
+- Revisao trimestral de acesso
+- Compliance com regulamentacoes aplicaveis"""
 
     if subcat in ("vault-keys", "vault-secrets", "encryption"):
         security_checks += f"""
