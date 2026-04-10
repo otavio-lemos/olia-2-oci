@@ -155,7 +155,7 @@ bash training/run_all_cycles.sh --fresh
 | LEARNING_RATE | 2e-4 |
 | LORA_RANK | 8 |
 | LORA_ALPHA | 16 |
-| ITERS | 1250 |
+| ITERS | 3384 |
 | MAX_SEQ_LENGTH | 2048 |
 
 ---
