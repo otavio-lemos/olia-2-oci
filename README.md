@@ -201,22 +201,23 @@ Prompts em `config/inference_prompts.yaml`, output JSON estruturado em `outputs/
 ### 8. Ollama (Inference Local)
 
 ```bash
-# Criar Modelfile
+# Criar Modelfile (use caminho absoluto)
 cat > outputs/cycle-1/gguf/Modelfile << 'EOF'
-FROM outputs/cycle-1/gguf/oci-specialist-Q4_K_M.gguf
+FROM /full/path/to/outputs/cycle-1/gguf/oci-specialist-Q4_K_M.gguf
 PARAMETER temperature 0.1
 PARAMETER top_p 0.9
+PARAMETER top_k 40
 SYSTEM Você é um especialista em OCI (Oracle Cloud Infrastructure).
 EOF
 
 # Importar para Ollama
-ollama create oci-specialist -f outputs/cycle-1/gguf/Modelfile
+ollama create oci-specialist -f /full/path/to/outputs/cycle-1/gguf/Modelfile
 
 # Testar inference
 echo "Liste 3 serviços do OCI" | ollama run oci-specialist
 ```
 
-**Modelo disponível:** `oci-specialist` (4.3GB)
+**Modelo disponível:** `oci-specialist` (4.7GB)
 
 ---
 
