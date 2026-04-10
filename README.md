@@ -144,13 +144,11 @@ CYCLE=cycle-1 python training/train_mlx_tune.py --fresh
 | LORA_RANK | 8 |
 | LORA_ALPHA | 16 |
 | LORA_DROPOUT | 0.05 |
-| ITERS | 2583 |
+| ITERS | 646 |
 | BATCH_SIZE | 1 |
-| GRADIENT_ACCUMULATION | 2 |
+| GRADIENT_ACCUMULATION | 4 |
 | MAX_SEQ_LENGTH | 2048 |
 | WARMUP_STEPS | 200 |
-
-> **Nota:** `NUM_LAYERS` não está definido no config - usa padrão 32. O treinamento aplica LoRA em 32 camadas.
 
 ### 5. Export
 
@@ -194,9 +192,7 @@ Prompts em `config/inference_prompts.yaml`, output JSON estruturado em `outputs/
 ```
 ├── config/
 │   ├── cycle-1.env                    # Configuração do treino
-│   ├── cycle-2.env
-│   ├── cycle-3.env
-│   ├── gguf.env
+│   ├── gguf.env                       # Configuração de exportação GGUF
 │   └── inference_prompts.yaml        # Prompts para inference
 ├── data/
 │   ├── curated/                       # 71 arquivos JSONL (topics)
