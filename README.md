@@ -154,7 +154,7 @@ CYCLE=cycle-1 python training/train_mlx_tune.py --fresh
 | LEARNING_RATE | 2e-4 |
 | LORA_RANK | 8 |
 | LORA_ALPHA | 16 |
-| ITERS | 646 |
+| ITERS | 1250 |
 | MAX_SEQ_LENGTH | 2048 |
 
 ---
