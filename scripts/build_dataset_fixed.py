@@ -53,26 +53,35 @@ def ensure_chat_format(example: Dict[str, Any]) -> Dict[str, Any]:
     )
 
 
-def balanced_split(
+def balanced_split_v2(
     examples: List[Dict[str, Any]], ratios: Dict[str, float]
 ) -> Dict[str, List]:
-    """Stratified split by category."""
-    categories = defaultdict(list)
+    """Stratified split by category + intent + difficulty for richer diversity."""
+    from collections import defaultdict
+
+    def make_key(ex: Dict) -> str:
+        meta = ex.get("metadata", {})
+        cat = meta.get("category", "unknown")
+        intent = meta.get("intent", "unknown")
+        diff = meta.get("difficulty", "unknown")
+        return f"{cat}|{intent}|{diff}"
+
+    buckets = defaultdict(list)
     for ex in examples:
-        cat = ex.get("metadata", {}).get("category", "unknown")
-        categories[cat].append(ex)
+        key = make_key(ex)
+        buckets[key].append(ex)
 
     splits = {k: [] for k in ratios}
     total_ratios = sum(ratios.values())
 
-    for cat_examples in categories.values():
-        random.shuffle(cat_examples)
-        n = len(cat_examples)
+    for bucket_examples in buckets.values():
+        random.shuffle(bucket_examples)
+        n = len(bucket_examples)
 
         start = 0
         for split_name, ratio in ratios.items():
             end = start + int(n * ratio / total_ratios)
-            splits[split_name].extend(cat_examples[start:end])
+            splits[split_name].extend(bucket_examples[start:end])
             start = end
 
     return splits
@@ -111,7 +120,7 @@ def main():
         "valid": args.valid_ratio,
         "eval": args.eval_ratio,
     }
-    splits = balanced_split(chat_examples, ratios)
+    splits = balanced_split_v2(chat_examples, ratios)
 
     # Save
     output_dir = Path(args.output)

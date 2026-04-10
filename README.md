@@ -6,7 +6,7 @@ Fine-tuned Large Language Model for Oracle Cloud Infrastructure (OCI) using Appl
 [![Python](https://img.shields.io/badge/Python-3.12-blue?style=flat-square&logo=python&logoColor=white)](https://www.python.org)
 [![MLX](https://img.shields.io/badge/MLX-Apple%20Silicon-orange?style=flat-square)](https://mlx.ai)
 [![Model](https://img.shields.io/badge/Base%20Model-Meta--Llama--3.1--8B--Instruct--4bit-purple?style=flat-square)](https://huggingface.co/mlx-community/Meta-Llama-3.1-8B-Instruct-4bit)
-[![Dataset](https://img.shields.io/badge/Dataset-6627_examples-green?style=flat-square)](docs/taxonomy.md)
+[![Dataset](https://img.shields.io/badge/Dataset-21750_examples-green?style=flat-square)](docs/taxonomy.md)
 
 > **Language**: Data and prompts in Brazilian Portuguese (PT-BR).
 
@@ -17,17 +17,17 @@ Fine-tuned Large Language Model for Oracle Cloud Infrastructure (OCI) using Appl
 This project trains a specialized LLM for Oracle Cloud Infrastructure using Apple's MLX framework on Apple Silicon. The pipeline covers dataset generation, validation, MLX LoRA fine-tuning, and evaluation.
 
 ```mermaid
-flowchart TB
+flowchart LR
     subgraph GENERATION["Phase 1: Generation"]
         A["generate_diverse_v2.py"]
-        A --> B["data/curated/<br/>71 JSONL files"]
+        A --> B["data/curated/<br/>87 JSONL files"]
     end
 
     subgraph PREPARATION["Phase 2: Preparation"]
         B --> C1["Concat<br/>all_curated.jsonl"]
         C1 --> C2["Validate<br/>validate_jsonl.py"]
         C2 --> C3["Clean<br/>clean_dataset.py"]
-        C3 --> C4["Dedup<br/>dedupe_dataset.py"]
+        C3 --> C4["Dedup<br/>dedupe_embedding.py"]
         C4 --> C5["Split<br/>build_dataset_fixed.py"]
         C5 --> D["train.jsonl<br/>valid.jsonl<br/>eval.jsonl"]
     end
@@ -40,6 +40,7 @@ flowchart TB
     subgraph EXPORT["Phase 4: Export"]
         F --> G1["mlx_lm fuse<br/>→ merged-model"]
         F --> G2["merge_export.py<br/>→ GGUF (Q4/Q5/Q8)"]
+        F --> G3["convert_hf_to_gguf.py<br/>→ llama.cpp GGUF"]
     end
 
     subgraph EVALUATION["Phase 5: Evaluation"]
@@ -48,8 +49,9 @@ flowchart TB
     end
 
     subgraph INFERENCE["Phase 6: Inference"]
-        F --> J1["run_inference_v2.py<br/>YAML structured"]
+        F --> J1["run_inference_v2.py<br/>MLX-LM"]
         F --> J2["Ollama<br/>local deployment"]
+        F --> J3["llama.cpp<br/>CLI inference"]
     end
 
     style GENERATION fill:#e1f5fe
@@ -69,8 +71,9 @@ flowchart TB
 - **LoRA Fine-tuning**: Low-rank adaptation with 4-bit quantized base model
 - **Apple Silicon Optimized**: Runs natively on M1/M2/M3/M4/M5 Macs
 - **Comprehensive Evaluation**: Automated scoring with semantic similarity
-- **Multiple Export Formats**: Merge to base model or export to GGUF (Q4/Q5/Q8)
-- **Local Inference**: Deploy with Ollama for offline inference
+- **Multiple Export Formats**: Merge to base model, GGUF (Q4/Q5/Q8), or llama.cpp GGUF
+- **Local Inference**: Deploy with Ollama or llama.cpp for offline inference
+- **Richer Metadata**: Intent, persona, constraint, and lifecycle stage for RAG
 
 ---
 
@@ -78,27 +81,30 @@ flowchart TB
 
 | Metric | Value |
 |--------|-------|
-| **Total** | 6,627 examples |
-| **Categories** | 71 OCI topics |
-| **Removed in cleaning** | 3,313 (generic templates, duplicates) |
+| **Total** | 21,750 examples (87 categories × 250) |
+| **Categories** | 87 OCI topics |
+| **Metadata** | intent, persona, constraint, lifecycle_stage |
 
 ### Split
 
 | Split | Examples | % |
 |-------|----------|---|
-| Train | 4,956 | 74.8% |
-| Valid | 978 | 14.7% |
-| Eval | 632 | 9.5% |
+| Train | 16,312 | 75% |
+| Valid | 3,262 | 15% |
+| Eval | 2,176 | 10% |
 
 ### Categories
 
 - **OCI Core** (compute, storage, networking, lb, database, container, serverless) - 20 topics
-- **Security** (iam, policies, vault, encryption, cloud-guard, waf) - 9 topics
+- **Security** (iam, policies, vault, encryption, cloud-guard, waf, zero-trust, posture-management) - 10 topics
 - **Migration** (AWS/Azure/GCP/On-prem → OCI) - 14 topics
 - **Terraform** (provider, compute, storage, networking, etc) - 12 topics
-- **Observability** - 4 topics
-- **Troubleshooting** - 8 topics
-- **DevOps** - 4 topics
+- **Observability** (logging, monitoring, stack-monitoring, apm) - 4 topics
+- **Troubleshooting** (connectivity, performance, authentication, database, compute, storage, oke, functions) - 8 topics
+- **DevOps** (ci-cd, resource-manager, artifacts, secrets) - 4 topics
+- **Governance** (landing-zone, compartments, tagging, budgets-cost, policies-guardrails, compliance, audit-readiness, resource-discovery) - 8 topics
+- **FinOps** (cost-optimization, showback-chargeback, rightsizing, storage-tiering) - 4 topics
+- **Platform** (backup-governance, sre-operations) - 2 topics
 
 ---
 
@@ -121,8 +127,9 @@ pip install -r requirements.txt
 # 1. Generate dataset
 python scripts/generate_diverse_v2.py
 
-# 2. Validate and prepare
-bash scripts/prepare_data.sh
+# 2. Validate and clean
+python scripts/validate_jsonl.py --input data/all_curated.jsonl
+python scripts/clean_dataset.py --input data/all_curated.jsonl --output data/all_curated_clean.jsonl
 
 # 3. Build dataset splits
 python scripts/build_dataset_fixed.py --input data/all_curated_clean.jsonl
@@ -207,6 +214,20 @@ ollama create oci-specialist -f ./outputs/cycle-1/gguf/Modelfile
 echo "Liste 3 serviços do OCI" | ollama run oci-specialist
 ```
 
+### llama.cpp (CLI)
+
+```bash
+# Download llama.cpp
+git clone https://github.com/ggerganov/llama.cpp.git
+cd llama.cpp
+make -j
+
+# Run inference
+./llama-cli -m ../outputs/cycle-1/gguf/oci-specialist-q4_k_m.gguf \
+  -cnv --no-display-prompt \
+  -p "Você é um especialista em OCI. Liste 3 serviços do OCI"
+```
+
 > [!NOTE]
 > The model is ~4.7GB when exported to GGUF Q4 format.
 
@@ -220,10 +241,10 @@ echo "Liste 3 serviços do OCI" | ollama run oci-specialist
 │   ├── inference_prompts.yaml
 │   └── gguf.env
 ├── data/                    # Datasets
-│   ├── curated/            # 71 topic files
-│   ├── train.jsonl         # 2,583 examples
-│   ├── valid.jsonl         # 495 examples
-│   └── eval.jsonl          # 325 examples
+│   ├── curated/            # 87 topic files
+│   ├── train.jsonl         # 16,312 examples
+│   ├── valid.jsonl         # 3,262 examples
+│   └── eval.jsonl          # 2,176 examples
 ├── docs/                   # Documentation
 │   ├── taxonomy.md
 │   ├── quality-rules.md
@@ -232,8 +253,10 @@ echo "Liste 3 serviços do OCI" | ollama run oci-specialist
 │   ├── generate_diverse_v2.py
 │   ├── validate_jsonl.py
 │   ├── clean_dataset.py
+│   ├── dedupe_embedding.py
 │   ├── build_dataset_fixed.py
 │   ├── merge_export.py
+│   ├── convert_hf_to_gguf.py
 │   ├── unified_evaluation.py
 │   └── run_inference_v2.py
 ├── training/               # Training scripts
@@ -250,8 +273,7 @@ echo "Liste 3 serviços do OCI" | ollama run oci-specialist
 
 ## Limitations
 
-1. **Single-turn only**: Dataset doesn't include multi-turn conversations.
-2. **No RAG**: No real-time access to OCI documentation.
+1. **No RAG**: No real-time access to OCI documentation.
 
 ---
 
@@ -259,6 +281,7 @@ echo "Liste 3 serviços do OCI" | ollama run oci-specialist
 
 - [MLX Documentation](https://mlx.ai)
 - [MLX-LM GitHub](https://github.com/ml-explore/mlx-lm)
+- [llama.cpp](https://github.com/ggerganov/llama.cpp)
 - [Oracle Cloud Infrastructure Docs](https://docs.oracle.com/en-us/iaas/Content/home.htm)
 - [HuggingFace Model](https://huggingface.co/mlx-community/Meta-Llama-3.1-8B-Instruct-4bit)
 

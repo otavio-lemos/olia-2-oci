@@ -14,11 +14,15 @@ def normalize_text(text: str) -> str:
 
 def get_example_key(example: Dict[str, Any]) -> str:
     messages = example.get("messages", [])
+
     user_msgs = [m["content"] for m in messages if m.get("role") == "user"]
     user_text = normalize_text(" ".join(user_msgs[:1]))[:200]
 
+    assistant_msgs = [m["content"] for m in messages if m.get("role") == "assistant"]
+    assistant_text = normalize_text(" ".join(assistant_msgs[:1]))[:300]
+
     category = example.get("metadata", {}).get("category", "unknown")
-    return f"{category}::{user_text}"
+    return f"{category}::{user_text}::{assistant_text}"
 
 
 def find_exact_duplicates(examples: List[Dict[str, Any]]) -> Dict[str, List[int]]:

@@ -33,7 +33,7 @@ WRONG format (multiple Q&A in one JSON - DO NOT DO THIS):
 {"messages": [{"role": "system", "content": "..."}, {"role": "user", "content": "pergunta 1"}, {"role": "assistant", "content": "resposta 1"}, {"role": "user", "content": "pergunta 2"}, {"role": "assistant", "content": "resposta 2"}], "metadata": {...}}
 ```
 
-**Format: 1 file per topic with 140 lines (140 JSON objects, each with exactly 3 messages)**
+**Format: 1 file per topic with 250 lines (250 JSON objects, each with exactly 3 messages)**
 
 ## Generation Process
 
@@ -70,7 +70,7 @@ Save to `data/curated/[topic].jsonl`
 
 ## Quantity Guidelines
 
-**140 examples per topic** (71 topics × 140 = 9,940 examples total)
+**250 examples per topic** (71 topics × 250 = 17,750 examples total)
 
 Quick reference:
 - compute: 3 topics (instances, scaling, custom-images)

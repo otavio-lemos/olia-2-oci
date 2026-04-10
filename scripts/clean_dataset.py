@@ -474,6 +474,25 @@ DIACRITICS_MAP = {
     "solucionavel": "solucionável",
 }
 
+# Categories where checklist patterns are valid and should NOT be removed
+CHECKLIST_FRIENDLY_CATEGORIES = {
+    "identity/access-reviews",
+    "compliance/evidence-automation",
+    "data/governance",
+    "resilience/dr-exercises",
+    "governance/landing-zone",
+    "governance/compartments",
+    "governance/tagging",
+    "governance/budgets-cost",
+    "governance/policies-guardrails",
+    "governance/compliance",
+    "governance/audit-readiness",
+    "finops/cost-optimization",
+    "finops/showback-chargeback",
+    "platform/sre-operations",
+    "platform/backup-governance",
+}
+
 GENERIC_TEMPLATES = [
     r"Para configurar \w+ no OCI, siga estes passos",
     r"Acesse o Console OCI e navegue ate o servico correspondente",
@@ -551,7 +570,11 @@ WRONG_CLI_MAP = {
 }
 
 
-def is_generic_template(content: str) -> bool:
+def is_generic_template(content: str, category: str = "") -> bool:
+    # Skip generic check for checklist-friendly categories
+    if category in CHECKLIST_FRIENDLY_CATEGORIES:
+        return False
+
     four_step = sum(
         1 for p in FOUR_STEP_PATTERN if re.search(p, content, re.IGNORECASE)
     )
@@ -729,7 +752,8 @@ def main():
                 if msg.get("role") == "assistant":
                     assistant = msg.get("content", "")
                     break
-            if not is_generic_template(assistant):
+            category = ex.get("metadata", {}).get("category", "")
+            if not is_generic_template(assistant, category):
                 filtered.append(ex)
             else:
                 stats["removed_generic"] = stats.get("removed_generic", 0) + 1
@@ -790,13 +814,23 @@ def main():
         seen: Set[str] = set()
         filtered = []
         for ex in examples:
-            assistant = ""
-            for msg in ex.get("messages", []):
-                if msg.get("role") == "assistant":
-                    assistant = msg.get("content", "")
-                    break
+            user_content = "".join(
+                [
+                    msg.get("content", "")
+                    for msg in ex.get("messages", [])
+                    if msg.get("role") == "user"
+                ]
+            )
+            assistant_content = "".join(
+                [
+                    msg.get("content", "")
+                    for msg in ex.get("messages", [])
+                    if msg.get("role") == "assistant"
+                ]
+            )
             category = ex.get("metadata", {}).get("category", "unknown")
-            key = f"{category}:{response_hash(assistant)}"
+            # Deduplicate based on the combination of Question + Answer
+            key = f"{category}:{response_hash(user_content + assistant_content)}"
             if key not in seen:
                 seen.add(key)
                 filtered.append(ex)

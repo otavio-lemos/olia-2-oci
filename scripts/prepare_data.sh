@@ -23,19 +23,12 @@ echo "=== Step 3: Clean content (remove generic templates, wrong CLI, etc.) ==="
 python3 scripts/clean_dataset.py --input data/all_curated.jsonl --output data/all_curated_clean.jsonl --all
 
 echo ""
-echo "=== Step 4a: Deduplicate (character-level, fast) ==="
-python3 scripts/dedupe_dataset.py data/all_curated_clean.jsonl --remove
-if [ -f "data/all_curated_deduped.jsonl" ]; then
-    cp data/all_curated_deduped.jsonl data/all_curated_clean.jsonl
-    echo "Deduplicated (char): $(wc -l < data/all_curated_clean.jsonl) lines"
-else
-    echo "No duplicates found: $(wc -l < data/all_curated_clean.jsonl) lines"
+echo "=== Step 4: Deduplicate (embedding-based, semantic) ==="
+python3 scripts/dedupe_embedding.py --input data/all_curated_clean.jsonl --output data/all_curated_semantic_dedup.jsonl --threshold 0.97
+if [ -f "data/all_curated_semantic_dedup.jsonl" ]; then
+    cp data/all_curated_semantic_dedup.jsonl data/all_curated_clean.jsonl
+    echo "Deduplicated (semantic): $(wc -l < data/all_curated_clean.jsonl) lines"
 fi
-
-echo ""
-echo "=== Step 4b: Deduplicate (embedding-based, semantic) - OPTIONAL ==="
-echo "NOTE: Semantic dedup disabled - too aggressive, removes valid examples"
-echo "Enable manually if needed - see scripts/dedupe_embedding.py --help"
 
 echo ""
 echo "=== Step 5: Build dataset splits ==="

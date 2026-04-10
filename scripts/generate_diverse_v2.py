@@ -8,8 +8,8 @@ This version ensures EVERY answer is structurally unique by varying:
 3. Response structure (step-by-step, troubleshooting, comparison, architecture, code-first)
 4. Additional content (tips, warnings, best practices, multi-cloud comparisons)
 
-71 categories × 140 examples = 9,940 total
-140 UNIQUE questions per category (no repeats)
+71 categories × 250 examples = 17,750 total
+250 UNIQUE questions per category (no repeats)
 Difficulty: 30% beginner, 50% intermediate, 20% advanced
 """
 
@@ -125,6 +125,58 @@ PROJECTS = [
 ]
 
 # ============================================================================
+# INTENT, PERSONA, CONSTRAINT, LIFECYCLE STAGE - For richer metadata
+# ============================================================================
+
+INTENTS = [
+    "design",
+    "compare",
+    "troubleshoot",
+    "remediate",
+    "audit",
+    "optimize",
+    "migrate",
+    "standardize",
+    "review",
+    "recover",
+]
+
+PERSONAS = [
+    "cloud architect",
+    "platform engineer",
+    "sre",
+    "security lead",
+    "dba",
+    "finops analyst",
+    "auditor",
+    "devops engineer",
+]
+
+CONSTRAINTS = [
+    "sem downtime",
+    "sem IP público",
+    "com budget limitado",
+    "com auditoria em 30 dias",
+    "ambiente legado",
+    "equipe enxuta",
+    "multi-região",
+    "integração híbrida",
+    "mínimo privilégio",
+    "rollback em menos de 15 minutos",
+]
+
+LIFECYCLE_STAGES = [
+    "greenfield",
+    "brownfield",
+    "produção estável",
+    "incidente",
+    "expansão",
+    "auditoria",
+    "migração",
+    "desativação",
+]
+
+# ============================================================================
 # SYSTEM PROMPTS AND DOC LINKS
 # ============================================================================
 
@@ -200,6 +252,26 @@ SYSTEM_PROMPTS = {
     "devops/resource-manager": "You are an OCI DevOps specialist. Provide technical guidance on Resource Manager stacks, jobs, and drift detection.",
     "devops/artifacts": "You are an OCI DevOps specialist. Provide technical guidance on OCIR, artifacts service, and image management.",
     "devops/secrets": "You are an OCI DevOps specialist. Provide technical guidance on Vault secrets, pipeline secret injection, and rotation.",
+    # Governance
+    "governance/landing-zone": "You are an OCI governance specialist with expertise in landing zone design. Provide technical guidance on tenancy structure, compartment hierarchy, network segmentation, IAM guardrails, tagging standards, and enterprise operating model.",
+    "governance/compartments": "You are an OCI governance specialist with expertise in compartment strategy. Provide technical guidance on compartment hierarchy, delegation, isolation, naming conventions, and operational boundaries.",
+    "governance/tagging": "You are an OCI governance and FinOps specialist with expertise in tagging strategy. Provide technical guidance on defined tags, tag namespaces, cost allocation, automation, and governance enforcement.",
+    "governance/budgets-cost": "You are an OCI FinOps specialist. Provide technical guidance on budgets, cost tracking, anomaly detection, forecasting, and spending guardrails across OCI environments.",
+    "governance/policies-guardrails": "You are an OCI governance specialist with expertise in IAM guardrails and preventive controls. Provide technical guidance on policy design, least privilege, separation of duties, and enterprise guardrails.",
+    "governance/compliance": "You are an OCI compliance specialist. Provide technical guidance on regulatory alignment, evidence collection, retention, encryption controls, access reviews, and governance processes.",
+    "governance/audit-readiness": "You are an OCI audit readiness specialist. Provide technical guidance on audit evidence, logging coverage, traceability, access review, change control, and remediation tracking.",
+    "governance/resource-discovery": "You are an OCI governance specialist with expertise in resource discovery and inventory. Provide technical guidance on resource search, tagging, reporting, and governance visibility.",
+    # FinOps
+    "finops/cost-optimization": "You are an OCI FinOps specialist with expertise in cloud cost optimization. Provide technical guidance on rightsizing, storage tiering, autoscaling efficiency, waste reduction, and forecasting.",
+    "finops/showback-chargeback": "You are an OCI FinOps specialist with expertise in showback and chargeback. Provide technical guidance on tagging, cost allocation, reporting models, shared service distribution, and financial accountability.",
+    "finops/rightsizing": "You are an OCI FinOps specialist with expertise in rightsizing and utilization analysis. Provide technical guidance on CPU, memory, storage, and idle resource optimization.",
+    "finops/storage-tiering": "You are an OCI FinOps specialist with expertise in storage optimization. Provide technical guidance on Object Storage tiers, lifecycle policies, backup retention, and storage cost governance.",
+    # Security (additional)
+    "security/zero-trust": "You are an OCI security specialist with expertise in zero trust architecture. Provide technical guidance on private access, bastion patterns, segmentation, least privilege, identity-aware access, and workload isolation.",
+    "security/posture-management": "You are an OCI security posture specialist. Provide technical guidance on Cloud Guard, Security Zones, detector tuning, continuous assessment, remediation workflows, and governance alignment.",
+    # Platform
+    "platform/backup-governance": "You are an OCI platform governance specialist with expertise in backup governance. Provide technical guidance on backup policies, retention standards, ownership, testing, and exception handling.",
+    "platform/sre-operations": "You are an OCI platform operations specialist with expertise in SRE practices. Provide technical guidance on SLOs, alerting, incident response, runbooks, capacity reviews, and operational governance.",
 }
 
 DOC_LINKS = {
@@ -274,6 +346,26 @@ DOC_LINKS = {
     "devops/resource-manager": "https://docs.oracle.com/en-us/iaas/Content/ResourceManager/Concepts/resourcemanager.htm",
     "devops/artifacts": "https://docs.oracle.com/en-us/iaas/Content/Artifacts/Concepts/artifactsoverview.htm",
     "devops/secrets": "https://docs.oracle.com/en-us/iaas/Content/KeyManagement/Concepts/keyoverview.htm",
+    # Governance
+    "governance/landing-zone": "https://docs.oracle.com/en-us/iaas/Content/Identity/Concepts/overview.htm",
+    "governance/compartments": "https://docs.oracle.com/en-us/iaas/Content/Identity/Tasks/managingcompartments.htm",
+    "governance/tagging": "https://docs.oracle.com/en-us/iaas/Content/Tagging/Concepts/taggingoverview.htm",
+    "governance/budgets-cost": "https://docs.oracle.com/en-us/iaas/Content/Billing/Concepts/budgetsoverview.htm",
+    "governance/policies-guardrails": "https://docs.oracle.com/en-us/iaas/Content/Identity/Concepts/policies.htm",
+    "governance/compliance": "https://docs.oracle.com/en-us/iaas/Content/Security/Reference/security.htm",
+    "governance/audit-readiness": "https://docs.oracle.com/en-us/iaas/Content/Audit/Concepts/auditoverview.htm",
+    "governance/resource-discovery": "https://docs.oracle.com/en-us/iaas/Content/Search/Concepts/queryoverview.htm",
+    # FinOps
+    "finops/cost-optimization": "https://docs.oracle.com/en-us/iaas/Content/Billing/Concepts/costoverview.htm",
+    "finops/showback-chargeback": "https://docs.oracle.com/en-us/iaas/Content/Tagging/Concepts/taggingoverview.htm",
+    "finops/rightsizing": "https://docs.oracle.com/en-us/iaas/Content/Monitoring/overview.htm",
+    "finops/storage-tiering": "https://docs.oracle.com/en-us/iaas/Content/Object/Concepts/objectstorageoverview.htm",
+    # Security (additional)
+    "security/zero-trust": "https://docs.oracle.com/en-us/iaas/Content/Security/Reference/security.htm",
+    "security/posture-management": "https://docs.oracle.com/en-us/iaas/Content/CloudGuard/concepts/cloudguardoverview.htm",
+    # Platform
+    "platform/backup-governance": "https://docs.oracle.com/en-us/iaas/Content/Block/Concepts/blockvolumebackups.htm",
+    "platform/sre-operations": "https://docs.oracle.com/en-us/iaas/Content/Monitoring/overview.htm",
 }
 
 # ============================================================================
@@ -1243,6 +1335,26 @@ CATEGORY_ALIAS = {
     "migration/onprem-vmware": "compute/instances",
     "migration/onprem-database": "database/autonomous",
     "migration/data-transfer": "storage/object",
+    # Governance -> service
+    "governance/landing-zone": "networking/vcn",
+    "governance/compartments": "security/iam-basics",
+    "governance/tagging": "storage/object",
+    "governance/budgets-cost": "observability/monitoring",
+    "governance/policies-guardrails": "security/policies",
+    "governance/compliance": "security/cloud-guard",
+    "governance/audit-readiness": "observability/logging",
+    "governance/resource-discovery": "observability/logging",
+    # FinOps -> service
+    "finops/cost-optimization": "compute/instances",
+    "finops/showback-chargeback": "storage/object",
+    "finops/rightsizing": "compute/instances",
+    "finops/storage-tiering": "storage/object",
+    # Security (additional) -> service
+    "security/zero-trust": "networking/security",
+    "security/posture-management": "security/cloud-guard",
+    # Platform -> service
+    "platform/backup-governance": "storage/block",
+    "platform/sre-operations": "observability/monitoring",
 }
 
 
@@ -1825,6 +1937,127 @@ CATEGORY_RESPONSE_MAP = {
         "best_practices",
         "security_audit",
         "integration",
+    ],
+    # Governance
+    "governance/landing-zone": [
+        "architecture",
+        "best_practices",
+        "security_audit",
+        "integration",
+        "step_by_step",
+        "cost_analysis",
+    ],
+    "governance/compartments": [
+        "architecture",
+        "best_practices",
+        "security_audit",
+        "step_by_step",
+        "integration",
+    ],
+    "governance/tagging": [
+        "best_practices",
+        "cost_analysis",
+        "integration",
+        "step_by_step",
+        "security_audit",
+        "monitoring_alerting",
+    ],
+    "governance/budgets-cost": [
+        "cost_analysis",
+        "best_practices",
+        "monitoring_alerting",
+        "step_by_step",
+        "integration",
+    ],
+    "governance/policies-guardrails": [
+        "security_audit",
+        "best_practices",
+        "architecture",
+        "step_by_step",
+        "integration",
+    ],
+    "governance/compliance": [
+        "security_audit",
+        "best_practices",
+        "integration",
+        "architecture",
+        "step_by_step",
+    ],
+    "governance/audit-readiness": [
+        "security_audit",
+        "best_practices",
+        "monitoring_alerting",
+        "integration",
+        "step_by_step",
+    ],
+    "governance/resource-discovery": [
+        "best_practices",
+        "integration",
+        "monitoring_alerting",
+        "security_audit",
+        "step_by_step",
+    ],
+    # FinOps
+    "finops/cost-optimization": [
+        "cost_analysis",
+        "best_practices",
+        "monitoring_alerting",
+        "integration",
+        "step_by_step",
+    ],
+    "finops/showback-chargeback": [
+        "cost_analysis",
+        "best_practices",
+        "integration",
+        "step_by_step",
+        "architecture",
+    ],
+    "finops/rightsizing": [
+        "cost_analysis",
+        "performance_tuning",
+        "best_practices",
+        "monitoring_alerting",
+        "step_by_step",
+    ],
+    "finops/storage-tiering": [
+        "cost_analysis",
+        "best_practices",
+        "integration",
+        "disaster_recovery",
+        "step_by_step",
+    ],
+    # Security (additional)
+    "security/zero-trust": [
+        "architecture",
+        "security_audit",
+        "best_practices",
+        "integration",
+        "step_by_step",
+        "troubleshooting",
+    ],
+    "security/posture-management": [
+        "security_audit",
+        "monitoring_alerting",
+        "best_practices",
+        "integration",
+        "step_by_step",
+    ],
+    # Platform
+    "platform/backup-governance": [
+        "disaster_recovery",
+        "best_practices",
+        "security_audit",
+        "integration",
+        "step_by_step",
+        "cost_analysis",
+    ],
+    "platform/sre-operations": [
+        "monitoring_alerting",
+        "troubleshooting",
+        "best_practices",
+        "integration",
+        "performance_tuning",
+        "step_by_step",
     ],
 }
 
@@ -3081,6 +3314,138 @@ def _generate_questions(category: str) -> list:
             "Como documentar secrets management para DevOps",
             "Como configurar compliance de secrets para DevOps",
         ],
+        # Governance / Landing Zone / FinOps / Compliance
+        "landing-zone": [
+            "Como desenhar uma landing zone OCI corporativa com segregacao por ambientes, contas e times",
+            "Como estruturar compartments, networking e IAM para uma landing zone enterprise no OCI",
+            "Como criar guardrails iniciais para uma landing zone OCI com foco em seguranca e governanca",
+            "Como padronizar naming, tags e separacao de responsabilidades em uma landing zone OCI",
+            "Como expandir uma landing zone OCI para multi-regiao sem perder governanca",
+            "Como preparar uma landing zone OCI para auditoria, growth e onboarding de novos times",
+            "Como integrar landing zone OCI com conectividade hibrida, observabilidade e controles centrais",
+            "Como revisar uma landing zone OCI existente e corrigir falhas de design e governanca",
+            "Como definir uma landing zone OCI para workload regulado com menor risco operacional",
+            "Como criar uma landing zone OCI para multiplas unidades de negocio sem perder padronizacao",
+        ],
+        "compartments": [
+            "Como definir hierarquia de compartments no OCI para separar producao, plataforma, seguranca e dados",
+            "Como evitar excesso de compartimentalizacao sem perder isolamento e delegacao",
+            "Como desenhar compartments para multiplos times e unidades de negocio",
+            "Como organizar compartments para auditoria, ownership e cobranca interna",
+            "Como revisar uma estrutura de compartments OCI que cresceu sem padrao",
+            "Como separar ambientes compartilhados e dedicados usando compartments no OCI",
+            "Como delegar administracao por compartment sem criar acesso excessivo",
+            "Como reorganizar compartments OCI para melhorar operacao e governanca",
+        ],
+        "tagging": [
+            "Como criar uma estrategia de tagging no OCI para custo, ownership, criticidade e compliance",
+            "Como padronizar defined tags e tag namespaces para governanca corporativa",
+            "Como usar tags para chargeback, showback e automacao operacional",
+            "Como corrigir ambiente OCI com tags inconsistentes ou ausentes",
+            "Como aplicar enforcement de tags obrigatorias em novos recursos OCI",
+            "Como usar tags para separar ownership entre times de plataforma, dados e seguranca",
+            "Como projetar taxonomia de tags OCI que continue util depois do crescimento do ambiente",
+            "Como revisar tags OCI para auditoria, custo e automacao",
+        ],
+        "budgets-cost": [
+            "Como configurar budgets e alertas de custo no OCI por projeto, time e ambiente",
+            "Como criar guardrails financeiros para evitar surpresas de custo em OCI",
+            "Como monitorar variacao de gasto e responder a desvios de budget no OCI",
+            "Como estruturar controle de custo para ambientes sandbox, staging e producao",
+            "Como desenhar budgets OCI para multiplas unidades de negocio",
+            "Como revisar custo OCI quando o consumo cresce sem explicacao clara",
+            "Como integrar budgets OCI com ownership, tags e governanca financeira",
+        ],
+        "policies-guardrails": [
+            "Como criar guardrails IAM no OCI para limitar erros operacionais e privilegios excessivos",
+            "Como estruturar policies preventivas no OCI para times de plataforma, seguranca e dados",
+            "Como aplicar principio de menor privilegio em OCI sem bloquear a operacao diaria",
+            "Como revisar policies OCI permissivas e reduzir risco com guardrails",
+            "Como separar responsabilidades administrativas usando policies e compartments no OCI",
+            "Como desenhar controles preventivos para evitar criacao indevida de recursos no OCI",
+        ],
+        "compliance": [
+            "Como preparar um ambiente OCI para requisitos de compliance, retencao e rastreabilidade",
+            "Como mapear controles de acesso, criptografia e logging para auditoria em OCI",
+            "Como implementar segregacao de funcao e evidencias de controle em OCI",
+            "Como padronizar configuracoes OCI para reduzir risco regulatorio e falhas de auditoria",
+            "Como estruturar compliance OCI para ambiente regulado com multiplos times",
+            "Como conectar governanca, seguranca e evidencias para auditoria recorrente no OCI",
+        ],
+        "audit-readiness": [
+            "Como coletar evidencias de auditoria no OCI sem depender de processos manuais",
+            "Como provar trilha de auditoria, revisao de acesso e governanca de mudancas em OCI",
+            "Como organizar logs, policies, tags e ownership para auditoria recorrente em OCI",
+            "Como montar um processo de audit readiness continuo no OCI",
+            "Como reduzir retrabalho de auditoria com evidencias automatizadas em OCI",
+            "Como preparar um tenancy OCI para auditoria interna e externa",
+        ],
+        "resource-discovery": [
+            "Como descobrir recursos OCI sem ownership claro e organizar inventario corporativo",
+            "Como mapear recursos ociosos, orfaos ou sem tags no OCI",
+            "Como criar inventario confiavel de recursos OCI para governanca e auditoria",
+            "Como correlacionar compartments, tags e ownership para descoberta de ativos no OCI",
+            "Como revisar um tenancy OCI com baixa visibilidade de ativos e responsabilidades",
+        ],
+        "cost-optimization": [
+            "Como reduzir custos OCI sem comprometer resiliencia e performance",
+            "Como identificar desperdicios em compute, storage, rede e observabilidade no OCI",
+            "Como criar um programa continuo de FinOps para OCI com metas e ownership",
+            "Como reduzir custo OCI em ambiente que cresceu sem padrao de governanca",
+            "Como balancear custo, performance e risco operacional no OCI",
+            "Como revisar custo OCI por workload, time e ambiente de forma recorrente",
+        ],
+        "showback-chargeback": [
+            "Como implementar showback e chargeback no OCI para multiplos times e servicos compartilhados",
+            "Como distribuir custos de recursos compartilhados no OCI com transparencia",
+            "Como usar tags e compartments para responsabilizacao financeira em OCI",
+            "Como criar modelo de cobranca interna para OCI sem gerar distorcao entre times",
+            "Como estruturar showback OCI para ambientes compartilhados e projetos dedicados",
+        ],
+        "rightsizing": [
+            "Como fazer rightsizing de instancias e bancos no OCI com base em utilizacao real",
+            "Como identificar recursos OCI superdimensionados ou ociosos",
+            "Como combinar metricas, historico e risco operacional para rightsizing em OCI",
+            "Como priorizar rightsizing OCI sem causar impacto em cargas criticas",
+            "Como revisar shapes, armazenamento e capacidade para reduzir custo recorrente no OCI",
+            "Como criar rotina de rightsizing continuo em OCI com criterios tecnicos e financeiros",
+        ],
+        "storage-tiering": [
+            "Como otimizar custos de armazenamento no OCI com lifecycle policies e tiering",
+            "Como revisar retencao, backups e classes de storage para reduzir gasto",
+            "Como equilibrar compliance, retencao e custo em Object Storage no OCI",
+            "Como aplicar tiering em buckets OCI sem comprometer recuperacao quando necessario",
+            "Como reduzir custo de armazenamento OCI em ambiente com crescimento acelerado de dados",
+        ],
+        "zero-trust": [
+            "Como aplicar zero trust no OCI sem expor recursos com IP publico",
+            "Como desenhar acesso administrativo seguro com bastion, segmentacao e minimo privilegio",
+            "Como isolar workloads e reduzir lateral movement em OCI",
+            "Como estruturar acesso privado a bancos, APIs e workloads no OCI",
+            "Como revisar arquitetura OCI e remover dependencias de acesso publico desnecessario",
+        ],
+        "posture-management": [
+            "Como usar Cloud Guard e controles de postura para governanca continua no OCI",
+            "Como revisar detector recipes e responder desvios recorrentes de seguranca",
+            "Como integrar postura de seguranca, compliance e remediacao automatizada no OCI",
+            "Como criar processo continuo de posture management no OCI para multiplos times",
+            "Como reduzir alert fatigue em Cloud Guard sem perder cobertura de risco",
+        ],
+        "backup-governance": [
+            "Como definir politica corporativa de backup no OCI com ownership, retencao e testes",
+            "Como padronizar backup e restore entre bancos, volumes e objetos no OCI",
+            "Como tratar excecoes de backup e evidencias de teste de recuperacao no OCI",
+            "Como revisar estrategia de backup OCI para auditoria e disaster recovery",
+            "Como governar backup OCI em ambiente com multiplos workloads e requisitos diferentes",
+        ],
+        "sre-operations": [
+            "Como estruturar operacao SRE em OCI com SLOs, alertas e runbooks",
+            "Como melhorar governanca operacional e resposta a incidentes em ambientes OCI",
+            "Como correlacionar observabilidade, capacidade e confiabilidade em uma plataforma OCI",
+            "Como reduzir ruido de alertas e aumentar efetividade operacional no OCI",
+            "Como criar revisao operacional recorrente para ambientes OCI criticos",
+            "Como conectar incidentes, capacity planning e melhoria continua em OCI",
+        ],
     }
 
     # Get stems for this subcategory
@@ -3112,6 +3477,15 @@ def _generate_questions(category: str) -> list:
         "Melhores praticas para {action} {resource} no contexto {company}/{project} ({comp}, {region})",
         "Quais etapas para {action} {resource} da {company} (projeto {project}, compartment {comp})?",
         "Como planejar e executar {action} {resource} para {company} no projeto {project} ({region})?",
+    ]
+
+    # V2 question formats with intent, persona, constraint and lifecycle_stage
+    question_formats_v2 = [
+        "Sou {persona} e preciso {action} {resource} para {company} no projeto {project}, em {comp}/{region}, considerando {constraint}. Qual abordagem voce recomenda?",
+        "Como {action} {resource} no OCI para {company} no contexto de {project}, com cenario {lifecycle_stage} e requisito de {constraint}?",
+        "No ambiente {comp} da {company}, qual e a melhor forma de {action} {resource} para {project} quando o objetivo e {intent} e ha restricao de {constraint}?",
+        "Estamos em cenario de {lifecycle_stage} e eu atuo como {persona}. Como {action} {resource} para {project} em {region} sem perder de vista {constraint}?",
+        "Qual desenho voce sugere para {action} {resource} no projeto {project} da {company}, considerando {intent}, {constraint} e operacao em {region}?",
     ]
 
     # Actions and resources specific to each subcategory
@@ -4656,6 +5030,279 @@ def _generate_questions(category: str) -> list:
             ("configurar", "secrets integration DevOps"),
             ("configurar", "secrets documentation DevOps"),
         ],
+        # Governance / Landing Zone / FinOps / Compliance
+        "landing-zone": [
+            ("desenhar", "landing zone OCI corporativa"),
+            ("estruturar", "hierarquia de compartments"),
+            ("padronizar", "naming e tagging standards"),
+            ("definir", "guardrails IAM"),
+            ("organizar", "segregacao de ambientes"),
+            ("integrar", "conectividade hibrida e controles centrais"),
+            ("revisar", "design de tenancy existente"),
+            ("expandir", "landing zone para multi-regiao"),
+            ("corrigir", "falhas de governanca e isolamento"),
+            ("preparar", "landing zone para auditoria e growth"),
+            ("criar", "politicas de acesso padrao"),
+            ("configurar", "network segmentation"),
+            ("definir", "operating model"),
+            ("implementar", "cost allocation"),
+            ("automatizar", "provisioning padrao"),
+        ],
+        "compartments": [
+            ("definir", "hierarquia de compartments"),
+            ("organizar", "ownership por unidade de negocio"),
+            ("separar", "ambientes de producao e nao producao"),
+            ("delegar", "administracao por compartment"),
+            ("revisar", "estrutura de compartments existente"),
+            ("corrigir", "excesso de compartments ou baixa segregacao"),
+            ("alinhar", "compartments com operacao e cobranca interna"),
+            ("criar", "compartments para times"),
+            ("configurar", "permissions por compartment"),
+            ("documentar", "estrutura de compartments"),
+            ("migrar", "recursos entre compartments"),
+            ("otimizar", "estrutura de compartments"),
+            ("auditar", "uso de compartments"),
+            ("criar", "nested compartments"),
+            ("configurar", "cross-compartment access"),
+        ],
+        "tagging": [
+            ("criar", "estrategia de tagging OCI"),
+            ("padronizar", "defined tags e namespaces"),
+            ("aplicar", "tags obrigatorias em novos recursos"),
+            ("corrigir", "tags ausentes ou inconsistentes"),
+            ("usar", "tags para chargeback e ownership"),
+            ("automatizar", "enforcement de tags"),
+            ("revisar", "taxonomia de tags para auditoria e custo"),
+            ("definir", "tag policies"),
+            ("configurar", "tagging enforcement"),
+            ("migrar", "tags legadas"),
+            ("otimizar", "tagging strategy"),
+            ("criar", "tag namespaces"),
+            ("configurar", "tag value restrictions"),
+            ("auditar", "compliance de tagging"),
+            ("reportar", "custo por tags"),
+        ],
+        "budgets-cost": [
+            ("configurar", "budgets OCI"),
+            ("criar", "alertas de custo"),
+            ("monitorar", "desvios de budget"),
+            ("analisar", "variacao de gasto por ambiente"),
+            ("controlar", "consumo de sandbox e desenvolvimento"),
+            ("integrar", "budgets com ownership e tags"),
+            ("responder", "anomalias de custo"),
+            ("definir", " thresholds de alerta"),
+            ("configurar", "budget actions"),
+            ("criar", "orcamentos por compartment"),
+            ("otimizar", "alocacao de budget"),
+            ("analisar", "tendencia de custo"),
+            ("configurar", "forecasting"),
+            ("gerenciar", "orcamentos multi-conta"),
+            ("auditar", "gasto por budget"),
+        ],
+        "policies-guardrails": [
+            ("definir", "guardrails IAM"),
+            ("revisar", "policies excessivamente permissivas"),
+            ("aplicar", "principio de menor privilegio"),
+            ("separar", "responsabilidades administrativas"),
+            ("corrigir", "controles preventivos ausentes"),
+            ("padronizar", "modelo de acesso corporativo"),
+            ("criar", "policies para times"),
+            ("configurar", "dynamic group rules"),
+            ("definir", "service limits"),
+            ("restringir", "criacao de recursos"),
+            ("auditar", "policies existentes"),
+            ("migrar", "policies para compartment"),
+            ("otimizar", "policy evaluation"),
+            ("documentar", "policy architecture"),
+            ("testar", "policy effects"),
+        ],
+        "compliance": [
+            ("mapear", "controles de compliance OCI"),
+            ("implementar", "segregacao de funcao"),
+            ("padronizar", "controles de criptografia e logging"),
+            ("coletar", "evidencias regulatorias"),
+            ("reduzir", "falhas de auditoria"),
+            ("alinhar", "governanca com requisitos regulatorios"),
+            ("configurar", "data retention"),
+            ("definir", "privacy controls"),
+            ("auditar", "access reviews"),
+            ("implementar", "encryption standards"),
+            ("configurar", "audit logging"),
+            ("criar", "compliance reports"),
+            ("mapear", "regulatory requirements"),
+            ("validar", "controls effectiveness"),
+            ("preparar", "evidence collection"),
+        ],
+        "audit-readiness": [
+            ("coletar", "evidencias de auditoria"),
+            ("provar", "trilha de auditoria OCI"),
+            ("organizar", "ownership e rastreabilidade"),
+            ("automatizar", "evidencias de controle"),
+            ("revisar", "cobertura de logs e acessos"),
+            ("preparar", "tenancy para auditoria recorrente"),
+            ("configurar", "audit retention"),
+            ("definir", "audit policies"),
+            ("criar", "audit reports"),
+            ("automatizar", "evidence gathering"),
+            ("configurar", "change tracking"),
+            ("documentar", "audit procedures"),
+            ("preparar", "audit remediation"),
+            ("criar", "audit timeline"),
+            ("validar", "audit readiness"),
+        ],
+        "resource-discovery": [
+            ("descobrir", "recursos OCI sem ownership"),
+            ("mapear", "ativos orfaos ou ociosos"),
+            ("criar", "inventario corporativo de recursos"),
+            ("correlacionar", "tags, compartments e ownership"),
+            ("revisar", "visibilidade de ativos OCI"),
+            ("identificar", "recursos sem governanca adequada"),
+            ("otimizar", "resource utilization"),
+            ("relatar", "asset summary"),
+            ("configurar", "resource tracking"),
+            ("identificar", "unused resources"),
+            ("classificar", "recursos por criticidade"),
+            ("criar", "resource reports"),
+            ("auditar", "resource compliance"),
+            ("governar", "resource lifecycle"),
+            ("alertar", "resource anomalies"),
+        ],
+        "cost-optimization": [
+            ("reduzir", "custos OCI"),
+            ("identificar", "desperdicios em recursos OCI"),
+            ("otimizar", "consumo por workload"),
+            ("balancear", "custo, risco e performance"),
+            ("priorizar", "acoes de FinOps"),
+            ("criar", "programa continuo de otimizacao"),
+            ("analisar", "cost trends"),
+            ("identificar", "cost anomalies"),
+            ("otimizar", "compute costs"),
+            ("otimizar", "storage costs"),
+            ("otimizar", "network costs"),
+            ("otimizar", "database costs"),
+            ("implementar", "cost controls"),
+            ("criar", "cost dashboard"),
+            ("reportar", "cost savings"),
+        ],
+        "showback-chargeback": [
+            ("implementar", "showback OCI"),
+            ("estruturar", "chargeback por time"),
+            ("distribuir", "custos de servicos compartilhados"),
+            ("usar", "tags para accountability financeira"),
+            ("criar", "modelo de cobranca interna"),
+            ("revisar", "transparencia de custos OCI"),
+            ("definir", "cost allocation model"),
+            ("calcular", "custo por servico"),
+            ("criar", "cost reports"),
+            ("distribuir", "shared costs"),
+            ("otimizar", "cost distribution"),
+            ("configurar", "showback dashboard"),
+            ("implementar", "chargeback mechanism"),
+            ("criar", "cost transparency"),
+            ("relatar", "cost by team"),
+        ],
+        "rightsizing": [
+            ("fazer", "rightsizing de compute"),
+            ("identificar", "recursos superdimensionados"),
+            ("analisar", "metricas de utilizacao"),
+            ("revisar", "capacidade provisionada"),
+            ("priorizar", "ajustes de shape com menor risco"),
+            ("criar", "rotina continua de rightsizing"),
+            ("analisar", "CPU utilization"),
+            ("analisar", "memory utilization"),
+            ("analisar", "storage utilization"),
+            ("identificar", "idle instances"),
+            ("analisar", "over-provisioned resources"),
+            ("otimizar", "shape selection"),
+            ("migrar", "para shapes menores"),
+            ("configurar", "rightsizing recommendations"),
+            ("automatizar", "rightsizing process"),
+        ],
+        "storage-tiering": [
+            ("otimizar", "custo de armazenamento"),
+            ("aplicar", "lifecycle policies"),
+            ("revisar", "retencao de backups"),
+            ("equilibrar", "compliance e custo"),
+            ("migrar", "dados para tier adequado"),
+            ("reduzir", "gasto com crescimento de dados"),
+            ("configurar", "object tiering"),
+            ("mover", "dados para Archive Storage"),
+            ("configurar", "retention policies"),
+            ("otimizar", "backup retention"),
+            ("automatizar", "tier migration"),
+            ("criar", "storage policies"),
+            ("auditar", "storage usage"),
+            ("identificar", "cold data"),
+            ("otimizar", "storage costs"),
+        ],
+        "zero-trust": [
+            ("aplicar", "zero trust no OCI"),
+            ("desenhar", "acesso privado administrativo"),
+            ("isolar", "workloads sensiveis"),
+            ("reduzir", "lateral movement"),
+            ("remover", "dependencia de IP publico"),
+            ("proteger", "acesso a bancos e APIs"),
+            ("configurar", "private endpoints"),
+            ("usar", "bastion hosts"),
+            ("implementar", "network segmentation"),
+            ("configurar", "private subnet access"),
+            ("restringir", "acesso externo"),
+            ("autenticar", "identity-aware proxy"),
+            ("implementar", "least privilege"),
+            ("segmentar", "workloads"),
+            ("proteger", "data plane"),
+        ],
+        "posture-management": [
+            ("usar", "Cloud Guard para postura continua"),
+            ("revisar", "detector recipes"),
+            ("automatizar", "remediacao de desvios"),
+            ("integrar", "postura de seguranca e compliance"),
+            ("reduzir", "alert fatigue"),
+            ("criar", "processo continuo de posture management"),
+            ("configurar", "security zones"),
+            ("definir", "security baselines"),
+            ("auditar", "security posture"),
+            ("identificar", "security risks"),
+            ("remediar", "security findings"),
+            ("configurar", "detector rules"),
+            ("integrar", "SIEM integration"),
+            ("reportar", "posture metrics"),
+            ("otimizar", "detection coverage"),
+        ],
+        "backup-governance": [
+            ("definir", "politica corporativa de backup"),
+            ("padronizar", "retencao de backups"),
+            ("testar", "processo de restore"),
+            ("tratar", "excecoes de backup"),
+            ("governar", "ownership de recuperacao"),
+            ("evidenciar", "testes para auditoria"),
+            ("configurar", "backup schedules"),
+            ("definir", "backup retention"),
+            ("automatizar", "backup verification"),
+            ("documentar", "backup procedures"),
+            ("criar", "backup reports"),
+            ("otimizar", "backup costs"),
+            ("integrar", "backup with DR"),
+            ("configurar", "backup encryption"),
+            ("auditar", "backup compliance"),
+        ],
+        "sre-operations": [
+            ("estruturar", "operacao SRE em OCI"),
+            ("definir", "SLOs e alertas"),
+            ("melhorar", "runbooks operacionais"),
+            ("reduzir", "ruido de alertas"),
+            ("correlacionar", "incidentes e capacidade"),
+            ("criar", "revisao operacional recorrente"),
+            ("definir", "error budgets"),
+            ("configurar", "incident response"),
+            ("criar", "on-call rotations"),
+            ("documentar", "incident runbooks"),
+            ("analisar", "incident postmortems"),
+            ("otimizar", "alerting strategy"),
+            ("implementar", "SLO tracking"),
+            ("medir", "MTTR e MTTF"),
+            ("melhorar", "operational efficiency"),
+        ],
     }
 
     # Get actions/resources for this subcategory
@@ -4687,7 +5334,7 @@ def _generate_questions(category: str) -> list:
 
     has_context = subcat in compute_categories
 
-    for i in range(140):
+    for i in range(250):
         comp = COMPS[i % len(COMPS)]
         company = COMPANIES[i % len(COMPANIES)]
         project = PROJECTS[i % len(PROJECTS)]
@@ -4702,7 +5349,7 @@ def _generate_questions(category: str) -> list:
         action_idx = (i // len(question_formats) + fmt_idx) % len(action_resources)
         action, resource = action_resources[action_idx]
 
-        qfmt = question_formats[fmt_idx]
+        qfmt = question_formats_v2[fmt_idx % len(question_formats_v2)]
 
         question = qfmt.format(
             action=action,
@@ -4712,6 +5359,10 @@ def _generate_questions(category: str) -> list:
             comp=comp,
             region=region,
             subcat=subcat,
+            intent=INTENTS[i % len(INTENTS)],
+            persona=PERSONAS[i % len(PERSONAS)],
+            constraint=CONSTRAINTS[i % len(CONSTRAINTS)],
+            lifecycle_stage=LIFECYCLE_STAGES[i % len(LIFECYCLE_STAGES)],
         )
 
         # Only add compute/storage context for compute/storage categories
@@ -6060,6 +6711,61 @@ Documentacao: {doc}"""
 # ============================================================================
 
 
+def _generate_followup(category: str, answer: str, idx: int) -> tuple[str, str]:
+    import random
+
+    subcat = category.split("/")[1] if "/" in category else category
+    main_cat = category.split("/")[0] if "/" in category else category
+
+    # Decide type of follow up
+    followup_types = [
+        "troubleshooting",
+        "security",
+        "cost",
+        "automation",
+        "explanation",
+        "limits",
+        "understanding",
+        "comparison",
+    ]
+
+    # Use deterministic random based on idx and category so it's reproducible
+    rng = random.Random(f"{category}_{idx}_followup")
+    ftype = rng.choice(followup_types)
+
+    user_q = ""
+    asst_a = ""
+
+    if ftype == "troubleshooting":
+        user_q = f"Implementei isso, mas recebi um erro 'NotAuthorizedOrNotFound'. O que pode estar errado?"
+        asst_a = f"Esse erro na OCI geralmente indica um problema de permissão do IAM ou que o recurso (como o OCID) está incorreto/em outro compartment.\n\nPara resolver:\n1. Verifique se a sua role/group possui uma policy como `Allow group <SeuGrupo> to manage {subcat.replace('-', ' ')} in compartment <SeuCompartment>`.\n2. Confirme se você está executando o comando na região (Region) correta.\n3. Valide se o OCID fornecido realmente existe e não foi excluído."
+    elif ftype == "security":
+        user_q = f"Quais as melhores práticas de segurança para proteger esse recurso?"
+        asst_a = f"Para proteger seus recursos de {subcat.replace('-', ' ')} na OCI:\n\n- **Princípio do Menor Privilégio:** Crie policies restritas no IAM (ex: `use` ou `read` em vez de `manage` quando possível).\n- **Criptografia:** Utilize chaves gerenciadas pelo cliente (Customer Managed Keys) através do OCI Vault (KMS) ao invés de chaves gerenciadas pela Oracle.\n- **Rede:** Isole o acesso usando Network Security Groups (NSGs) e garanta que endpoints privados sejam usados ao invés de IPs públicos.\n- **Auditoria:** Ative os logs do OCI Audit e Cloud Guard para monitorar alterações na configuração."
+    elif ftype == "cost":
+        user_q = f"Como posso otimizar os custos associados a isso?"
+        asst_a = f"Otimizar custos de {subcat.replace('-', ' ')} na Oracle Cloud envolve:\n\n1. **Dimensionamento Correto (Right-Sizing):** Monitore a utilização (CPU/Memória) via OCI Monitoring. Use instâncias Flex (ex: `VM.Standard.E4.Flex`) para alocar a quantidade exata de OCPUs necessárias.\n2. **Autoscaling:** Configure regras de auto-scaling para escalar horizonalmente em picos e diminuir a infraestrutura em momentos de ociosidade.\n3. **Ciclo de Vida:** Se envolver armazenamento, use políticas de Object Lifecycle Management para mover dados inativos para a camada Archive.\n4. **Tagging:** Aplique Cost-Tracking Tags para mapear os gastos por departamento ou projeto no Cost Analysis dashboard."
+    elif ftype == "automation":
+        user_q = (
+            f"Como eu poderia automatizar essa mesma configuração usando Terraform?"
+        )
+        asst_a = f'Para automatizar a criação de recursos de {subcat.replace("-", " ")} via OCI Terraform Provider, você usaria um bloco `resource` específico.\n\nExemplo da estrutura genérica:\n```hcl\nresource "oci_{main_cat}_{subcat.replace("-", "_")}" "exemplo" {{\n  compartment_id = var.compartment_id\n  display_name   = "{subcat}-automatizado"\n  # Atributos obrigatórios do recurso iriam aqui\n}}\n```\n\nAlém de definir o recurso, lembre-se de configurar o provider `oci` com a sua `tenancy_ocid`, `user_ocid`, `fingerprint`, `private_key_path` e `region`.'
+    elif ftype == "explanation":
+        user_q = "Pode explicar detalhadamente como o OCI lida com a resiliência (High Availability) nesse caso?"
+        asst_a = f"A Oracle Cloud Infrastructure foi projetada para Alta Disponibilidade (HA) através de Fault Domains (FDs) e Availability Domains (ADs).\n\nPara cenários envolvendo {subcat.replace('-', ' ')}:\n- **Availability Domains (ADs):** São data centers isolados dentro de uma mesma região. Distribuir a carga entre AD-1, AD-2 e AD-3 protege contra falhas físicas totais de um data center.\n- **Fault Domains (FDs):** Se a região possuir apenas um AD (ex: `sa-saopaulo-1`), você deve distribuir seus recursos entre os 3 Fault Domains lógicos (FD-1, FD-2, FD-3). Eles representam racks de servidores isolados energeticamente.\n- **Replicação:** Utilize os recursos nativos da OCI (como Block Volume Backups cruzados por região, ou replicação do Object Storage) para garantir a integridade em casos de Disaster Recovery (DR)."
+    elif ftype == "limits":
+        user_q = "Existe algum limite ou quota de serviço padrão (Service Limit) que eu deva me preocupar ao escalar?"
+        asst_a = f"Sim, a OCI opera com Service Limits (limites de serviço rígidos por tenancy) e Compartment Quotas (políticas lógicas).\n\nAo escalar serviços como {subcat.replace('-', ' ')}:\n1. Acesse *Governance & Administration -> Limits, Quotas and Usage* no console para ver o uso atual.\n2. Verifique o limite padrão associado à sua região. Contas Trial (Always Free) têm limites muito estritos (ex: 2 VMs AMD, 4 OCPUs ARM).\n3. Caso atinja o limite, você deverá abrir uma solicitação de Service Limit Increase (aumento de limite) via Oracle Support através do próprio console, detalhando a justificativa de negócio.\n4. Proativamente, use *Compartment Quotas* para evitar que um departamento devore todos os limites de OCPUs ou armazenamento da tenancy inteira."
+    elif ftype == "understanding":
+        user_q = f"Ainda estou com uma dúvida conceitual. Qual é a real diferença prática de usar {subcat.replace('-', ' ')} nativo da OCI ao invés de instalar isso manualmente numa VM?"
+        asst_a = f"A principal diferença está na camada de responsabilidade compartilhada e no overhead operacional (Day-2 operations).\n\nUsar o serviço gerenciado de {subcat.replace('-', ' ')} da Oracle Cloud garante que a OCI gerencie o patching, os backups automáticos, a alta disponibilidade (distribuída em Fault Domains) e o licenciamento. Se você instalasse manualmente numa VM de Compute, seu time seria responsável por configurar a replicação do zero, gerenciar atualizações de SO do servidor, lidar com indisponibilidades em caso de falha de hardware e garantir a segurança do endpoint.\n\nServiços gerenciados reduzem o TCO (Custo Total de Propriedade) focando o esforço do time apenas na configuração da lógica, enquanto a Oracle cuida da infraestrutura subjacente."
+    elif ftype == "comparison":
+        user_q = f"Estou migrando da AWS/Azure. Existe um serviço equivalente lá, e quais os diferenciais da OCI neste ponto específico?"
+        asst_a = f"Sim, o equivalente direto da AWS para {subcat.replace('-', ' ')} geralmente compartilha os mesmos fundamentos de nuvem pública (como Isolamento de Rede e IAM), mas a OCI se diferencia principalmente nos modelos de custo e performance.\n\n1. **Preço Preditivo:** A OCI não cobra por I/O e oferece tráfego de saída (Egress) mensal gratuito generoso (10TB) e preços globais únicos, diferentemente da AWS/Azure que variam preços drasticamente por região.\n2. **Off-Box Virtualization:** A Oracle encapsula hipervisores de rede e armazenamento em placas dedicadas (SmartNICs). Isso significa que as VMs da OCI têm overhead quase zero e evitam o efeito 'noisy neighbor', oferecendo uma performance mais linear comparada a instâncias Gen-Generalistas de outras nuvens.\n3. **Flexibilidade:** Serviços como Compute e Load Balancer na OCI permitem granularidade 'Flex' (ex: escolher exatamente 3 OCPUs e 12GB RAM), enquanto outras nuvens forçam o salto em 'T-shirt sizes' fixos (T3.medium para T3.large)."
+
+    return user_q, asst_a
+
+
 def validate_example(example: dict, category: str) -> list:
     """Validate a generated example for topic relevance and correctness."""
     issues = []
@@ -6099,8 +6805,24 @@ def validate_example(example: dict, category: str) -> list:
 
 def main():
     categories = list(SYSTEM_PROMPTS.keys())
-    per_cat = 140
+    per_cat = 250
     total_target = len(categories) * per_cat
+
+    # Expanded scenarios to avoid deduplication
+    scenarios_pool = [
+        "Migração Crítica",
+        "Otimização de Performance",
+        "Hardening de Segurança",
+        "Troubleshooting Urgente",
+        "Arquitetura Serverless",
+        "Compliance Financeiro",
+        "Escalonamento Global",
+        "Rede Híbrida",
+        "Automação Terraform",
+        "Análise de Custos",
+        "Modernização de App",
+        "Disaster Recovery Test",
+    ]
 
     print(f"Generating {total_target} examples across {len(categories)} categories...")
     print(f"Target: {per_cat} examples per category")
@@ -6145,6 +6867,10 @@ def main():
                     "difficulty": diff,
                     "source": "generated",
                     "structure_idx": i % 8,
+                    "intent": INTENTS[i % len(INTENTS)],
+                    "persona": PERSONAS[i % len(PERSONAS)],
+                    "constraint": CONSTRAINTS[i % len(CONSTRAINTS)],
+                    "lifecycle_stage": LIFECYCLE_STAGES[i % len(LIFECYCLE_STAGES)],
                 },
             }
             cat_examples.append(example)

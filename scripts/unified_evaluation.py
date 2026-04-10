@@ -277,24 +277,46 @@ class ScoringEngine:
             score += 0.3
         return max(1.0, min(5.0, score))
 
-    @classmethod
+    @staticmethod
     def evaluate_response(
-        cls, response: str, reference: str, category: str
+        response: str, reference: str, category: str, semantic_scorer=None
     ) -> Dict[str, Any]:
+        
+        # Base scores using the new SemanticScorer
+        if semantic_scorer and reference:
+            try:
+                quality_scores = semantic_scorer.score_response_quality(reference, response)
+                sem_sim = quality_scores.get("semantic_similarity", 0.5)
+                factual = quality_scores.get("factual_alignment", 0.5)
+                coverage = quality_scores.get("coverage", 0.5)
+            except Exception:
+                sem_sim = 0.5
+                factual = 0.5
+                coverage = 0.5
+        else:
+            sem_sim = 0.5
+            factual = 0.5
+            coverage = 0.5
+
+        # Map to old metric names for backward compatibility with reports
+        # Scale from 0.0-1.0 to 1.0-5.0
+        def scale_to_5(score_0_to_1):
+            return 1.0 + (score_0_to_1 * 4.0)
+
         scores = {
-            "technical_correctness": cls.score_technical_correctness(
-                response, reference, category
-            ),
-            "depth": cls.score_depth(response, reference),
-            "structure": cls.score_structure(response),
-            "hallucination": cls.score_hallucination(response),
-            "clarity": cls.score_clarity(response),
+            "technical_correctness": scale_to_5(factual),
+            "depth": scale_to_5(coverage),
+            "structure": ScoringEngine.score_structure(response),
+            "hallucination": scale_to_5(sem_sim),
+            "clarity": ScoringEngine.score_clarity(response),
         }
         scores["overall"] = sum(scores.values()) / len(scores)
         return scores
 
 
 class SemanticScorer:
+    """Lightweight semantic similarity for hallucination detection."""
+
     def __init__(
         self, model_name: str = "sentence-transformers/paraphrase-MiniLM-L6-v2"
     ):
@@ -303,33 +325,81 @@ class SemanticScorer:
         self.embedding_cache = {}
 
     def load_model(self):
+        """Lazy load embedding model."""
         if self.model is None:
-            from sentence_transformers import SentenceTransformer
+            try:
+                from sentence_transformers import SentenceTransformer
 
-            self.model = SentenceTransformer(self.model_name)
+                self.model = SentenceTransformer(self.model_name)
+                print(f"Loaded embedding model: {self.model_name}")
+            except ImportError:
+                print(
+                    "Warning: sentence-transformers not installed. Using fallback TF-IDF similarity."
+                )
+                self.model = None
 
     def get_embedding(self, text: str):
+        """Get embedding for text with caching."""
         if text in self.embedding_cache:
             return self.embedding_cache[text]
+
         if self.model is None:
-            self.load_model()
+            return self._tfidf_fallback(text)
+
         embedding = self.model.encode(text, convert_to_numpy=True)
         self.embedding_cache[text] = embedding
         return embedding
 
-    def cosine_similarity(self, a, b):
+    def _tfidf_fallback(self, text: str):
+        """Simple word hashing fallback when sentence-transformers not available."""
         import numpy as np
+        words = text.lower().split()
+        vector = np.zeros(128)
+        for i, word in enumerate(words[:128]):
+            vector[i % 128] += hash(word) % 100 / 100.0
+        norm = np.linalg.norm(vector)
+        if norm > 0:
+            vector = vector / norm
+        return vector
 
-        a = a / (np.linalg.norm(a) + 1e-8)
-        b = b / (np.linalg.norm(b) + 1e-8)
-        return float(np.dot(a, b))
+    def compute_similarity(self, text1: str, text2: str) -> float:
+        """Compute cosine similarity between two texts."""
+        import numpy as np
+        emb1 = self.get_embedding(text1)
+        emb2 = self.get_embedding(text2)
 
-    def score(self, response: str, reference: str) -> float:
-        resp_emb = self.get_embedding(response)
-        ref_emb = self.get_embedding(reference)
-        if resp_emb is None or ref_emb is None:
-            return 0.5
-        return self.cosine_similarity(resp_emb, ref_emb)
+        norm1 = np.linalg.norm(emb1)
+        norm2 = np.linalg.norm(emb2)
+
+        if norm1 == 0 or norm2 == 0:
+            return 0.0
+
+        return float(np.dot(emb1, emb2) / (norm1 * norm2))
+
+    def detect_hallucination(
+        self, reference: str, generated: str, threshold: float = 0.3
+    ):
+        """Detect potential hallucination based on semantic divergence."""
+        similarity = self.compute_similarity(reference, generated)
+
+        return {
+            "similarity": round(similarity, 3),
+            "is_hallucination": similarity < threshold,
+            "confidence": round(1.0 - similarity, 3),
+            "threshold": threshold,
+        }
+
+    def score_response_quality(
+        self, reference: str, generated: str
+    ):
+        """Score response quality across multiple dimensions."""
+        similarity = self.compute_similarity(reference, generated)
+
+        return {
+            "semantic_similarity": round(similarity, 3),
+            "factual_alignment": round(min(1.0, similarity * 1.2), 3),
+            "coverage": round(similarity if similarity > 0.5 else similarity * 0.8, 3),
+        }
 
 
 class ReportGenerator:
@@ -678,12 +748,12 @@ def evaluate_model(
             response = f"Error: {str(e)}"
             elapsed = 0.0
 
-        scores = ScoringEngine.evaluate_response(response, reference, category)
+        scores = ScoringEngine.evaluate_response(response, reference, category, semantic_scorer=semantic_scorer)
 
         sem_sim = 0.5
         if semantic_scorer and reference:
             try:
-                sem_sim = semantic_scorer.score(response, reference)
+                sem_sim = semantic_scorer.compute_similarity(reference, response)
             except Exception:
                 pass
 
@@ -785,7 +855,13 @@ def main():
     base_path = output_dir / "base_results.json"
     save_results(base_results, base_path)
 
+    # Explicit memory cleanup to fit within RAM constraints
+    base_evaluator.model = None
+    base_evaluator.tokenizer = None
     del base_evaluator
+    import gc
+    gc.collect()
+    mx.metal.clear_cache()
 
     print("\n[4/5] Evaluating fine-tuned model...")
     ft_evaluator = UnifiedEvaluator(
@@ -802,7 +878,12 @@ def main():
     ft_path = output_dir / "ft_results.json"
     save_results(ft_results, ft_path)
 
+    # Explicit memory cleanup to fit within RAM constraints
+    ft_evaluator.model = None
+    ft_evaluator.tokenizer = None
     del ft_evaluator
+    gc.collect()
+    mx.metal.clear_cache()
 
     print("\n[5/5] Generating reports...")
     reporter = ReportGenerator(output_dir)

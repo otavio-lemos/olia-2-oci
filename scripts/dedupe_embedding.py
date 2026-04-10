@@ -3,17 +3,20 @@
 scripts/dedupe_embedding.py
 
 Deduplicação baseada em embeddings usando sentence-transformers.
+PER BUCKET: compare only within semantic buckets (category + intent + difficulty).
+SEPARATE EMBEDDINGS: question and answer embedded separately.
 
 Usage:
-    python scripts/dedupe_embedding.py --input data/all_curated_clean.jsonl --output data/deduplicated.jsonl --threshold 0.85
-    python scripts/dedupe_embedding.py --input data/all_curated_clean.jsonl --output data/deduplicated.jsonl --threshold 0.9 --model paraphrase-MiniLM-L6-v2
+    python scripts/dedupe_embedding.py --input data/all_curated_clean.jsonl --output data/deduplicated.jsonl --threshold 0.975
+    python scripts/dedupe_embedding.py --input data/all_curated_clean.jsonl --output data/deduplicated.jsonl --threshold 0.96 --model paraphrase-MiniLM-L6-v2
 """
 
 import argparse
 import json
-import hashlib
+import sys
 from pathlib import Path
 from typing import Dict, Any, List, Tuple
+from collections import defaultdict
 
 import numpy as np
 
@@ -22,13 +25,18 @@ class EmbeddingDeduplicator:
     def __init__(
         self,
         model_name: str = "sentence-transformers/paraphrase-MiniLM-L6-v2",
-        threshold: float = 0.85,
+        threshold: float = 0.975,
+        question_threshold: float = 0.97,
+        answer_threshold: float = 0.96,
     ):
         self.model_name = model_name
         self.threshold = threshold
+        self.question_threshold = question_threshold
+        self.answer_threshold = answer_threshold
         self.model = None
-        self.embeddings = []
         self.examples = []
+        self.question_embeddings = []
+        self.answer_embeddings = []
 
     def load_model(self):
         """Load embedding model."""
@@ -43,42 +51,90 @@ class EmbeddingDeduplicator:
             print("Install with: pip install sentence-transformers")
             return False
 
-    def get_text_for_embedding(self, example: Dict[str, Any]) -> str:
-        """Extract text content for embedding."""
+    def get_question_text(self, example: Dict[str, Any]) -> str:
+        """Extract question text for embedding."""
         messages = example.get("messages", [])
-        parts = []
         for msg in messages:
-            content = msg.get("content", "")
-            if content:
-                parts.append(content)
-        return " ".join(parts)
+            if msg.get("role") == "user":
+                return msg.get("content", "")
+        return ""
+
+    def get_answer_text(self, example: Dict[str, Any]) -> str:
+        """Extract answer text for embedding."""
+        messages = example.get("messages", [])
+        for msg in messages:
+            if msg.get("role") == "assistant":
+                return msg.get("content", "")
+        return ""
+
+    def get_bucket_key(self, example: Dict[str, Any]) -> str:
+        """Create bucket key for semantic deduplication."""
+        meta = example.get("metadata", {})
+        cat = meta.get("category", "unknown")
+        intent = meta.get("intent", "unknown")
+        diff = meta.get("difficulty", "unknown")
+        return f"{cat}|{intent}|{diff}"
 
     def compute_embeddings(self, examples: List[Dict[str, Any]]):
-        """Compute embeddings for all examples."""
-        texts = [self.get_text_for_embedding(e) for e in examples]
-        self.embeddings = self.model.encode(texts, convert_to_numpy=True)
+        """Compute separate embeddings for questions and answers."""
+        questions = [self.get_question_text(e) for e in examples]
+        answers = [self.get_answer_text(e) for e in examples]
+
+        print(f"Computing question embeddings for {len(questions)} examples...")
+        self.question_embeddings = self.model.encode(questions, convert_to_numpy=True)
+
+        print(f"Computing answer embeddings for {len(answers)} examples...")
+        self.answer_embeddings = self.model.encode(answers, convert_to_numpy=True)
+
         self.examples = examples
-        print(f"Computed embeddings for {len(texts)} examples")
+        print(f"Computed embeddings for {len(examples)} examples")
 
-    def cosine_similarity(self, a: np.ndarray, b: np.ndarray) -> float:
-        """Calculate cosine similarity."""
-        a = a / (np.linalg.norm(a) + 1e-8)
-        b = b / (np.linalg.norm(b) + 1e-8)
-        return float(np.dot(a, b))
+    def find_duplicates_per_bucket(self) -> List[Tuple[int, int]]:
+        """Find duplicate pairs per bucket - compare only within semantic buckets."""
+        buckets = defaultdict(list)
+        for idx, ex in enumerate(self.examples):
+            key = self.get_bucket_key(ex)
+            buckets[key].append(idx)
 
-    def find_duplicates(self) -> List[Tuple[int, int]]:
-        """Find duplicate pairs above threshold."""
-        n = len(self.embeddings)
-        duplicates = []
+        all_duplicates = []
 
-        for i in range(n):
-            for j in range(i + 1, n):
-                sim = self.cosine_similarity(self.embeddings[i], self.embeddings[j])
-                if sim >= self.threshold:
-                    duplicates.append((i, j, sim))
+        for bucket_key, indices in buckets.items():
+            if len(indices) < 2:
+                continue
 
-        print(f"Found {len(duplicates)} duplicate pairs (threshold={self.threshold})")
-        return duplicates
+            print(f"Processing bucket '{bucket_key}' with {len(indices)} examples...")
+
+            q_embs = self.question_embeddings[indices]
+            a_embs = self.answer_embeddings[indices]
+
+            q_norms = np.linalg.norm(q_embs, axis=1, keepdims=True) + 1e-8
+            q_normalized = q_embs / q_norms
+
+            a_norms = np.linalg.norm(a_embs, axis=1, keepdims=True) + 1e-8
+            a_normalized = a_embs / a_norms
+
+            q_sim = np.dot(q_normalized, q_normalized.T)
+            a_sim = np.dot(a_normalized, a_normalized.T)
+
+            for i in range(len(indices)):
+                for j in range(i + 1, len(indices)):
+                    orig_i = indices[i]
+                    orig_j = indices[j]
+
+                    q_sim_ij = q_sim[i, j]
+                    a_sim_ij = a_sim[i, j]
+
+                    is_dup = (
+                        q_sim_ij >= self.question_threshold
+                        and a_sim_ij >= self.answer_threshold
+                    )
+
+                    if is_dup:
+                        avg_sim = (q_sim_ij + a_sim_ij) / 2
+                        all_duplicates.append((orig_i, orig_j, avg_sim))
+
+        print(f"Found {len(all_duplicates)} duplicate pairs across all buckets")
+        return all_duplicates
 
     def remove_duplicates(self, duplicates: List[Tuple[int, int]]) -> List[int]:
         """Remove duplicates, keeping first occurrence."""
@@ -107,7 +163,7 @@ class EmbeddingDeduplicator:
             sys.exit(1)
 
         self.compute_embeddings(examples)
-        duplicates = self.find_duplicates()
+        duplicates = self.find_duplicates_per_bucket()
         kept_indices = self.remove_duplicates(duplicates)
 
         kept_examples = [self.examples[i] for i in kept_indices]
@@ -126,14 +182,28 @@ class EmbeddingDeduplicator:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Deduplication using embeddings")
+    parser = argparse.ArgumentParser(
+        description="Deduplication using embeddings - per bucket"
+    )
     parser.add_argument("--input", required=True, help="Input JSONL file")
     parser.add_argument("--output", required=True, help="Output JSONL file")
     parser.add_argument(
         "--threshold",
         type=float,
-        default=0.85,
-        help="Similarity threshold (0-1)",
+        default=0.975,
+        help="Combined similarity threshold (0-1)",
+    )
+    parser.add_argument(
+        "--question-threshold",
+        type=float,
+        default=0.97,
+        help="Question similarity threshold (0-1)",
+    )
+    parser.add_argument(
+        "--answer-threshold",
+        type=float,
+        default=0.96,
+        help="Answer similarity threshold (0-1)",
     )
     parser.add_argument(
         "--model",
@@ -142,11 +212,14 @@ def main():
     )
     args = parser.parse_args()
 
-    dedup = EmbeddingDeduplicator(model_name=args.model, threshold=args.threshold)
+    dedup = EmbeddingDeduplicator(
+        model_name=args.model,
+        threshold=args.threshold,
+        question_threshold=args.question_threshold,
+        answer_threshold=args.answer_threshold,
+    )
     dedup.run(args.input, args.output)
 
 
 if __name__ == "__main__":
-    import sys
-
     main()
