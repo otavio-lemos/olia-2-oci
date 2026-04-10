@@ -151,13 +151,35 @@ bash training/run_all_cycles.sh --fresh
 
 ### 5. Export
 
-#### MLX Merge
+#### merge_export.py (Script Recomendado)
 
 ```bash
-python -m mlx_lm fuse --model "mlx-community/Meta-Llama-3.1-8B-Instruct-4bit" --adapter-path outputs/cycle-1/adapters --save-path outputs/merged-model
+# Export Q4 com nome customizado (gera: oci-specialist-q4.gguf)
+python scripts/merge_export.py --cycle cycle-1 --quant q4 --name oci-specialist-q4
+
+# Export múltiplos formatos (gera: q4.gguf, q5.gguf, q8.gguf)
+python scripts/merge_export.py --cycle cycle-1 --quant q4,q5,q8 --name oci-specialist
+
+# Sem nome customizado (gera: cycle-1-q4.gguf)
+python scripts/merge_export.py --cycle cycle-1 --quant q4
 ```
 
-#### GGUF (Ollama/llama.cpp)
+**Parâmetros:**
+| Parâmetro | Descrição |
+|-----------|-----------|
+| `--cycle` | Nome do ciclo (obrigatório) |
+| `--quant` | Tipos de quantização: q4, q5, q8 (padrão: q4) |
+| `--name` | Nome do arquivo GGUF (padrão: nome do cycle) |
+
+**Nota:** O script usa `--dequantize` automaticamente ao fundir o modelo 4bit, garantindo dimensões corretas (4096 em vez de 512).
+
+#### MLX Merge (Manual)
+
+```bash
+python -m mlx_lm fuse --model "mlx-community/Meta-Llama-3.1-8B-Instruct-4bit" --adapter-path outputs/cycle-1/adapters --save-path outputs/merged-model --dequantize
+```
+
+#### GGUF (Ollama/llama.cpp) - Deprecated
 
 ```bash
 # Apenas Q4 (mais leve, recomendado para testes)
@@ -192,6 +214,26 @@ python scripts/run_inference_v2.py --config config/inference_prompts.yaml --adap
 
 Prompts em `config/inference_prompts.yaml`, output JSON estruturado em `outputs/inference_results.json`.
 
+### 8. Ollama (Inference Local)
+
+```bash
+# Criar Modelfile
+cat > outputs/cycle-1/gguf/Modelfile << 'EOF'
+FROM outputs/cycle-1/gguf/oci-specialist-q4.gguf
+PARAMETER temperature 0.1
+PARAMETER top_p 0.9
+SYSTEM Você é um especialista em OCI (Oracle Cloud Infrastructure).
+EOF
+
+# Importar para Ollama
+ollama create oci-specialist-q4 -f outputs/cycle-1/gguf/Modelfile
+
+# Testar inference
+echo "Liste 3 serviços do OCI" | ollama run oci-specialist-q4
+```
+
+**Modelo disponível:** `oci-specialist-q4` (4.7GB)
+
 ---
 
 ## Estrutura
@@ -219,7 +261,8 @@ Prompts em `config/inference_prompts.yaml`, output JSON estruturado em `outputs/
 │   ├── clean_dataset.py               # Limpeza de conteúdo
 │   ├── dedupe_dataset.py              # Deduplicação character-level
 │   ├── build_dataset_fixed.py         # Split estratificado
-│   ├── export_gguf.py                 # Export GGUF para Ollama
+│   ├── merge_export.py                 # Merge + export GGUF (recomendado)
+│   ├── export_gguf.py                 # Export GGUF (deprecated)
 │   ├── evaluate_model.py              # Avaliação base vs FT
 │   ├── evaluate_ft_only.py            # Avaliação FT apenas
 │   ├── eval_semantic.py               # Avaliação com embeddings

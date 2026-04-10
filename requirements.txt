@@ -1,18 +1,24 @@
-# Core MLX
+# Core MLX - Exact versions for compatibility
 mlx==0.31.1
 mlx-tune>=0.4.17,<0.5.0
+mlx-metal==0.31.1
 
 # Transformers & Tokenizers
-transformers==5.4.0
-tokenizers==0.22.2
+transformers>=5.0.0
+tokenizers>=0.22.0
+sentencepiece>=0.2.0
 
-# Image processing (required by transformers)
-pillow==12.1.1
+# Image processing
+pillow>=12.0.0
 
 # Utilities
-numpy==1.26.4
-tqdm==4.67.3
+numpy>=1.26.0
+tqdm>=4.60.0
+protobuf>=4.21.0
+
+# GGUF export (for convert_hf_to_gguf.py)
+gguf>=0.1.0
 
 # Phase 2: Quality & Reporting
-sentence-transformers==5.3.0
-scikit-learn==1.8.0
+sentence-transformers>=5.0.0
+scikit-learn>=1.0.0
