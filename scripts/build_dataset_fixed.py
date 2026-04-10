@@ -54,35 +54,29 @@ def ensure_chat_format(example: Dict[str, Any]) -> Dict[str, Any]:
 
 
 def balanced_split_v2(
-    examples: List[Dict[str, Any]], ratios: Dict[str, float]
+    examples: List[Dict[str, Any]], ratios: Dict[str, float], seed: int = 42
 ) -> Dict[str, List]:
-    """Stratified split by category + intent + difficulty for richer diversity."""
-    from collections import defaultdict
+    """Simple random split with exact ratios."""
+    import random
 
-    def make_key(ex: Dict) -> str:
-        meta = ex.get("metadata", {})
-        cat = meta.get("category", "unknown")
-        intent = meta.get("intent", "unknown")
-        diff = meta.get("difficulty", "unknown")
-        return f"{cat}|{intent}|{diff}"
+    # Shuffle all examples randomly
+    random.seed(seed)
+    shuffled = list(examples)
+    random.shuffle(shuffled)
 
-    buckets = defaultdict(list)
-    for ex in examples:
-        key = make_key(ex)
-        buckets[key].append(ex)
-
-    splits = {k: [] for k in ratios}
+    n = len(shuffled)
     total_ratios = sum(ratios.values())
 
-    for bucket_examples in buckets.values():
-        random.shuffle(bucket_examples)
-        n = len(bucket_examples)
+    # Calculate exact split indices
+    train_size = int(n * ratios["train"] / total_ratios)
+    valid_size = int(n * ratios["valid"] / total_ratios)
+    eval_size = n - train_size - valid_size  # Exact remainder
 
-        start = 0
-        for split_name, ratio in ratios.items():
-            end = start + int(n * ratio / total_ratios)
-            splits[split_name].extend(bucket_examples[start:end])
-            start = end
+    splits = {
+        "train": shuffled[:train_size],
+        "valid": shuffled[train_size : train_size + valid_size],
+        "eval": shuffled[train_size + valid_size :],
+    }
 
     return splits
 
