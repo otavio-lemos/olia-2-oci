@@ -39,7 +39,7 @@ flowchart TB
 
     subgraph EXPORT["FASE 4: Export"]
         F --> G1["mlx_lm fuse<br/>→ merged-model"]
-        F --> G2["export_gguf.py<br/>→ GGUF (Q4/Q5/Q8)"]
+        F --> G2["merge_export.py<br/>→ GGUF (Q4/Q5/Q8)"]
     end
 
     subgraph AVALIAÇÃO["FASE 5: Avaliação"]
@@ -154,10 +154,10 @@ bash training/run_all_cycles.sh --fresh
 #### merge_export.py (Script Recomendado)
 
 ```bash
-# Export Q4 com nome customizado (gera: oci-specialist-q4.gguf)
-python scripts/merge_export.py --cycle cycle-1 --quant q4 --name oci-specialist-q4
+# Export Q4 com nome customizado (gera: oci-specialist-Q4_K_M.gguf)
+python scripts/merge_export.py --cycle cycle-1 --quant q4 --name oci-specialist
 
-# Export múltiplos formatos (gera: q4.gguf, q5.gguf, q8.gguf)
+# Export múltiplos formatos (gera: oci-specialist-Q4_K_M.gguf, Q5_K_M.gguf, Q8_0.gguf)
 python scripts/merge_export.py --cycle cycle-1 --quant q4,q5,q8 --name oci-specialist
 
 # Sem nome customizado (gera: cycle-1-q4.gguf)
@@ -203,20 +203,20 @@ Prompts em `config/inference_prompts.yaml`, output JSON estruturado em `outputs/
 ```bash
 # Criar Modelfile
 cat > outputs/cycle-1/gguf/Modelfile << 'EOF'
-FROM outputs/cycle-1/gguf/oci-specialist-q4.gguf
+FROM outputs/cycle-1/gguf/oci-specialist-Q4_K_M.gguf
 PARAMETER temperature 0.1
 PARAMETER top_p 0.9
 SYSTEM Você é um especialista em OCI (Oracle Cloud Infrastructure).
 EOF
 
 # Importar para Ollama
-ollama create oci-specialist-q4 -f outputs/cycle-1/gguf/Modelfile
+ollama create oci-specialist -f outputs/cycle-1/gguf/Modelfile
 
 # Testar inference
-echo "Liste 3 serviços do OCI" | ollama run oci-specialist-q4
+echo "Liste 3 serviços do OCI" | ollama run oci-specialist
 ```
 
-**Modelo disponível:** `oci-specialist-q4` (4.7GB)
+**Modelo disponível:** `oci-specialist` (4.3GB)
 
 ---
 
