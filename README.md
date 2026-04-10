@@ -128,17 +128,13 @@ pip install -r requirements.txt
 # 1. Generate dataset
 python scripts/generate_diverse_v2.py
 
-# 2. Validate and clean
-python scripts/validate_jsonl.py --input data/all_curated.jsonl
-python scripts/clean_dataset.py --input data/all_curated.jsonl --output data/all_curated_clean.jsonl
+# 2. Validate, clean, deduplicate and build splits
+bash scripts/prepare_data.sh
 
-# 3. Build dataset splits
-python scripts/build_dataset_fixed.py --input data/all_curated_clean.jsonl
-
-# 4. Train (Cycle 1)
+# 3. Train (Cycle 1)
 bash training/run_all_cycles.sh --fresh
 
-# 5. Export to GGUF
+# 4. Export to GGUF
 python scripts/merge_export.py --cycle cycle-1 --quant q4 --name oci-specialist
 ```
 
