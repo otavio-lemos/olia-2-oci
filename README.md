@@ -6,7 +6,7 @@ Fine-tuned Large Language Model for Oracle Cloud Infrastructure (OCI) using Appl
 [![Python](https://img.shields.io/badge/Python-3.12-blue?style=flat-square&logo=python&logoColor=white)](https://www.python.org)
 [![MLX](https://img.shields.io/badge/MLX-Apple%20Silicon-orange?style=flat-square)](https://mlx.ai)
 [![Model](https://img.shields.io/badge/Base%20Model-Meta--Llama--3.1--8B--Instruct--4bit-purple?style=flat-square)](https://huggingface.co/mlx-community/Meta-Llama-3.1-8B-Instruct-4bit)
-[![Dataset](https://img.shields.io/badge/Dataset-21750_examples-green?style=flat-square)](docs/taxonomy.md)
+[![Dataset](https://img.shields.io/badge/Dataset-19294_examples-green?style=flat-square)](docs/taxonomy.md)
 
 > **Language**: Data and prompts in Brazilian Portuguese (PT-BR).
 
@@ -82,7 +82,10 @@ flowchart LR
 | Metric | Value |
 |--------|-------|
 | **Total Generated** | 21,750 examples (87 categories × 250) |
-| **After Clean/Dedup** | 15,909 examples |
+| **After Clean/Dedup** | 19,294 examples |
+| **Train** | 14,470 examples (75%) |
+| **Valid** | 2,894 examples (15%) |
+| **Eval** | 1,930 examples (10%) |
 | **Categories** | 87 OCI topics |
 | **Metadata** | intent, persona, constraint, lifecycle_stage |
 
@@ -90,9 +93,9 @@ flowchart LR
 
 | Split | Examples | % |
 |-------|----------|---|
-| Train | 11,932 | 75% |
-| Valid | 2,386 | 15% |
-| Eval | 1,591 | 10% |
+| Train | 14,470 | 75% |
+| Valid | 2,894 | 15% |
+| Eval | 1,930 | 10% |
 
 ### Categories
 
