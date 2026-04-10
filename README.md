@@ -81,7 +81,8 @@ flowchart LR
 
 | Metric | Value |
 |--------|-------|
-| **Total** | 21,750 examples (87 categories × 250) |
+| **Total Generated** | 21,750 examples (87 categories × 250) |
+| **After Clean/Dedup** | 15,909 examples |
 | **Categories** | 87 OCI topics |
 | **Metadata** | intent, persona, constraint, lifecycle_stage |
 
@@ -89,9 +90,9 @@ flowchart LR
 
 | Split | Examples | % |
 |-------|----------|---|
-| Train | 16,312 | 75% |
-| Valid | 3,262 | 15% |
-| Eval | 2,176 | 10% |
+| Train | 13,533 | 75% |
+| Valid | 1,606 | 9% |
+| Eval | 770 | 4% |
 
 ### Categories
 
@@ -242,9 +243,9 @@ make -j
 │   └── gguf.env
 ├── data/                    # Datasets
 │   ├── curated/            # 87 topic files
-│   ├── train.jsonl         # 16,312 examples
-│   ├── valid.jsonl         # 3,262 examples
-│   └── eval.jsonl          # 2,176 examples
+│   ├── train.jsonl         # 13,533 examples
+│   ├── valid.jsonl         # 1,606 examples
+│   └── eval.jsonl          # 770 examples
 ├── docs/                   # Documentation
 │   ├── taxonomy.md
 │   ├── quality-rules.md
