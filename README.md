@@ -173,22 +173,6 @@ python scripts/merge_export.py --cycle cycle-1 --quant q4
 
 **Nota:** O script usa `--dequantize` automaticamente ao fundir o modelo 4bit, garantindo dimensões corretas (4096 em vez de 512).
 
-#### MLX Merge (Manual)
-
-```bash
-python -m mlx_lm fuse --model "mlx-community/Meta-Llama-3.1-8B-Instruct-4bit" --adapter-path outputs/cycle-1/adapters --save-path outputs/merged-model --dequantize
-```
-
-#### GGUF (Ollama/llama.cpp) - Deprecated
-
-```bash
-# Apenas Q4 (mais leve, recomendado para testes)
-python scripts/export_gguf.py --cycle cycle-1 --quant q4 --ollama
-
-# Q4 + Q5 + Q8 (todos os formatos)
-python scripts/export_gguf.py --cycle cycle-1 --quant q4,q5,q8 --ollama
-```
-
 ### 6. Avaliação
 
 ```bash

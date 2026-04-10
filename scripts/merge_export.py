@@ -212,119 +212,121 @@ def check_fp16_exists(fp16_path: Path) -> bool:
     return True
 
 
-def download_convert_script():
+def download_gguf_libs():
+    """Download gguf.py and dependencies from llama.cpp"""
     import urllib.request
 
     scripts_dir = Path(__file__).parent
-    convert_script = scripts_dir / "convert_hf_to_gguf.py"
+    gguf_dir = scripts_dir / "gguf_libs"
+    gguf_dir.mkdir(exist_ok=True)
 
-    if convert_script.exists() and convert_script.stat().st_size > 100:
-        try:
-            with open(convert_script, "r") as f:
-                content = f.read(500)
-                if "GEMMA4" in content:
-                    print("[WARN] Old convert script has GEMMA4, re-downloading...")
-                    convert_script.unlink()
-                else:
-                    return convert_script
-        except:
-            pass
+    # Download required files
+    files = [
+        (
+            "gguf.py",
+            "https://raw.githubusercontent.com/ggml-org/llama.cpp/master/gguf/gguf.py",
+        ),
+        (
+            "gguf.pyi",
+            "https://raw.githubusercontent.com/ggml-org/llama.cpp/master/gguf/gguf.pyi",
+        ),
+    ]
 
-    print("\n=== Downloading convert_hf_to_gguf.py ===")
-    # Use v1.9.4 tag (before GEMMA4 added)
-    url = "https://raw.githubusercontent.com/ggerrits/llama.cpp/v1.9.4/convert_hf_to_gguf.py"
-    try:
-        urllib.request.urlretrieve(url, convert_script)
-        print(f"Downloaded to: {convert_script}")
-        return convert_script
-    except:
-        url2 = "https://raw.githubusercontent.com/ggml-org/llama.cpp/v1.9.4/convert_hf_to_gguf.py"
+    for name, url in files:
+        target = gguf_dir / name
+        if target.exists() and target.stat().st_size > 100:
+            continue
         try:
-            urllib.request.urlretrieve(url2, convert_script)
-            print(f"Downloaded to: {convert_script}")
-            return convert_script
-        except Exception as e2:
-            raise FileNotFoundError(f"Could not download convert_hf_to_gguf.py: {e2}")
+            print(f"Downloading {name}...")
+            urllib.request.urlretrieve(url, target)
+        except Exception as e:
+            print(f"Warning: Could not download {name}: {e}")
+
+    # Add to path if needed
+    if str(gguf_dir) not in sys.path:
+        sys.path.insert(0, str(gguf_dir))
+
+    return gguf_dir
 
 
 def convert_to_gguf(merged_dir: str, output_file: str, quant_type: str = None):
-    print("\n=== Step 2: Converting to GGUF ===")
+    print("\n=== Step 2: Converting to GGUF (FP16) ===")
     import gguf
+    import json
     import numpy as np
+    import torch
+    from safetensors import safe_open
+    from safetensors.torch import save_file
+    from pathlib import Path
 
     merged_path = Path(merged_dir)
     output_path = Path(output_file)
     output_path.parent.mkdir(parents=True, exist_ok=True)
 
-    # Read model files
-    import json
+    # Read config
+    config_path = merged_path / "config.json"
+    with open(config_path) as f:
+        config = json.load(f)
 
-    index_path = merged_path / "model.safetensors.index.json"
-    with open(index_path) as f:
-        index = json.load(f)
-
-    # Get all tensor files
-    tensor_files = list(merged_path.glob("model-*.safetensors"))
-    if not tensor_files:
-        tensor_files = [merged_path / "model.safetensors"]
-
-    # Map tensors to GGUF
+    # Create GGUF writer
     writer = gguf.GGUFWriter(output_file, "llama")
 
     # Add metadata
-    config_path = merged_path / "config.json"
-    if config_path.exists():
-        with open(config_path) as f:
-            config = json.load(f)
-        writer.add_entity_name(config.get("name", "Merged Model"))
-        writer.add_uint32("llama.block_count", config.get("num_hidden_layers", 32))
-        writer.add_uint32(
-            "llama.context_length", config.get("max_position_embeddings", 4096)
-        )
-        writer.add_uint32("llama.embedding_length", config.get("hidden_size", 4096))
-        writer.add_uint32(
-            "llama.feed_forward_length", config.get("intermediate_size", 11008)
-        )
-        writer.add_uint32(
-            "llama.attention.head_count", config.get("num_attention_heads", 32)
-        )
-        writer.add_uint32(
-            "llama.attention.head_count_kv", config.get("num_key_value_heads", 32)
-        )
-        writer.add_uint32("llama.vocab_size", config.get("vocab_size", 32000))
-        writer.add_float32(
-            "llama.attention.layer_norm_rms_eps", config.get("rms_norm_eps", 1e-5)
-        )
+    writer.add_name(config.get("name", "Merged Model"))
+    writer.add_uint32("llama.block_count", config.get("num_hidden_layers", 32))
+    writer.add_uint32(
+        "llama.context_length", config.get("max_position_embeddings", 131072)
+    )
+    writer.add_uint32("llama.embedding_length", config.get("hidden_size", 4096))
+    writer.add_uint32(
+        "llama.feed_forward_length", config.get("intermediate_size", 14336)
+    )
+    writer.add_uint32(
+        "llama.attention.head_count", config.get("num_attention_heads", 32)
+    )
+    writer.add_uint32(
+        "llama.attention.head_count_kv", config.get("num_key_value_heads", 8)
+    )
+    writer.add_float32(
+        "llama.attention.layer_norm_rms_epsilon", config.get("rms_norm_eps", 1e-5)
+    )
+    writer.add_uint32("llama.vocab_size", config.get("vocab_size", 128256))
+    writer.add_float32("llama.rope.freq_base", config.get("rope_theta", 500000.0))
+    writer.add_uint32("general.file_type", 1)  # F16
 
-    # Add vocab
-    vocab_path = merged_path / "tokenizer.json"
-    if vocab_path.exists():
-        with open(vocab_path) as f:
-            vocab = json.load(f)
-        if "model" in vocab:
-            tokens = vocab.get("model", {}).get("vocab", {})
-            for token, _ in tokens.items():
-                writer.add_token(int(token))
+    # Read tokenizer
+    tokenizer_path = merged_path / "tokenizer.json"
+    if tokenizer_path.exists():
+        with open(tokenizer_path) as f:
+            tokenizer = json.load(f)
+        vocab = tokenizer.get("model", {}).get("vocab", {})
+        tokens = list(vocab.keys())
+        writer.add_token_list(tokens)
 
-    writer.write_header()
-    writer.write_kv()
-    writer.write_tensors()
+    # Load and write tensors
+    safetensors_files = list(merged_path.glob("model-*.safetensors"))
+    if not safetensors_files:
+        safetensors_files = [merged_path / "model.safetensors"]
+
+    tensor_count = 0
+    for sf in safetensors_files:
+        with safe_open(sf, framework="pt") as f:
+            for key in f.keys():
+                tensor = f.get_tensor(key)
+                # Convert to numpy
+                arr = tensor.cpu().numpy()
+                # Swap dims if needed ( PyTorch: [hidden, vocab] -> GGUF: [vocab, hidden])
+                if key in ["model.embed_tokens.weight", "lm_head.weight"]:
+                    arr = arr.T
+                writer.add_tensor(key, arr)
+                tensor_count += 1
+
+    writer.write_header_to_file(path=output_file)
+    writer.write_kv_data_to_file()
+    writer.write_tensors_to_file(progress=True)
     writer.close()
 
-    print(f"GGUF written to: {output_file}")
-
-    cmd = [
-        sys.executable,
-        str(convert_script),
-        merged_dir,
-        "--outfile",
-        output_file,
-    ]
-
-    if quant_type:
-        cmd.extend(["--outtype", quant_type])
-
-    run_cmd(cmd)
+    print(f"GGUF written to: {output_file} ({tensor_count} tensors)")
 
 
 def quantize_model(input_file: str, output_file: str, quant_type: str):
@@ -379,9 +381,11 @@ def main():
     gguf_dir = cycle_output / "gguf"
     gguf_dir.mkdir(parents=True, exist_ok=True)
 
-    # Determine output name
+    # Determine output name (strip trailing -q4 etc, will add quant type)
     if args.name:
-        model_name = args.name
+        model_name = args.name.rstrip("-")
+        for q in ["-q4", "-q5", "-q8", "-q4_", "-q5_", "-q8_"]:
+            model_name = model_name.removesuffix(q)
     else:
         model_name = f"{args.cycle}"
 
