@@ -128,7 +128,7 @@ bash scripts/prepare_data.sh
 python scripts/build_dataset_fixed.py --input data/all_curated_clean.jsonl
 
 # 4. Train (Cycle 1)
-CYCLE=cycle-1 python training/train_mlx_tune.py --fresh
+bash training/run_all_cycles.sh --fresh
 
 # 5. Export to GGUF
 python scripts/merge_export.py --cycle cycle-1 --quant q4 --name oci-specialist
@@ -139,11 +139,8 @@ python scripts/merge_export.py --cycle cycle-1 --quant q4 --name oci-specialist
 ## Training
 
 ```bash
-# Full training with all cycles
+# Train with single cycle (recommended)
 bash training/run_all_cycles.sh --fresh
-
-# Single cycle
-CYCLE=cycle-1 python training/train_mlx_tune.py --fresh
 ```
 
 **Configuration**: See `config/cycle-1.env`
