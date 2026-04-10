@@ -6,71 +6,116 @@ Fine-tuned Large Language Model for Oracle Cloud Infrastructure (OCI) using Appl
 [![Python](https://img.shields.io/badge/Python-3.12-blue?style=flat-square&logo=python&logoColor=white)](https://www.python.org)
 [![MLX](https://img.shields.io/badge/MLX-Apple%20Silicon-orange?style=flat-square)](https://mlx.ai)
 [![Model](https://img.shields.io/badge/Base%20Model-Meta--Llama--3.1--8B--Instruct--4bit-purple?style=flat-square)](https://huggingface.co/mlx-community/Meta-Llama-3.1-8B-Instruct-4bit)
-[![Dataset](https://img.shields.io/badge/Dataset-6627_examples-green?style=flat-square)](docs/taxonomy.md)
 
-> **Language**: Data and prompts in Brazilian Portuguese (PT-BR).
+> **Language**: Data and prompts in Brazilian Portuguese (PT-BR)
 
 ---
 
 ## Overview
 
-This project trains a specialized LLM for Oracle Cloud Infrastructure using Apple's MLX framework on Apple Silicon. The pipeline covers dataset generation, validation, MLX LoRA fine-tuning, and evaluation.
+This project trains a specialized LLM for Oracle Cloud Infrastructure using Apple's MLX framework on Apple Silicon. The pipeline covers dataset generation, validation, MLX LoRA fine-tuning, GGUF export, and evaluation.
 
 ```mermaid
 flowchart TB
-    subgraph GENERATION["Phase 1: Generation"]
-        A["generate_diverse_v2.py"]
-        A --> B["data/curated/<br/>71 JSONL files"]
+    subgraph GEN["Dataset"]
+        A["generate_diverse_v2.py"] --> B["data/curated/"]
+        B --> C["validate + clean"] --> D["train/valid/eval"]
     end
 
-    subgraph PREPARATION["Phase 2: Preparation"]
-        B --> C1["Concat<br/>all_curated.jsonl"]
-        C1 --> C2["Validate<br/>validate_jsonl.py"]
-        C2 --> C3["Clean<br/>clean_dataset.py"]
-        C3 --> C4["Dedup<br/>dedupe_dataset.py"]
-        C4 --> C5["Split<br/>build_dataset_fixed.py"]
-        C5 --> D["train.jsonl<br/>valid.jsonl<br/>eval.jsonl"]
-    end
-
-    subgraph TRAINING["Phase 3: Training"]
+    subgraph TRAIN["Training"]
         D --> E["train_mlx_tune.py"]
-        E --> F["outputs/cycle-1/adapters/<br/>adapters.safetensors"]
+        E --> F["outputs/cycle-1/adapters/"]
     end
 
-    subgraph EXPORT["Phase 4: Export"]
-        F --> G1["mlx_lm fuse<br/>→ merged-model"]
-        F --> G2["merge_export.py<br/>→ GGUF (Q4/Q5/Q8)"]
+    subgraph EXPORT["Export"]
+        F --> G["merge_export.py"]
+        G --> H["GGUF (Q4)"]
     end
 
-    subgraph EVALUATION["Phase 5: Evaluation"]
-        F --> H["scripts/unified_evaluation.py<br/>base vs FT"]
-        H --> I["outputs/benchmarks/"]
+    subgraph EVAL["Evaluation"]
+        F --> I["unified_evaluation.py"]
+        I --> J["benchmarks/"]
     end
 
-    subgraph INFERENCE["Phase 6: Inference"]
-        F --> J1["run_inference_v2.py<br/>YAML structured"]
-        F --> J2["Ollama<br/>local deployment"]
+    subgraph INFER["Inference"]
+        H --> K["Ollama"]
     end
-
-    style GENERATION fill:#e1f5fe
-    style PREPARATION fill:#fff3e0
-    style TRAINING fill:#e8f5e9
-    style EXPORT fill:#f3e5f5
-    style EVALUATION fill:#ffebee
-    style INFERENCE fill:#e0f2f1
 ```
 
-**Tech Stack**: Python 3.12, MLX 0.31.1, MLX-LM 0.31.1, MLX-Tune 0.4.18, JSONL chat format.
+**Tech Stack**: Python 3.12, MLX 0.31.1, MLX-LM 0.31.1, MLX-Tune 0.4.18
 
 ---
 
-## Features
+## Quick Start
 
-- **LoRA Fine-tuning**: Low-rank adaptation with 4-bit quantized base model
-- **Apple Silicon Optimized**: Runs natively on M1/M2/M3/M4/M5 Macs
-- **Comprehensive Evaluation**: Automated scoring with semantic similarity
-- **Multiple Export Formats**: Merge to base model or export to GGUF (Q4/Q5/Q8)
-- **Local Inference**: Deploy with Ollama for offline inference
+### 1. Environment Setup
+
+```bash
+# Create virtual environment
+python3.12 -m venv venv
+source venv/bin/activate
+
+# Install dependencies
+pip install -r requirements.txt
+```
+
+### 2. Generate Dataset
+
+```bash
+python scripts/generate_diverse_v2.py
+```
+
+This generates ~6,600 examples across 71 OCI topics in `data/curated/`.
+
+### 3. Prepare Data
+
+```bash
+# Concatenate all files
+cat data/curated/*.jsonl > data/all_curated.jsonl
+
+# Validate and clean
+python scripts/validate_jsonl.py --input data/all_curated.jsonl --output data/all_curated_valid.jsonl
+python scripts/clean_dataset.py --input data/all_curated_valid.jsonl --output data/all_curated_clean.jsonl
+
+# Split into train/valid/eval
+python scripts/build_dataset_fixed.py --input data/all_curated_clean.jsonl
+```
+
+### 4. Train (Cycle 1)
+
+```bash
+CYCLE=cycle-1 python training/train_mlx_tune.py --fresh
+```
+
+> [!TIP]
+> First training run takes ~20-25 minutes on M3 Pro (18GB). The script automatically saves adapters to `outputs/cycle-1/adapters/`.
+
+### 5. Export to GGUF
+
+```bash
+python scripts/merge_export.py --cycle cycle-1 --quant q4 --name oci-specialist
+```
+
+This creates `outputs/cycle-1/gguf/oci-specialist-Q4_K_M.gguf` (~4.7GB).
+
+### 6. Run Inference with Ollama
+
+```bash
+# Create Modelfile
+cat > /tmp/Modelfile << 'EOF'
+FROM ./outputs/cycle-1/gguf/oci-specialist-Q4_K_M.gguf
+PARAMETER temperature 0.1
+PARAMETER top_p 0.9
+PARAMETER top_k 40
+SYSTEM Você é um especialista em OCI (Oracle Cloud Infrastructure) com profundos conhecimentos sobre compute, storage, networking, database, security e DevOps.
+EOF
+
+# Import to Ollama
+ollama create oci-specialist -f /tmp/Modelfile
+
+# Test
+echo "Como criar uma instância no OCI?" | ollama run oci-specialist
+```
 
 ---
 
@@ -78,9 +123,9 @@ flowchart TB
 
 | Metric | Value |
 |--------|-------|
-| **Total** | 6,627 examples |
-| **Categories** | 71 OCI topics |
-| **Removed in cleaning** | 3,313 (generic templates, duplicates) |
+| Total | 6,627 examples |
+| Topics | 71 OCI categories |
+| Removed (cleaning) | 3,313 |
 
 ### Split
 
@@ -92,58 +137,21 @@ flowchart TB
 
 ### Categories
 
-- **OCI Core** (compute, storage, networking, lb, database, container, serverless) - 20 topics
-- **Security** (iam, policies, vault, encryption, cloud-guard, waf) - 9 topics
-- **Migration** (AWS/Azure/GCP/On-prem → OCI) - 14 topics
-- **Terraform** (provider, compute, storage, networking, etc) - 12 topics
+- **OCI Core**: compute, storage, networking, lb, database, container, serverless - 20 topics
+- **Security**: iam, policies, vault, encryption, cloud-guard, waf - 9 topics
+- **Migration**: AWS/Azure/GCP/On-prem → OCI - 14 topics
+- **Terraform**: provider, compute, storage, networking, etc - 12 topics
 - **Observability** - 4 topics
 - **Troubleshooting** - 8 topics
 - **DevOps** - 4 topics
 
 ---
 
-## Getting Started
-
-### Prerequisites
-
-- Apple Silicon Mac (M1/M2/M3/M4/M5)
-- Python 3.12
-
-```bash
-python3.12 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-```
-
-### Quick Start
-
-```bash
-# 1. Generate dataset
-python scripts/generate_diverse_v2.py
-
-# 2. Validate and prepare
-bash scripts/prepare_data.sh
-
-# 3. Build dataset splits
-python scripts/build_dataset_fixed.py --input data/all_curated_clean.jsonl
-
-# 4. Train (Cycle 1)
-bash training/run_all_cycles.sh --fresh
-
-# 5. Export to GGUF
-python scripts/merge_export.py --cycle cycle-1 --quant q4 --name oci-specialist
-```
-
----
-
 ## Training
 
-```bash
-# Train with single cycle (recommended)
-bash training/run_all_cycles.sh --fresh
-```
+### Configuration
 
-**Configuration**: See `config/cycle-1.env`
+See `config/cycle-1.env`:
 
 | Parameter | Value |
 |-----------|-------|
@@ -151,8 +159,30 @@ bash training/run_all_cycles.sh --fresh
 | LEARNING_RATE | 2e-4 |
 | LORA_RANK | 8 |
 | LORA_ALPHA | 16 |
-| ITERS | 1250 |
+| ITERS | 250 |
 | MAX_SEQ_LENGTH | 2048 |
+
+### Multi-Cycle Training
+
+```bash
+# Cycle 1 (from scratch)
+CYCLE=cycle-1 python training/train_mlx_tune.py --fresh
+
+# Cycle 2 (resume from cycle-1)
+CYCLE=cycle-2 python training/train_mlx_tune.py
+
+# Cycle 3 (resume from cycle-2)
+CYCLE=cycle-3 python training/train_mlx_tune.py
+```
+
+### Expected Performance (M3 Pro 18GB)
+
+| Metric | Value |
+|--------|-------|
+| Peak Memory | ~6.5 GB |
+| Speed | ~85 tokens/sec |
+| Time (250 iters) | ~21 minutes |
+| Loss (train) | ~2.2 → ~0.37 |
 
 ---
 
@@ -166,92 +196,88 @@ python scripts/unified_evaluation.py --mode test
 python scripts/unified_evaluation.py --mode full
 ```
 
-Outputs include:
-- JSON results with detailed scoring
-- Markdown comparison report
-- Radar charts (metrics comparison)
-- Category bar charts
+### Results (Cycle 1)
 
----
+| Metric | Base Model | Fine-Tuned | Delta |
+|--------|------------|------------|-------|
+| technical_correctness | 3.10 | 4.34 | +1.24 |
+| depth | 4.03 | 3.91 | -0.12 |
+| structure | 4.20 | 4.40 | +0.20 |
+| hallucination | 4.85 | 5.00 | +0.15 |
+| **overall** | **3.91** | **4.22** | **+0.31** |
 
 ## Inference
 
-### MLX-LM (Online)
+### MLX-LM (Apple Silicon)
+
+Direct inference with fine-tuned adapters using MLX:
 
 ```bash
-# Base model (no LoRA)
-python scripts/run_inference_v2.py --config config/inference_prompts.yaml \
-  --model mlx-community/Meta-Llama-3.1-8B-Instruct-4bit
-
-# Fine-tuned model
+# Test fine-tuned model (with LoRA adapter)
 python scripts/run_inference_v2.py --config config/inference_prompts.yaml \
   --adapter outputs/cycle-1/adapters
 ```
 
-### Ollama (Offline)
+> [!NOTE]
+> This requires Apple Silicon and loads the base model + LoRA adapters. Use this for quick testing during development.
+
+### Ollama (Recommended)
+
+For full local inference with the exported GGUF model:
 
 ```bash
 # Create Modelfile
-cat > ./outputs/cycle-1/gguf/Modelfile << 'EOF'
-FROM ./oci-specialist-Q4_K_M.gguf
+cat > /tmp/Modelfile << 'EOF'
+FROM ./outputs/cycle-1/gguf/oci-specialist-Q4_K_M.gguf
 PARAMETER temperature 0.1
 PARAMETER top_p 0.9
 PARAMETER top_k 40
-SYSTEM Você é um especialista em OCI (Oracle Cloud Infrastructure).
+SYSTEM Você é um arquiteto especialista em OCI...
 EOF
 
-# Import to Ollama
-ollama create oci-specialist -f ./outputs/cycle-1/gguf/Modelfile
-
-# Test
-echo "Liste 3 serviços do OCI" | ollama run oci-specialist
+# Import and run
+ollama create oci-specialist -f /tmp/Modelfile
+ollama run oci-specialist
 ```
 
 > [!NOTE]
-> The model is ~4.7GB when exported to GGUF Q4 format.
+> The GGUF export produces ~4.7GB in Q4 quantization.
 
 ---
 
 ## Project Structure
 
 ```
-├── config/                  # Configuration files
-│   ├── cycle-1.env         # Training config
+├── config/                  # Training configs
+│   ├── cycle-1.env
 │   ├── inference_prompts.yaml
 │   └── gguf.env
 ├── data/                    # Datasets
-│   ├── curated/            # 71 topic files
-│   ├── train.jsonl         # 2,583 examples
-│   ├── valid.jsonl         # 495 examples
-│   └── eval.jsonl          # 325 examples
-├── docs/                   # Documentation
-│   ├── taxonomy.md
-│   ├── quality-rules.md
-│   └── eval-rubric.md
-├── scripts/                # Pipeline scripts
+│   ├── curated/             # 71 topic files
+│   ├── train.jsonl
+│   ├── valid.jsonl
+│   └── eval.jsonl
+├── scripts/                 # Pipeline scripts
 │   ├── generate_diverse_v2.py
 │   ├── validate_jsonl.py
-│   ├── clean_dataset.py
 │   ├── build_dataset_fixed.py
 │   ├── merge_export.py
-│   ├── unified_evaluation.py
-│   └── run_inference_v2.py
-├── training/               # Training scripts
-│   ├── train_mlx_tune.py
-│   └── run_all_cycles.sh
-├── outputs/                # Generated outputs
+│   └── unified_evaluation.py
+├── training/                # Training scripts
+│   └── train_mlx_tune.py
+├── outputs/                 # Generated artifacts
 │   └── cycle-1/
-│       ├── adapters/      # LoRA adapters
+│       ├── adapters/        # LoRA adapters
 │       └── gguf/          # Exported models
-└── venv/                   # Python virtual environment
+└── venv/                  # Python venv
 ```
 
 ---
 
 ## Limitations
 
-1. **Single-turn only**: Dataset doesn't include multi-turn conversations.
-2. **No RAG**: No real-time access to OCI documentation.
+1. **Single-turn only**: No multi-turn conversations in dataset
+2. **No RAG**: No real-time access to OCI documentation
 
 ---
 
@@ -260,10 +286,4 @@ echo "Liste 3 serviços do OCI" | ollama run oci-specialist
 - [MLX Documentation](https://mlx.ai)
 - [MLX-LM GitHub](https://github.com/ml-explore/mlx-lm)
 - [Oracle Cloud Infrastructure Docs](https://docs.oracle.com/en-us/iaas/Content/home.htm)
-- [HuggingFace Model](https://huggingface.co/mlx-community/Meta-Llama-3.1-8B-Instruct-4bit)
-
----
-
-## License
-
-This project is licensed under the MIT License.
+- [HuggingFace Base Model](https://huggingface.co/mlx-community/Meta-Llama-3.1-8B-Instruct-4bit)
