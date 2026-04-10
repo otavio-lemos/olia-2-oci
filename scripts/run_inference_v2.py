@@ -5,9 +5,11 @@ scripts/run_inference_v2.py
 Inference estruturado com prompts em YAML e output JSON.
 
 Usage:
-    python scripts/run_inference_v2.py --config config/inference_prompts.yaml
-    python scripts/run_inference_v2.py --config config/inference_prompts.yaml --model outputs/cycle-1/adapters
-    python scripts/run_inference_v2.py --config config/inference_prompts.yaml --base-only
+    # Modo 1: Base model (sem LoRA)
+    python scripts/run_inference_v2.py --config config/inference_prompts.yaml --model mlx-community/Meta-Llama-3.1-8B-Instruct-4bit
+
+    # Modo 2: Base + LoRA adapter (fine-tuned)
+    python scripts/run_inference_v2.py --config config/inference_prompts.yaml --adapter outputs/cycle-1/adapters
 """
 
 import argparse
@@ -158,21 +160,43 @@ class InferenceRunner:
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Structured inference runner")
-    parser.add_argument(
-        "--config", default="config/inference_prompts.yaml", help="Prompts config file"
+    parser = argparse.ArgumentParser(
+        description="Structured inference runner",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Examples:
+  # Modo 1: Base model (sem LoRA)
+  python scripts/run_inference_v2.py --config config/inference_prompts.yaml --model mlx-community/Meta-Llama-3.1-8B-Instruct-4bit
+
+  # Modo 2: Base + LoRA adapter (fine-tuned)
+  python scripts/run_inference_v2.py --config config/inference_prompts.yaml --adapter outputs/cycle-1/adapters
+        """,
     )
-    parser.add_argument("--model", default="", help="Model path or HuggingFace ID")
-    parser.add_argument("--adapter", default="", help="Adapter path for LoRA")
     parser.add_argument(
-        "--base-only", action="store_true", help="Use base model only (no adapter)"
+        "--config", required=True, help="Prompts config file (required)"
+    )
+    parser.add_argument(
+        "--model",
+        default="",
+        help="Base model ou merged model path. Use APENAS um: --model ou --adapter.",
+    )
+    parser.add_argument(
+        "--adapter",
+        default="",
+        help="LoRA adapter path. Use APENAS um: --model ou --adapter.",
     )
     args = parser.parse_args()
+
+    if args.model and args.adapter:
+        parser.error("Use apenas --model OU --adapter, não ambos.")
+
+    if not args.model and not args.adapter:
+        parser.error("Especifique --model (base/merged) OU --adapter (LoRA).")
 
     runner = InferenceRunner(
         config_path=args.config,
         model_path=args.model,
-        adapter_path=args.adapter if not args.base_only else "",
+        adapter_path=args.adapter,
     )
     runner.run()
 

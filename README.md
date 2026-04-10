@@ -178,9 +178,11 @@ python scripts/eval_semantic.py data/eval.jsonl  # Avaliação com similarity se
 ### 7. Inference
 
 ```bash
-python scripts/run_inference_v2.py --config config/inference_prompts.yaml
+# Modo 1: Base model (sem LoRA)
+python scripts/run_inference_v2.py --config config/inference_prompts.yaml --model mlx-community/Meta-Llama-3.1-8B-Instruct-4bit
+
+# Modo 2: Base + LoRA adapter (fine-tuned)
 python scripts/run_inference_v2.py --config config/inference_prompts.yaml --adapter outputs/cycle-1/adapters
-python scripts/run_inference_v2.py --config config/inference_prompts.yaml --base-only
 ```
 
 Prompts em `config/inference_prompts.yaml`, output JSON estruturado em `outputs/inference_results.json`.
