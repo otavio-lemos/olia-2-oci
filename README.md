@@ -160,7 +160,10 @@ python -m mlx_lm fuse --model "mlx-community/Meta-Llama-3.1-8B-Instruct-4bit" --
 #### GGUF (Ollama/llama.cpp)
 
 ```bash
+# Apenas Q4 (mais leve, recomendado para testes)
 python scripts/export_gguf.py --cycle cycle-1 --quant q4 --ollama
+
+# Q4 + Q5 + Q8 (todos os formatos)
 python scripts/export_gguf.py --cycle cycle-1 --quant q4,q5,q8 --ollama
 ```
 
