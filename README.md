@@ -159,11 +159,14 @@ bash training/run_all_cycles.sh --fresh
 | LORA_RANK | 8 |
 | LORA_ALPHA | 16 |
 | LORA_DROPOUT | 0.05 |
+| NUM_LAYERS | 16 |
+| GRADIENT_CHECKPOINTING | true |
 | GRADIENT_ACCUMULATION | 4 |
 | WARMUP_STEPS | 300 |
-| ITERS | 3384 |
+| ITERS | 3618 |
 | MAX_SEQ_LENGTH | 2048 |
 | WEIGHT_DECAY | 0.01 |
+| LR_SCHEDULER | cosine |
 
 ---
 
@@ -246,9 +249,9 @@ make -j
 │   └── gguf.env
 ├── data/                    # Datasets
 │   ├── curated/            # 87 topic files
-│   ├── train.jsonl         # 11,932 examples
-│   ├── valid.jsonl         # 2,386 examples
-│   └── eval.jsonl          # 1,591 examples
+│   ├── train.jsonl         # 14,470 examples
+│   ├── valid.jsonl         # 2,894 examples
+│   └── eval.jsonl          # 1,930 examples
 ├── docs/                   # Documentation
 │   ├── taxonomy.md
 │   ├── quality-rules.md

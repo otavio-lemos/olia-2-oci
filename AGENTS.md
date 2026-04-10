@@ -30,7 +30,7 @@ scikit-learn==1.8.0
 3. **Data Collection** → raw → sanitized → curated
 4. **Validation** → JSONL validator, deduplication
 5. **Dataset Building** → build, split, export
-6. **Training** → MLX-Tune LoRA fine-tuning (3 cycles progressive)
+6. **Training** → MLX-Tune LoRA fine-tuning (single cycle)
 7. **Evaluation** → benchmark base vs fine-tuned
 
 ## Training Architecture
@@ -47,40 +47,34 @@ scikit-learn==1.8.0
 
 ### Como rodar treinamento
 ```bash
-# Cycle 1 (do zero)
+# Ativar venv primeiro
+source venv/bin/activate
+
+# Treinar (do zero)
 CYCLE=cycle-1 python training/train_mlx_tune.py --fresh
-
-# Cycle 2 (resume do cycle 1)
-CYCLE=cycle-2 python training/train_mlx_tune.py
-
-# Cycle 3 (resume do cycle 2)
-CYCLE=cycle-3 python training/train_mlx_tune.py
 ```
 
-### Configuração por Ciclo
+### Configuração do Cycle 1
 
-| Param | Cycle-1 | Cycle-2 | Cycle-3 |
-|-------|---------|---------|---------|
-| Base | scratch | resume c1 | resume c2 |
-| LR | 2e-5 | 1e-5 | 5e-6 |
-| Rank | 8 | 8 | 8 |
-| Alpha | 16 | 16 | 16 |
-| Dropout | 0.0 | 0.0 | 0.0 |
-| Batch | 1 | 1 | 1 |
-| Grad Accum | 2 | 2 | 2 |
-| Layers | 8 | 8 | 8 |
-| Iters | 250 | 125 | 75 |
-| Max Seq | 2048 | 2048 | 2048 |
-| Warmup | 25 (10%) | 12 (10%) | 8 (10%) |
-| Weight Decay | 0.01 | 0.01 | 0.01 |
-| Grad Clip | 1.0 | 0.5 | 0.5 |
-| Clear Cache | 5GB | 5GB | 5GB |
-| Logging | 5 | 5 | 5 |
+| Param | Valor |
+|-------|-------|
+| Iters | 3618 (train / grad_accum) |
+| LR | 2e-4 |
+| Rank | 8 |
+| Alpha | 16 |
+| Dropout | 0.05 |
+| Batch | 1 |
+| Grad Accum | 4 |
+| Num Layers | 16 |
+| Max Seq | 2048 |
+| Warmup | 300 (8%) |
+| Weight Decay | 0.01 |
+| Grad Clip | 1.0 |
 
 ### Performance Esperada (M3 Pro 18GB)
 - **Peak memory**: ~6.5 GB
 - **Velocidade**: ~85 tokens/sec, ~0.18 iters/sec
-- **Cycle 1 (200 iters)**: ~21 minutos
+- **Cycle 1 (3618 iters)**: ~3-4 horas
 - **Loss**: Val ~2.4 → ~0.24, Train ~2.2 → ~0.37
 
 ## Data Flow
@@ -90,9 +84,10 @@ data/curated/        → Generated examples (one file per topic, 140 examples ea
                       format: [topic].jsonl
 data/all_curated.jsonl → concatenated examples
 data/all_curated_clean.jsonl → validated and deduplicated
-data/train.jsonl     → training set (~75%)
-data/valid.jsonl     → validation set (~15%)
-data/eval.jsonl      → evaluation set (~10%)
+data/train.jsonl     → training set (~75%): 14,470 examples
+data/valid.jsonl     → validation set (~15%): 2,894 examples
+data/eval.jsonl      → evaluation set (~10%): 1,930 examples
+                      Total: 19,294 examples
 ```
 
 ## Quality Rules (Rigid)
