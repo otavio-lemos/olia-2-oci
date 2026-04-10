@@ -344,7 +344,7 @@ def main():
         use_dir = clean_quantized_model(merged_dir)
 
     # Step 2: Convert to GGUF FP16
-    fp16_gguf = gguf_dir / "model-f16.gguf"
+    fp16_gguf = gguf_dir / f"{model_name}-f16.gguf"
     if check_fp16_exists(fp16_gguf):
         print("[SKIP] FP16 GGUF already exists")
     else:
