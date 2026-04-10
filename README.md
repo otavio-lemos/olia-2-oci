@@ -128,12 +128,11 @@ python scripts/build_dataset_fixed.py --input data/all_curated_clean.jsonl
 ### 4. Treinamento
 
 ```bash
-# Treino único
-CYCLE=cycle-1 python training/train_mlx_tune.py
-
-# Com clean
-CYCLE=cycle-1 python training/train_mlx_tune.py --fresh
+# Com clean (recomendado)
+bash training/run_all_cycles.sh --fresh
 ```
+
+**Nota:** O script cria logs em `outputs/logs/cycle-1/` e métricas CSV automaticamente.
 
 **Config:** `config/cycle-1.env`
 
