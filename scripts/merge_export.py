@@ -352,7 +352,10 @@ def main():
     print("\nGenerated files:")
     for m in created_models:
         size_mb = m.stat().st_size / (1024 * 1024)
-        print(f"  - {m.name} ({size_mb:.1f} MB)")
+        # Extract quant type and map to display name
+        qkey = m.name.split("-")[-1].replace(".gguf", "")
+        qdisplay = QUANT_MAP.get(qkey, qkey.upper())
+        print(f"  - {m.name} ({qdisplay}, {size_mb:.1f} MB)")
 
 
 if __name__ == "__main__":
