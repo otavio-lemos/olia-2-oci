@@ -170,8 +170,13 @@ python scripts/export_gguf.py --cycle cycle-1 --quant q4,q5,q8 --ollama
 ### 6. Avaliação
 
 ```bash
+# Comparação entre base model e fine-tuned (métricas: loss, perplexity)
 python scripts/evaluate_model.py --cycle cycle-1 outputs/cycle-1 data/eval.jsonl outputs/benchmarks
+
+# Avaliação apenas do fine-tuned (métricas no dataset de eval)
 python scripts/evaluate_ft_only.py --cycle cycle-1 outputs/cycle-1 data/eval.jsonl outputs/benchmarks
+
+# Avaliação com similarity semântica (usando embeddings)
 python scripts/eval_semantic.py data/eval.jsonl  # Avaliação com similarity semântica
 ```
 
