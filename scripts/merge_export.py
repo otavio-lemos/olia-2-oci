@@ -326,11 +326,8 @@ def main():
     for q in quant_types:
         quant_type = QUANT_MAP.get(q, q.upper())
 
-        # If custom name provided, use it directly; otherwise append quant suffix
-        if args.name:
-            output_gguf = gguf_dir / f"{args.name}.gguf"
-        else:
-            output_gguf = gguf_dir / f"{model_name}-{q}.gguf"
+        # Always append quant suffix to avoid overwriting
+        output_gguf = gguf_dir / f"{model_name}-{q}.gguf"
 
         if output_gguf.exists():
             print(f"[SKIP] {output_gguf.name} already exists")
