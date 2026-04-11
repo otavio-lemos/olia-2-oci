@@ -2,7 +2,11 @@
 """Unified Evaluation Script for OCI Specialist LLM.
 
 Consolida: base vs FT comparison, scoring, similarity semântica, relatórios com gráficos.
-Modos: --test (10 samples), --full (325 samples)
+Modos: --cycle cycle-1 --mode test (10 samples), --mode full (1930 samples)
+
+Usage:
+    python scripts/unified_evaluation.py --cycle cycle-1 --mode test
+    python scripts/unified_evaluation.py --cycle cycle-1 --mode full
 """
 
 import argparse
@@ -17,6 +21,23 @@ import random
 import mlx.core as mx
 from mlx_lm import load, generate
 from mlx_lm.sample_utils import make_sampler
+
+
+def load_cycle_config(cycle_name: str) -> dict:
+    """Load cycle configuration from config/cycle-N.env file."""
+    env_file = Path(__file__).parent.parent / "config" / f"{cycle_name}.env"
+    if not env_file.exists():
+        raise FileNotFoundError(f"Config not found: {env_file}")
+
+    config = {}
+    with open(env_file) as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                key, value = line.split("=", 1)
+                config[key.strip()] = value.strip().strip('"')
+    return config
+
 
 # Dependências opcionais
 try:
@@ -281,11 +302,13 @@ class ScoringEngine:
     def evaluate_response(
         response: str, reference: str, category: str, semantic_scorer=None
     ) -> Dict[str, Any]:
-        
+
         # Base scores using the new SemanticScorer
         if semantic_scorer and reference:
             try:
-                quality_scores = semantic_scorer.score_response_quality(reference, response)
+                quality_scores = semantic_scorer.score_response_quality(
+                    reference, response
+                )
                 sem_sim = quality_scores.get("semantic_similarity", 0.5)
                 factual = quality_scores.get("factual_alignment", 0.5)
                 coverage = quality_scores.get("coverage", 0.5)
@@ -353,6 +376,7 @@ class SemanticScorer:
     def _tfidf_fallback(self, text: str):
         """Simple word hashing fallback when sentence-transformers not available."""
         import numpy as np
+
         words = text.lower().split()
         vector = np.zeros(128)
         for i, word in enumerate(words[:128]):
@@ -365,6 +389,7 @@ class SemanticScorer:
     def compute_similarity(self, text1: str, text2: str) -> float:
         """Compute cosine similarity between two texts."""
         import numpy as np
+
         emb1 = self.get_embedding(text1)
         emb2 = self.get_embedding(text2)
 
@@ -389,9 +414,7 @@ class SemanticScorer:
             "threshold": threshold,
         }
 
-    def score_response_quality(
-        self, reference: str, generated: str
-    ):
+    def score_response_quality(self, reference: str, generated: str):
         """Score response quality across multiple dimensions."""
         similarity = self.compute_similarity(reference, generated)
 
@@ -707,6 +730,29 @@ def sample_per_category(data: List[Dict], samples: int = 10) -> List[Dict]:
     return sampled
 
 
+def sample_stratified(data: List[Dict], samples: int = 200) -> List[Dict]:
+    """Sample n examples stratified by category (proportional representation)."""
+    random.seed(42)
+    by_category = {}
+    for item in data:
+        cat = item.get("metadata", {}).get("category", "unknown")
+        if cat not in by_category:
+            by_category[cat] = []
+        by_category[cat].append(item)
+
+    total = len(data)
+    sampled = []
+    for cat, items in by_category.items():
+        proportion = len(items) / total
+        n_samples = max(1, round(samples * proportion))
+        n_samples = min(n_samples, len(items))
+        selected = random.sample(items, n_samples)
+        sampled.extend(selected)
+
+    random.shuffle(sampled)
+    return sampled[:samples]
+
+
 def evaluate_model(
     evaluator: UnifiedEvaluator,
     eval_data: List[Dict],
@@ -748,7 +794,9 @@ def evaluate_model(
             response = f"Error: {str(e)}"
             elapsed = 0.0
 
-        scores = ScoringEngine.evaluate_response(response, reference, category, semantic_scorer=semantic_scorer)
+        scores = ScoringEngine.evaluate_response(
+            response, reference, category, semantic_scorer=semantic_scorer
+        )
 
         sem_sim = 0.5
         if semantic_scorer and reference:
@@ -786,41 +834,73 @@ def save_results(results: List[Dict], output_path: Path):
 
 def main():
     parser = argparse.ArgumentParser(description="Unified OCI Specialist Evaluation")
-    parser.add_argument("--base-model", required=True, help="Base model ID")
-    parser.add_argument("--adapter", default="", help="LoRA adapter path")
-    parser.add_argument("--merged", default="", help="Merged model path")
+    parser.add_argument("--cycle", required=True, help="Cycle name (e.g., cycle-1)")
+    parser.add_argument(
+        "--mode",
+        choices=["small", "medium", "full"],
+        default="medium",
+        help="Eval mode: small (10), medium (200), full (1930)",
+    )
+    parser.add_argument(
+        "--test-samples", type=int, default=10, help="Samples count (small mode)"
+    )
+    parser.add_argument(
+        "--samples",
+        type=int,
+        default=200,
+        help="Samples count (medium mode, default: 200)",
+    )
+    parser.add_argument(
+        "--samples",
+        type=int,
+        default=200,
+        help="Full evaluation samples (default: 200)",
+    )
     parser.add_argument("--eval-file", default="data/eval.jsonl", help="Eval JSONL")
     parser.add_argument("--output-dir", default="outputs/benchmarks", help="Output dir")
-    parser.add_argument(
-        "--mode", choices=["test", "full"], default="full", help="Eval mode"
-    )
-    parser.add_argument(
-        "--test-samples", type=int, default=10, help="Test samples count"
-    )
     parser.add_argument("--seed", type=int, default=42, help="Random seed")
+    parser.add_argument(
+        "--merged", default="", help="Merged model path (optional override)"
+    )
     args = parser.parse_args()
 
+    project_root = Path(__file__).parent.parent
+    config = load_cycle_config(args.cycle)
+
+    base_model_id = config.get("MODEL", "mlx-community/Meta-Llama-3.1-8B-Instruct-4bit")
+    adapter_path = str(
+        project_root / config.get("OUTPUT_DIR", f"outputs/{args.cycle}") / "adapters"
+    )
+
+    eval_file = args.eval_file
+    output_dir = Path(args.output_dir)
     random.seed(args.seed)
 
     print("=" * 60)
     print("Unified Evaluation Script")
     print("=" * 60)
+    print(f"Cycle: {args.cycle}")
     print(f"Mode: {args.mode}")
-    print(f"Base: {args.base_model}")
-    print(f"Adapter: {args.adapter or 'None'}")
-    print(f"Eval file: {args.eval_file}")
-    print(f"Output: {args.output_dir}")
+    print(f"Base Model: {base_model_id}")
+    print(f"Adapter: {adapter_path}")
+    print(f"Eval file: {eval_file}")
+    print(f"Output: {output_dir}")
 
-    output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
     print("\n[1/5] Loading eval data...")
-    eval_data = load_eval_data(args.eval_file)
+    eval_data = load_eval_data(eval_file)
     print(f"Loaded {len(eval_data)} examples")
 
-    if args.mode == "test":
+    if args.mode == "small":
         eval_data = sample_per_category(eval_data, samples=args.test_samples)
-        print(f"Test mode: {len(eval_data)} samples from different categories")
+        print(f"Small mode: {len(eval_data)} samples from different categories")
+    elif args.mode == "medium":
+        if args.samples < len(eval_data):
+            eval_data = sample_stratified(eval_data, samples=args.samples)
+            print(f"Medium mode: {len(eval_data)} stratified samples")
+    elif args.mode == "full":
+        print(f"Full mode: {len(eval_data)} samples (all data)")
 
     categories = set(
         d.get("metadata", {}).get("category", "unknown") for d in eval_data
@@ -838,7 +918,7 @@ def main():
 
     print("\n[3/5] Evaluating base model...")
     base_evaluator = UnifiedEvaluator(
-        base_model_id=args.base_model,
+        base_model_id=base_model_id,
         adapter_path="",
         merged_model_path=args.merged,
     )
@@ -860,13 +940,14 @@ def main():
     base_evaluator.tokenizer = None
     del base_evaluator
     import gc
+
     gc.collect()
     mx.metal.clear_cache()
 
     print("\n[4/5] Evaluating fine-tuned model...")
     ft_evaluator = UnifiedEvaluator(
-        base_model_id=args.base_model,
-        adapter_path=args.adapter,
+        base_model_id=base_model_id,
+        adapter_path=adapter_path,
         merged_model_path=args.merged,
     )
 

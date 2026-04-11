@@ -173,11 +173,14 @@ bash training/run_all_cycles.sh --fresh
 ## Evaluation
 
 ```bash
-# Test mode (10 samples, ~2 min)
-python scripts/unified_evaluation.py --mode test
+# Small mode (10 samples de categorias diferentes, ~5 min)
+python scripts/unified_evaluation.py --cycle cycle-1 --mode small
 
-# Full evaluation (325 samples, ~90 min)
-python scripts/unified_evaluation.py --mode full
+# Medium evaluation (200 samples stratified, ~30-40 min) - RECOMMENDED
+python scripts/unified_evaluation.py --cycle cycle-1 --mode medium
+
+# Full evaluation (1930 samples, ~4-6 hours)
+python scripts/unified_evaluation.py --cycle cycle-1 --mode full
 ```
 
 Outputs include:
