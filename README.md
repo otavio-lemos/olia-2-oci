@@ -181,6 +181,9 @@ python scripts/unified_evaluation.py --cycle cycle-1 --mode medium
 
 # Full evaluation (1930 samples, ~4-6 hours)
 python scripts/unified_evaluation.py --cycle cycle-1 --mode full
+
+# Add --fresh to clear previous results
+python scripts/unified_evaluation.py --cycle cycle-1 --mode medium --fresh
 ```
 
 Outputs include:
