@@ -672,7 +672,7 @@ class UnifiedEvaluator:
         print("Model loaded successfully")
 
     def generate_response(
-        self, prompt: str, system_prompt: str = "", max_tokens: int = 1024
+        self, prompt: str, system_prompt: str = "", max_tokens: int = 512
     ) -> str:
         if not self._loaded:
             self.load_model()
