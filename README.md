@@ -190,22 +190,40 @@ Outputs include:
 
 ## Inference
 
-### MLX-LM (Online)
+> All methods use the fine-tuned model and expose an OpenAI-compatible API or built-in UI on `http://localhost:8080`.
+
+### MLX-LM — API Server (Apple Silicon)
 
 ```bash
-# Base model (no LoRA)
-python scripts/run_inference_v2.py --config config/inference_prompts.yaml \
-  --model mlx-community/Meta-Llama-3.1-8B-Instruct-4bit
-
-# Fine-tuned model
-python scripts/run_inference_v2.py --config config/inference_prompts.yaml \
-  --adapter outputs/cycle-1/adapters
+# Start server with fine-tuned LoRA adapters
+mlx_lm.server \
+  --model mlx-community/Meta-Llama-3.1-8B-Instruct-4bit \
+  --adapter outputs/cycle-1/adapters \
+  --port 8080
 ```
 
-### Ollama (Offline)
+Connect via **Open WebUI** (GUI):
 
 ```bash
-# Create Modelfile
+docker run -d -p 3000:8080 \
+  -e OPENAI_API_BASE_URL=http://host.docker.internal:8080/v1 \
+  -e OPENAI_API_KEY=ignore \
+  ghcr.io/open-webui/open-webui:main
+# Open: http://localhost:3000
+```
+
+Or via **CLI**:
+
+```bash
+curl http://localhost:8080/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{"model":"oci-specialist","messages":[{"role":"user","content":"Liste 3 serviços do OCI"}]}'
+```
+
+### Ollama — Local Server + WebUI
+
+```bash
+# 1. Create and import model (one-time)
 cat > ./outputs/cycle-1/gguf/Modelfile << 'EOF'
 FROM ./oci-specialist-Q4_K_M.gguf
 PARAMETER temperature 0.1
@@ -214,25 +232,34 @@ PARAMETER top_k 40
 SYSTEM Você é um especialista em OCI (Oracle Cloud Infrastructure).
 EOF
 
-# Import to Ollama
 ollama create oci-specialist -f ./outputs/cycle-1/gguf/Modelfile
 
-# Test
-echo "Liste 3 serviços do OCI" | ollama run oci-specialist
+# 2. Connect Open WebUI
+docker run -d -p 3000:8080 \
+  --add-host=host.docker.internal:host-gateway \
+  -e OLLAMA_BASE_URL=http://host.docker.internal:11434 \
+  ghcr.io/open-webui/open-webui:main
+# Open: http://localhost:3000
+
+# Or interactive CLI
+ollama run oci-specialist
 ```
 
-### llama.cpp (CLI)
+### llama.cpp — HTTP Server + Built-in WebUI
 
 ```bash
-# Download llama.cpp
+# Build llama.cpp
 git clone https://github.com/ggerganov/llama.cpp.git
 cd llama.cpp
 make -j
 
-# Run inference
-./llama-cli -m ../outputs/cycle-1/gguf/oci-specialist-q4_k_m.gguf \
-  -cnv --no-display-prompt \
-  -p "Você é um especialista em OCI. Liste 3 serviços do OCI"
+# Start server with fine-tuned GGUF
+./llama-server \
+  -m ../outputs/cycle-1/gguf/oci-specialist-Q4_K_M.gguf \
+  --host 0.0.0.0 --port 8080 --ctx-size 4096
+
+# WebUI:  http://localhost:8080
+# API:    http://localhost:8080/v1
 ```
 
 > [!NOTE]
