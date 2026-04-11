@@ -735,13 +735,21 @@ class UnifiedEvaluator:
 
         print(f"  Processing {total} prompts sequentially...")
         start_all = time.time()
+        # WARMUP RUN to compile MLX Graph
+        print("  [Warmup] Compiling MLX graph...", flush=True)
+        if prompts:
+            self.generate_response(prompts[0][0], prompts[0][1], max_tokens=1)
+        print("  [Warmup] Done.", flush=True)
+
         for i, (user_prompt, system_prompt) in enumerate(prompts):
+            print(f"    [{i+1:3d}/{total}] Generating tokens...", end=" ", flush=True)
             resp, t = self.generate_response(user_prompt, system_prompt, max_tokens)
             results.append((resp, t))
+            print(f"Done in {t:.1f}s", flush=True)
 
             if (i + 1) % 10 == 0:
                 avg_t = sum(r[1] for r in results) / len(results)
-                print(f"    [{i+1:3d}/{total}] Avg time per prompt: {avg_t:.2f}s")
+                print(f"    --- Avg time so far: {avg_t:.2f}s per prompt ---")
 
         total_time = time.time() - start_all
         print(f"\n  Total: {total} prompts in {total_time:.1f}s ({total / total_time:.1f} prompts/sec)")
@@ -854,6 +862,11 @@ def evaluate_model(
 
     print(f"[{mode}] Processing {total} samples in batch...")
 
+    # Load model ONCE before any generation attempt.
+    # Without this, if generate_batch() fails, the fallback reloads the model per-prompt.
+    if not evaluator._loaded:
+        evaluator.load_model()
+
     # Run batch generation
     try:
         # Pass max_tokens from arguments
@@ -944,7 +957,7 @@ def main():
     parser.add_argument(
         "--max-tokens",
         type=int,
-        default=512,
+        default=256,
         help="Max tokens per response. Lower this to (e.g., 150) for significantly faster evaluation.",
     )
     parser.add_argument(
@@ -967,16 +980,19 @@ def main():
     base_model_id = config.get("MODEL", "mlx-community/Meta-Llama-3.1-8B-Instruct-4bit")
     output_dir_config = config.get("OUTPUT_DIR", f"outputs/{args.cycle}")
 
-    # Auto-detect merged model or use adapter
+    # Auto-detect FT model: prioritize adapters (base 4-bit + LoRA ~4.5GB)
+    # over merged (15GB bfloat16, exists only as intermediate for GGUF export)
+    adapter_path = project_root / output_dir_config / "adapters"
     merged_path = project_root / output_dir_config / "merged"
-    adapter_path = str(project_root / output_dir_config / "adapters")
 
-    # Use merged model if available, otherwise use adapter
-    if merged_path.exists():
+    if adapter_path.exists() and (adapter_path / "adapters.safetensors").exists():
+        ft_model_path = str(adapter_path)
+        ft_mode = "adapter"
+    elif merged_path.exists():
         ft_model_path = str(merged_path)
         ft_mode = "merged"
     else:
-        ft_model_path = adapter_path
+        ft_model_path = str(adapter_path)
         ft_mode = "adapter"
 
     eval_file = args.eval_file
@@ -1042,14 +1058,8 @@ def main():
     )
     print(f"Categories: {len(categories)}")
 
-    print("\n[2/5] Initializing scorers...")
-    semantic_scorer = SemanticScorer()
-    try:
-        semantic_scorer.load_model()
-        print("Semantic scorer loaded")
-    except Exception as e:
-        print(f"Warning: Semantic scorer unavailable: {e}")
-        semantic_scorer = None
+    print("\n[2/5] Initializing base scoring mechanisms (without PyTorch)...")
+    semantic_scorer = None
 
     print("\n[3/5] Evaluating base model...")
     base_evaluator = UnifiedEvaluator(
@@ -1073,18 +1083,30 @@ def main():
     save_results(base_results, base_path)
 
     # Explicit memory cleanup to fit within RAM constraints
+    print("Unloading base model...")
     base_evaluator.model = None
     base_evaluator.tokenizer = None
+    base_evaluator._loaded = False
     del base_evaluator
     gc.collect()
     mx.clear_cache()
+    time.sleep(2)  # Give OS time to reclaim unified memory
+    print("Base model unloaded.")
 
     print("\n[4/5] Evaluating fine-tuned model...")
-    ft_evaluator = UnifiedEvaluator(
-        base_model_id=base_model_id,
-        adapter_path="" if ft_mode == "merged" else ft_model_path,
-        merged_model_path=ft_model_path if ft_mode == "merged" else "",
-    )
+    if ft_mode == "adapter":
+        ft_evaluator = UnifiedEvaluator(
+            base_model_id=base_model_id,
+            adapter_path=ft_model_path,
+            merged_model_path="",
+        )
+    else:
+        ft_evaluator = UnifiedEvaluator(
+            base_model_id=base_model_id,
+            adapter_path="",
+            merged_model_path=ft_model_path,
+        )
+    print(f"  FT mode: {ft_mode}, path: {ft_model_path}")
 
     ft_checkpoint = output_dir / "ft_checkpoint.json"
     ft_results = evaluate_model(
@@ -1101,11 +1123,47 @@ def main():
     save_results(ft_results, ft_path)
 
     # Explicit memory cleanup to fit within RAM constraints
+    print("Unloading FT model...")
     ft_evaluator.model = None
     ft_evaluator.tokenizer = None
+    ft_evaluator._loaded = False
     del ft_evaluator
     gc.collect()
     mx.clear_cache()
+    print("FT model unloaded.")
+
+    print("\n[4.5/5] Running Semantic Hallucination Scoring (PyTorch)...")
+    semantic_scorer = SemanticScorer()
+    try:
+        semantic_scorer.load_model()
+        print("Semantic scorer loaded. Scoring base and FT results...")
+
+        # Update base results
+        for r in base_results:
+            if "reference" in r and "response" in r:
+                sem_sim = semantic_scorer.compute_similarity(r["reference"], r["response"])
+                r["semantic_similarity"] = sem_sim
+                # Re-calculate overall score properly based on new semantic
+                r["scores"]["hallucination"] = 1.0 + (sem_sim * 4.0)
+                r["scores"]["overall"] = sum(r["scores"][k] for k in ["technical_correctness", "depth", "structure", "hallucination", "clarity"]) / 5
+
+        # Update ft results
+        for r in ft_results:
+            if "reference" in r and "response" in r:
+                sem_sim = semantic_scorer.compute_similarity(r["reference"], r["response"])
+                r["semantic_similarity"] = sem_sim
+                r["scores"]["hallucination"] = 1.0 + (sem_sim * 4.0)
+                r["scores"]["overall"] = sum(r["scores"][k] for k in ["technical_correctness", "depth", "structure", "hallucination", "clarity"]) / 5
+
+        # Save the updated final results
+        save_results(base_results, base_path)
+        save_results(ft_results, ft_path)
+    except Exception as e:
+        print(f"Warning: Semantic scorer failed during post-processing: {e}")
+
+    # Del pytorch
+    semantic_scorer = None
+    gc.collect()
 
     print("\n[5/5] Generating reports...")
     reporter = ReportGenerator(output_dir)
