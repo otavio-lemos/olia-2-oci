@@ -73,7 +73,7 @@ flowchart LR
 - **LoRA Fine-tuning**: Adaptação de baixo ranque (low-rank adaptation) com modelo base quantizado em 4 bits
 - **Otimizado para Apple Silicon**: Roda nativamente em Macs M1/M2/M3/M4/M5
 - **Avaliação Abrangente**: Pontuação automatizada com similaridade semântica
-- **Múltiplos Formatos de Exportação**: Fusão (merge) com o modelo base, GGUF (Q4/Q5/Q8) ou llama.cpp GGUF
+- **Múltiplos Formatos de Exportação**: Fusão (merge) com o modelo base e conversão para GGUF (Q4/Q5/Q8)
 - **Inferência Local**: Deploy com MLX-LM, Ollama ou llama.cpp para inferência offline
 - **Metadados Enriquecidos**: Intenção (intent), persona, restrição (constraint) e estágio do ciclo de vida para RAG
 

@@ -73,7 +73,7 @@ flowchart LR
 - **LoRA Fine-tuning**: Low-rank adaptation with 4-bit quantized base model
 - **Apple Silicon Optimized**: Runs natively on M1/M2/M3/M4/M5 Macs
 - **Comprehensive Evaluation**: Automated scoring with semantic similarity
-- **Multiple Export Formats**: Merge to base model, GGUF (Q4/Q5/Q8), or llama.cpp GGUF
+- **Multiple Export Formats**: Merge with base model and convert to GGUF (Q4/Q5/Q8)
 - **Local Inference**: Deploy with MLX-LM, Ollama or llama.cpp for offline inference
 - **Richer Metadata**: Intent, persona, constraint, and lifecycle stage for RAG
 
