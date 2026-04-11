@@ -74,7 +74,7 @@ flowchart LR
 - **Otimizado para Apple Silicon**: Roda nativamente em Macs M1/M2/M3/M4/M5
 - **Avaliação Abrangente**: Pontuação automatizada com similaridade semântica
 - **Múltiplos Formatos de Exportação**: Fusão (merge) com o modelo base, GGUF (Q4/Q5/Q8) ou llama.cpp GGUF
-- **Inferência Local**: Deploy com Ollama ou llama.cpp para inferência offline
+- **Inferência Local**: Deploy com MLX-LM, Ollama ou llama.cpp para inferência offline
 - **Metadados Enriquecidos**: Intenção (intent), persona, restrição (constraint) e estágio do ciclo de vida para RAG
 
 ---
@@ -321,6 +321,8 @@ Com base nos resultados do ciclo de treinamento inicial (`cycle-1`), as seguinte
     - **Refinar o Tom do Dataset para Clareza**: A métrica de `clarity` (clareza) diminuiu durante o `cycle-1`. O dataset será revisado para garantir um tom mais natural e conversacional ("engenheiro sênior explicando a um colega") em vez de um tom muito burocrático e robótico para evitar respostas difíceis de ler.
     - **Aumentar Profundidade (Depth)**: Substituir perguntas genéricas por perguntas baseadas em cenários arquiteturais mais complexos, visando melhorar as métricas de `depth` e `technical_correctness`.
     - **Ajuste de Hiperparâmetros (Tuning)**: Testar ajustes nos hiperparâmetros do LoRA (por exemplo, aumentar `LORA_RANK` para 16 ou 32, e `LORA_ALPHA` para 32 ou 64) para permitir que o modelo absorva mais conhecimento do domínio em vez de focar apenas em formatação estrutural.
+
+3. **Integração com o Hugging Face Hub**: Fazer o upload dos adaptadores fine-tuned finais e dos modelos GGUF mesclados para o Hugging Face Hub. Isso tornará os modelos facilmente acessíveis para a comunidade e facilitará o deploy em outros ambientes.
 
 ---
 
