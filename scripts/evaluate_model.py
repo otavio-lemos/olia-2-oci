@@ -51,7 +51,7 @@ class ModelEvaluator:
                 path_or_hf_repo=self.base_model_id,
                 adapter_path=self.adapter_path if self.adapter_path else None,
             )
-        self.sampler = make_sampler(temp=0.5, top_p=0.9, min_p=0.0, top_k=50)
+        self.sampler = make_sampler(temp=0.3, top_p=0.9, min_p=0.0, top_k=20)
         self._loaded = True
         print("Model loaded successfully")
 
@@ -352,10 +352,19 @@ def run_single_model_eval(
                 "base_completed": i + 1 if model_label == "BASE" else 0,
                 "ft_completed": i + 1 if model_label == "FT" else 0,
             }
-            # Save intermediate results
-            interim_path = (
-                output_dir / f"eval-{model_label.lower()}-results-{i + 1:05d}.json"
-            )
+            # Save checkpoint for resume
+            checkpoint_label = f"{model_label.lower()}-checkpoint-{i + 1:05d}"
+            interim_path = output_dir / f"eval-{checkpoint_label}.json"
+
+            # Save the checkpoint index for resume logic
+            checkpoint_index = {
+                "label": model_label,
+                "count": i + 1,
+                "path": str(interim_path),
+            }
+            idx_path = output_dir / "eval-checkpoint-index.json"
+            with open(idx_path, "w", encoding="utf-8") as f:
+                json.dump(checkpoint_index, f, ensure_ascii=False)
             with open(interim_path, "w", encoding="utf-8") as f:
                 json.dump(results, f, indent=2, ensure_ascii=False)
             print(f"  Saved {model_label} results at {i + 1}/{len(eval_data)}")
@@ -447,15 +456,48 @@ def main():
             ft_results_path.unlink()
         print("Fresh evaluation mode enabled.\n")
 
-    # Load base results if available
-    if base_results_path.exists():
+    # Try to find checkpoint for resume - search for latest checkpoint files
+    resume_base_idx = 0
+    resume_ft_idx = 0
+
+    base_ckpts = sorted(output_dir.glob("eval-base-checkpoint-*.json"))
+    ft_ckpts = sorted(output_dir.glob("eval-ft-checkpoint-*.json"))
+
+    if base_ckpts:
+        latest_base = base_ckpts[-1]
+        # Extract count from filename: eval-base-checkpoint-00050.json -> 50
+        resume_base_idx = int(latest_base.stem.split("-")[-1])
+        print(f"Found BASE checkpoint: {resume_base_idx} items at {latest_base}")
+    if ft_ckpts:
+        latest_ft = ft_ckpts[-1]
+        resume_ft_idx = int(latest_ft.stem.split("-")[-1])
+        print(f"Found FT checkpoint: {resume_ft_idx} items at {latest_ft}")
+
+    # Load base results if available (or resume from checkpoint)
+    if resume_base_idx > 0:
+        checkpoint_path = (
+            output_dir / f"eval-base-checkpoint-{resume_base_idx:05d}.json"
+        )
+        if checkpoint_path.exists():
+            print(f"Resuming BASE from {checkpoint_path}")
+            with open(checkpoint_path, "r", encoding="utf-8") as f:
+                base_results = json.load(f)
+            print(f"  Loaded {len(base_results)} BASE results")
+    elif base_results_path.exists():
         print(f"Loading cached base results from {base_results_path}")
         with open(base_results_path, "r", encoding="utf-8") as f:
             base_results = json.load(f)
         print(f"  Loaded {len(base_results)} base results")
 
     # Load FT results if available
-    if ft_results_path.exists():
+    if resume_ft_idx > 0:
+        checkpoint_path = output_dir / f"eval-ft-checkpoint-{resume_ft_idx:05d}.json"
+        if checkpoint_path.exists():
+            print(f"Resuming FT from {checkpoint_path}")
+            with open(checkpoint_path, "r", encoding="utf-8") as f:
+                ft_results = json.load(f)
+            print(f"  Loaded {len(ft_results)} FT results")
+    elif ft_results_path.exists():
         print(f"Loading cached FT results from {ft_results_path}")
         with open(ft_results_path, "r", encoding="utf-8") as f:
             ft_results = json.load(f)
@@ -468,11 +510,12 @@ def main():
         print("=" * 60)
         base_evaluator = ModelEvaluator(base_model_path)
         base_evaluator.load_model()
+        start_idx = resume_base_idx if resume_base_idx > 0 else 0
         base_results = run_single_model_eval(
             base_evaluator,
             eval_data,
             "BASE",
-            0,
+            start_idx,
             checkpoint_path,
             output_dir,
             len(eval_data),
@@ -498,11 +541,12 @@ def main():
             base_model_path, adapter_path or "", merged_model_path or ""
         )
         ft_evaluator.load_model()
+        start_idx = resume_ft_idx if resume_ft_idx > 0 else 0
         ft_results = run_single_model_eval(
             ft_evaluator,
             eval_data,
             "FT",
-            0,
+            start_idx,
             checkpoint_path,
             output_dir,
             len(eval_data),

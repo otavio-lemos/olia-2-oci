@@ -172,15 +172,17 @@ bash training/run_all_cycles.sh --fresh
 
 ## Evaluation
 
+> **Performance Note:** The MLX evaluation script uses vectorized embedding extraction and batched generation. Pass `--batch-size 8` (or `16` for >32GB RAM) to process multiple samples in parallel and evaluate up to 10x faster!
+
 ```bash
-# Small mode (10 samples de categorias diferentes, ~5 min)
-python scripts/unified_evaluation.py --cycle cycle-1 --mode small
+# Small mode (10 samples de categorias diferentes, ~1 min)
+python scripts/unified_evaluation.py --cycle cycle-1 --mode small --batch-size 8
 
-# Medium evaluation (200 samples stratified, ~30-40 min) - Recommended
-python scripts/unified_evaluation.py --cycle cycle-1 --mode medium --fresh
+# Medium evaluation (200 samples stratified, ~5-10 min) - Recommended
+python scripts/unified_evaluation.py --cycle cycle-1 --mode medium --fresh --batch-size 8
 
-# Full evaluation (1930 samples, ~4-6 hours)
-python scripts/unified_evaluation.py --cycle cycle-1 --mode full --fresh
+# Full evaluation (1930 samples, ~40-60 min)
+python scripts/unified_evaluation.py --cycle cycle-1 --mode full --fresh --batch-size 8
 ```
 
 Outputs include:

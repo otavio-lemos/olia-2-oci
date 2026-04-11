@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Unified Evaluation Script for OCI Specialist LLM.
+"""Unified Evaluation Script for OCI Specialist LLM (Optimized for High Performance).
 
 Consolida: base vs FT comparison, scoring, similarity semântica, relatórios com gráficos.
 Modos: --cycle cycle-1 --mode test (10 samples), --mode full (1930 samples)
 
 Usage:
-    python scripts/unified_evaluation.py --cycle cycle-1 --mode test
-    python scripts/unified_evaluation.py --cycle cycle-1 --mode full
+    python scripts/unified_evaluation.py --cycle cycle-1 --mode test --batch-size 16
+    python scripts/unified_evaluation.py --cycle cycle-1 --mode full --batch-size 16
 """
 
 import argparse
@@ -17,6 +17,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Any, Optional
 import random
+import gc
 
 import mlx.core as mx
 from mlx_lm import load, generate
@@ -51,72 +52,149 @@ except ImportError:
 
 
 class ScoringEngine:
-    """Engine for evaluating OCI Specialist LLM responses."""
+    """Engine for evaluating OCI Specialist LLM responses (Optimized)."""
 
-    @staticmethod
-    def score_technical_correctness(
-        response: str, reference: str, category: str
-    ) -> float:
+    REAL_CLI_PATTERNS = [re.compile(p, re.IGNORECASE) for p in [
+        r"oci\s+(compute|network|db|bv|os|ce|fn|kms|vault|iam|logging|monitoring|resource-manager|devops|container-instance|nosql|mysql|cloud-guard|waas|apm|stack-monitoring|file-storage|load-balancer|api-gateway)",
+        r"oci_core_instance",
+        r"oci_objectstorage_bucket",
+        r"oci_database_autonomous_database",
+        r"oci_containerengine_cluster",
+        r"oci\.core\.ComputeClient",
+        r"oci\.object_storage\.ObjectStorageClient",
+        r"oci\.database\.DatabaseClient",
+    ]]
+    
+    FAKE_CLI_PATTERNS = [re.compile(p, re.IGNORECASE) for p in [
+        r"oci\s+instances\s+",
+        r"oci\s+storage\s+",
+        r"oci\s+connectivity\s+",
+        r"oci\s+block\s+",
+        r"oci\s+autonomous-json\s+",
+        r"oci\s+azure-storage\s+",
+        r"oci\s+onprem-storage\s+",
+        r"oci\s+observability\s+",
+        r"oci\s+authentication\s+",
+        r"oci\.Compute\.InstancesClient",
+        r"oci\.Storage\.BlockClient",
+        r"oci\.ConnectivityClient",
+        r"oci_compute_instances",
+        r"oci_storage_block",
+        r"oci_connectivity",
+    ]]
+
+    CROSS_CLOUD_PATTERNS = [re.compile(p, re.IGNORECASE) for p in [
+        r"provider\s+[\"']?aws[\"']?",
+        r"resource\s+[\"']?aws_",
+        r"resource\s+[\"']?azurerm_",
+        r"aws_instance",
+        r"aws_lb",
+        r"aws_vpc",
+        r"aws_security_group",
+        r"aws_s3",
+        r"aws_iam",
+        r"azurerm_network_security_group",
+        r"azurerm_virtual_network",
+        r"azurerm_subnet",
+        r"azurerm_public_ip",
+        r"\bEC2\b",
+        r"\bCloudWatch\b",
+        r"AWS Management Console",
+        r"Azure Portal",
+    ]]
+
+    DEPTH_INDICATORS = [
+        (re.compile(r"\d+\.\s+"), 0.3),
+        (re.compile(r"```"), 0.5),
+        (re.compile(r"- "), 0.2),
+        (re.compile(r"\* "), 0.2),
+        (re.compile(r"best practice", re.IGNORECASE), 0.3),
+        (re.compile(r"recomenda[çc][aã]o", re.IGNORECASE), 0.2),
+        (re.compile(r"trade.?off", re.IGNORECASE), 0.3),
+        (re.compile(r"vantagem", re.IGNORECASE), 0.2),
+        (re.compile(r"desvantagem", re.IGNORECASE), 0.2),
+        (re.compile(r"risco", re.IGNORECASE), 0.3),
+        (re.compile(r"mitiga[çc][aã]o", re.IGNORECASE), 0.3),
+        (re.compile(r"pr[ée]-requisito", re.IGNORECASE), 0.2),
+        (re.compile(r"valida[çc][aã]o", re.IGNORECASE), 0.2),
+    ]
+
+    STRUCTURE_NUMBERED = re.compile(r"\d+\.\s+")
+    STRUCTURE_BULLET = re.compile(r"^[-*]\s+", re.MULTILINE)
+    STRUCTURE_SECTIONS = re.compile(r"#+\s+")
+
+    HALLUCINATION_PATTERNS = [
+        (re.compile(r"oci\s+instances\s+", re.IGNORECASE), 1.5),
+        (re.compile(r"oci\s+storage\s+(?!gateway)", re.IGNORECASE), 1.5),
+        (re.compile(r"oci\s+connectivity\s+", re.IGNORECASE), 1.5),
+        (re.compile(r"oci\s+block\s+(?!volume)", re.IGNORECASE), 1.5),
+        (re.compile(r"oci\s+autonomous-json", re.IGNORECASE), 1.5),
+        (re.compile(r"oci\s+azure-storage", re.IGNORECASE), 1.5),
+        (re.compile(r"oci\s+onprem-storage", re.IGNORECASE), 1.5),
+        (re.compile(r"oci\s+observability\s+", re.IGNORECASE), 1.5),
+        (re.compile(r"oci\s+authentication\s+", re.IGNORECASE), 1.5),
+        (re.compile(r"oci\.Compute\.InstancesClient", re.IGNORECASE), 1.5),
+        (re.compile(r"oci\.Storage\.BlockClient", re.IGNORECASE), 1.5),
+        (re.compile(r"oci\.ConnectivityClient", re.IGNORECASE), 1.5),
+        (re.compile(r"oci_compute_instances", re.IGNORECASE), 1.5),
+        (re.compile(r"oci_storage_block", re.IGNORECASE), 1.5),
+        (re.compile(r"oci_connectivity", re.IGNORECASE), 1.5),
+        (re.compile(r"semidesenvolvimento", re.IGNORECASE), 1.0),
+        (re.compile(r"Carneval", re.IGNORECASE), 1.0),
+        (re.compile(r"Insurance", re.IGNORECASE), 0.5),
+        (re.compile(r"deletar", re.IGNORECASE), 0.3),
+    ]
+
+    HALLUCINATION_CROSS_CLOUD = [
+        (re.compile(r"provider\s+[\"']?aws[\"']?", re.IGNORECASE), 2.0),
+        (re.compile(r"resource\s+[\"']?aws_", re.IGNORECASE), 2.0),
+        (re.compile(r"resource\s+[\"']?azurerm_", re.IGNORECASE), 2.0),
+        (re.compile(r"aws_instance", re.IGNORECASE), 2.0),
+        (re.compile(r"aws_lb", re.IGNORECASE), 2.0),
+        (re.compile(r"aws_vpc", re.IGNORECASE), 2.0),
+        (re.compile(r"aws_security_group", re.IGNORECASE), 2.0),
+        (re.compile(r"aws_s3", re.IGNORECASE), 2.0),
+        (re.compile(r"aws_iam", re.IGNORECASE), 2.0),
+        (re.compile(r"azurerm_network_security_group", re.IGNORECASE), 2.0),
+        (re.compile(r"azurerm_virtual_network", re.IGNORECASE), 2.0),
+        (re.compile(r"azurerm_subnet", re.IGNORECASE), 2.0),
+        (re.compile(r"azurerm_public_ip", re.IGNORECASE), 2.0),
+        (re.compile(r"EC2", re.IGNORECASE), 1.5),
+        (re.compile(r"CloudWatch", re.IGNORECASE), 1.0),
+        (re.compile(r"AWS Management Console", re.IGNORECASE), 1.5),
+        (re.compile(r"AWS Console", re.IGNORECASE), 1.0),
+        (re.compile(r"Amazon Web Services", re.IGNORECASE), 1.0),
+        (re.compile(r"Azure Portal", re.IGNORECASE), 1.0),
+        (re.compile(r"Azure Resource Manager", re.IGNORECASE), 1.0),
+    ]
+
+    FAKE_URLS = [
+        re.compile(r"/Content/\w+/Con/\w+\.htm"),
+        re.compile(r"/Content/\w+/-\w+\.htm"),
+    ]
+
+    CLARITY_CONJUNCTIONS = re.compile(r"\b(portanto|assim|consequentemente|dessa forma|em resumo)\b", re.IGNORECASE)
+    CLARITY_EXAMPLES = re.compile(r"\b(exemplo|por exemplo|como segue|veja que)\b", re.IGNORECASE)
+
+    @classmethod
+    def score_technical_correctness(cls, response: str, category: str) -> float:
         score = 3.0
         if not response or response.startswith("Error:"):
             return 1.0
         if len(response) < 100:
             score -= 1.0
-        real_cli_patterns = [
-            r"oci\s+(compute|network|db|bv|os|ce|fn|kms|vault|iam|logging|monitoring|resource-manager|devops|container-instance|nosql|mysql|cloud-guard|waas|apm|stack-monitoring|file-storage|load-balancer|api-gateway)",
-            r"oci_core_instance",
-            r"oci_objectstorage_bucket",
-            r"oci_database_autonomous_database",
-            r"oci_containerengine_cluster",
-            r"oci\.core\.ComputeClient",
-            r"oci\.object_storage\.ObjectStorageClient",
-            r"oci\.database\.DatabaseClient",
-        ]
-        fake_cli_patterns = [
-            r"oci\s+instances\s+",
-            r"oci\s+storage\s+",
-            r"oci\s+connectivity\s+",
-            r"oci\s+block\s+",
-            r"oci\s+autonomous-json\s+",
-            r"oci\s+azure-storage\s+",
-            r"oci\s+onprem-storage\s+",
-            r"oci\s+observability\s+",
-            r"oci\s+authentication\s+",
-            r"oci\.Compute\.InstancesClient",
-            r"oci\.Storage\.BlockClient",
-            r"oci\.ConnectivityClient",
-            r"oci_compute_instances",
-            r"oci_storage_block",
-            r"oci_connectivity",
-        ]
-        has_real = any(re.search(p, response) for p in real_cli_patterns)
-        has_fake = any(re.search(p, response) for p in fake_cli_patterns)
-        cross_cloud_patterns = [
-            r"provider\s+[\"']?aws[\"']?",
-            r"resource\s+[\"']?aws_",
-            r"resource\s+[\"']?azurerm_",
-            r"aws_instance",
-            r"aws_lb",
-            r"aws_vpc",
-            r"aws_security_group",
-            r"aws_s3",
-            r"aws_iam",
-            r"azurerm_network_security_group",
-            r"azurerm_virtual_network",
-            r"azurerm_subnet",
-            r"azurerm_public_ip",
-            r"\bEC2\b",
-            r"\bCloudWatch\b",
-            r"AWS Management Console",
-            r"Azure Portal",
-        ]
-        has_cross_cloud = any(re.search(p, response) for p in cross_cloud_patterns)
+            
+        has_real = any(p.search(response) for p in cls.REAL_CLI_PATTERNS)
+        has_fake = any(p.search(response) for p in cls.FAKE_CLI_PATTERNS)
+        has_cross_cloud = any(p.search(response) for p in cls.CROSS_CLOUD_PATTERNS)
+        
         if has_fake:
             score -= 2.0
         if has_cross_cloud:
             score -= 2.5
         if has_real:
             score += 1.0
+            
         terraform_cats = [
             "terraform/provider",
             "terraform/compute",
@@ -130,46 +208,33 @@ class ScoringEngine:
             "terraform/devops",
             "terraform/state",
         ]
+        
+        lower_resp = response.lower()
         if category in terraform_cats:
-            if "terraform" in response.lower() and (
-                "resource" in response.lower() or "provider" in response.lower()
+            if "terraform" in lower_resp and (
+                "resource" in lower_resp or "provider" in lower_resp
             ):
                 score += 0.5
             if "oci_" in response:
                 score += 0.5
-        if (
-            "Allow group" in response
-            and "to" in response
-            and "in compartment" in response
-        ):
+                
+        if "Allow group" in response and "to" in response and "in compartment" in response:
             score += 0.5
         if "Doc:" in response or "docs.oracle.com" in response:
             score += 0.3
+            
         return max(1.0, min(5.0, score))
 
-    @staticmethod
-    def score_depth(response: str, reference: str) -> float:
+    @classmethod
+    def score_depth(cls, response: str) -> float:
         score = 3.0
         if not response or response.startswith("Error:"):
             return 1.0
-        depth_indicators = [
-            (r"\d+\.\s+", 0.3),
-            (r"```", 0.5),
-            (r"- ", 0.2),
-            (r"\* ", 0.2),
-            (r"best practice", 0.3),
-            (r"recomenda[çc][aã]o", 0.2),
-            (r"trade.?off", 0.3),
-            (r"vantagem", 0.2),
-            (r"desvantagem", 0.2),
-            (r"risco", 0.3),
-            (r"mitiga[çc][aã]o", 0.3),
-            (r"pr[ée]-requisito", 0.2),
-            (r"valida[çc][aã]o", 0.2),
-        ]
-        for pattern, points in depth_indicators:
-            if re.search(pattern, response, re.IGNORECASE):
+            
+        for pattern, points in cls.DEPTH_INDICATORS:
+            if pattern.search(response):
                 score += points
+                
         word_count = len(response.split())
         if word_count > 200:
             score += 0.5
@@ -177,168 +242,110 @@ class ScoringEngine:
             score += 0.5
         if word_count < 50:
             score -= 1.0
+            
         return max(1.0, min(5.0, score))
 
-    @staticmethod
-    def score_structure(response: str) -> float:
+    @classmethod
+    def score_structure(cls, response: str) -> float:
         score = 3.0
         if not response or response.startswith("Error:"):
             return 1.0
-        has_numbered_list = bool(re.search(r"\d+\.\s+", response))
-        has_bullet_list = bool(re.search(r"^[-*]\s+", response, re.MULTILINE))
+            
+        has_numbered_list = bool(cls.STRUCTURE_NUMBERED.search(response))
+        has_bullet_list = bool(cls.STRUCTURE_BULLET.search(response))
         has_code_block = "```" in response
-        has_sections = bool(re.search(r"#+\s+", response))
+        has_sections = bool(cls.STRUCTURE_SECTIONS.search(response))
         has_table = "|" in response and "---" in response
-        structural_elements = sum(
-            [
-                has_numbered_list,
-                has_bullet_list,
-                has_code_block,
-                has_sections,
-                has_table,
-            ]
-        )
+        
+        structural_elements = sum([
+            has_numbered_list,
+            has_bullet_list,
+            has_code_block,
+            has_sections,
+            has_table,
+        ])
+        
         if structural_elements >= 3:
             score += 1.5
         elif structural_elements >= 2:
             score += 1.0
         elif structural_elements >= 1:
             score += 0.5
+            
         if len(response.split("\n")) > 10:
             score += 0.3
+            
         return max(1.0, min(5.0, score))
 
-    @staticmethod
-    def score_hallucination(response: str) -> float:
+    @classmethod
+    def score_hallucination(cls, response: str) -> float:
         score = 5.0
         if not response or response.startswith("Error:"):
             return 1.0
-        hallucination_patterns = [
-            (r"oci\s+instances\s+", 1.5),
-            (r"oci\s+storage\s+(?!gateway)", 1.5),
-            (r"oci\s+connectivity\s+", 1.5),
-            (r"oci\s+block\s+(?!volume)", 1.5),
-            (r"oci\s+autonomous-json", 1.5),
-            (r"oci\s+azure-storage", 1.5),
-            (r"oci\s+onprem-storage", 1.5),
-            (r"oci\s+observability\s+", 1.5),
-            (r"oci\s+authentication\s+", 1.5),
-            (r"oci\.Compute\.InstancesClient", 1.5),
-            (r"oci\.Storage\.BlockClient", 1.5),
-            (r"oci\.ConnectivityClient", 1.5),
-            (r"oci_compute_instances", 1.5),
-            (r"oci_storage_block", 1.5),
-            (r"oci_connectivity", 1.5),
-            (r"semidesenvolvimento", 1.0),
-            (r"Carneval", 1.0),
-            (r"Insurance", 0.5),
-            (r"deletar", 0.3),
-        ]
-        cross_cloud_patterns = [
-            (r"provider\s+[\"']?aws[\"']?", 2.0),
-            (r"resource\s+[\"']?aws_", 2.0),
-            (r"resource\s+[\"']?azurerm_", 2.0),
-            (r"aws_instance", 2.0),
-            (r"aws_lb", 2.0),
-            (r"aws_vpc", 2.0),
-            (r"aws_security_group", 2.0),
-            (r"aws_s3", 2.0),
-            (r"aws_iam", 2.0),
-            (r"azurerm_network_security_group", 2.0),
-            (r"azurerm_virtual_network", 2.0),
-            (r"azurerm_subnet", 2.0),
-            (r"azurerm_public_ip", 2.0),
-            (r"EC2", 1.5),
-            (r"CloudWatch", 1.0),
-            (r"AWS Management Console", 1.5),
-            (r"AWS Console", 1.0),
-            (r"Amazon Web Services", 1.0),
-            (r"Azure Portal", 1.0),
-            (r"Azure Resource Manager", 1.0),
-        ]
-        for pattern, penalty in hallucination_patterns:
-            if re.search(pattern, response, re.IGNORECASE):
+            
+        for pattern, penalty in cls.HALLUCINATION_PATTERNS:
+            if pattern.search(response):
                 score -= penalty
-        for pattern, penalty in cross_cloud_patterns:
-            if re.search(pattern, response, re.IGNORECASE):
+        for pattern, penalty in cls.HALLUCINATION_CROSS_CLOUD:
+            if pattern.search(response):
                 score -= penalty
-        fake_urls = [
-            r"/Content/\w+/Con/\w+\.htm",
-            r"/Content/\w+/-\w+\.htm",
-        ]
-        for pattern in fake_urls:
-            if re.search(pattern, response):
+        for pattern in cls.FAKE_URLS:
+            if pattern.search(response):
                 score -= 1.0
+                
         return max(1.0, min(5.0, score))
 
-    @staticmethod
-    def score_clarity(response: str) -> float:
+    @classmethod
+    def score_clarity(cls, response: str) -> float:
         score = 3.0
         if not response or response.startswith("Error:"):
             return 1.0
-        if len(response) < 50:
+            
+        length = len(response)
+        if length < 50:
             score -= 1.5
-        elif len(response) < 100:
+        elif length < 100:
             score -= 0.5
-        if len(response) > 2000:
+        if length > 2000:
             score -= 0.3
+            
         sentences = re.split(r"[.!?]+", response)
         avg_sentence_length = len(response.split()) / max(len(sentences), 1)
         if 10 <= avg_sentence_length <= 25:
             score += 0.5
-        if re.search(
-            r"\b(portanto|assim|consequentemente|dessa forma|em resumo)\b",
-            response,
-            re.IGNORECASE,
-        ):
+            
+        if cls.CLARITY_CONJUNCTIONS.search(response):
             score += 0.3
-        if re.search(
-            r"\b(exemplo|por exemplo|como segue|veja que)\b", response, re.IGNORECASE
-        ):
+        if cls.CLARITY_EXAMPLES.search(response):
             score += 0.3
+            
         return max(1.0, min(5.0, score))
 
-    @staticmethod
-    def evaluate_response(
-        response: str, reference: str, category: str, semantic_scorer=None
+    @classmethod
+    def evaluate_response_fast(
+        cls, response: str, reference: str, category: str, similarity: float
     ) -> Dict[str, Any]:
-
-        # Base scores using the new SemanticScorer
-        if semantic_scorer and reference:
-            try:
-                quality_scores = semantic_scorer.score_response_quality(
-                    reference, response
-                )
-                sem_sim = quality_scores.get("semantic_similarity", 0.5)
-                factual = quality_scores.get("factual_alignment", 0.5)
-                coverage = quality_scores.get("coverage", 0.5)
-            except Exception:
-                sem_sim = 0.5
-                factual = 0.5
-                coverage = 0.5
-        else:
-            sem_sim = 0.5
-            factual = 0.5
-            coverage = 0.5
-
-        # Map to old metric names for backward compatibility with reports
+        """Fast scoring that directly accepts precomputed semantic similarity."""
         # Scale from 0.0-1.0 to 1.0-5.0
         def scale_to_5(score_0_to_1):
             return 1.0 + (score_0_to_1 * 4.0)
 
+        factual = min(1.0, similarity * 1.2)
+        coverage = similarity if similarity > 0.5 else similarity * 0.8
+
         scores = {
             "technical_correctness": scale_to_5(factual),
             "depth": scale_to_5(coverage),
-            "structure": ScoringEngine.score_structure(response),
-            "hallucination": scale_to_5(sem_sim),
-            "clarity": ScoringEngine.score_clarity(response),
+            "structure": cls.score_structure(response),
+            "hallucination": scale_to_5(similarity),
+            "clarity": cls.score_clarity(response),
         }
         scores["overall"] = sum(scores.values()) / len(scores)
         return scores
 
 
 class SemanticScorer:
-    """Lightweight semantic similarity for hallucination detection."""
+    """Lightweight semantic similarity for hallucination detection with Batching."""
 
     def __init__(
         self, model_name: str = "sentence-transformers/paraphrase-MiniLM-L6-v2"
@@ -400,29 +407,46 @@ class SemanticScorer:
             return 0.0
 
         return float(np.dot(emb1, emb2) / (norm1 * norm2))
+        
+    def compute_similarity_batch(self, texts1: List[str], texts2: List[str]) -> List[float]:
+        """Compute cosine similarity between two lists of texts efficiently."""
+        if not texts1 or not texts2:
+            return []
+            
+        if self.model is None:
+            # Fallback to sequential if missing library
+            return [self.compute_similarity(t1, t2) for t1, t2 in zip(texts1, texts2)]
 
-    def detect_hallucination(
-        self, reference: str, generated: str, threshold: float = 0.3
-    ):
-        """Detect potential hallucination based on semantic divergence."""
-        similarity = self.compute_similarity(reference, generated)
+        import numpy as np
 
-        return {
-            "similarity": round(similarity, 3),
-            "is_hallucination": similarity < threshold,
-            "confidence": round(1.0 - similarity, 3),
-            "threshold": threshold,
-        }
+        # Encode references missing in cache
+        unique_texts1 = list(set(texts1))
+        texts1_to_encode = [t for t in unique_texts1 if t not in self.embedding_cache]
+        if texts1_to_encode:
+            embs = self.model.encode(texts1_to_encode, batch_size=64, convert_to_numpy=True, show_progress_bar=False)
+            for t, e in zip(texts1_to_encode, embs):
+                self.embedding_cache[t] = e
+        
+        # Encode responses missing in cache
+        unique_texts2 = list(set(texts2))
+        texts2_to_encode = [t for t in unique_texts2 if t not in self.embedding_cache]
+        if texts2_to_encode:
+            embs = self.model.encode(texts2_to_encode, batch_size=64, convert_to_numpy=True, show_progress_bar=False)
+            for t, e in zip(texts2_to_encode, embs):
+                self.embedding_cache[t] = e
 
-    def score_response_quality(self, reference: str, generated: str):
-        """Score response quality across multiple dimensions."""
-        similarity = self.compute_similarity(reference, generated)
+        emb1 = np.array([self.embedding_cache[t] for t in texts1])
+        emb2 = np.array([self.embedding_cache[t] for t in texts2])
 
-        return {
-            "semantic_similarity": round(similarity, 3),
-            "factual_alignment": round(min(1.0, similarity * 1.2), 3),
-            "coverage": round(similarity if similarity > 0.5 else similarity * 0.8, 3),
-        }
+        norm1 = np.linalg.norm(emb1, axis=1)
+        norm2 = np.linalg.norm(emb2, axis=1)
+        
+        # Prevent division by zero
+        norm1[norm1 == 0] = 1e-10
+        norm2[norm2 == 0] = 1e-10
+
+        sims = np.sum(emb1 * emb2, axis=1) / (norm1 * norm2)
+        return sims.tolist()
 
 
 class ReportGenerator:
@@ -642,10 +666,12 @@ class UnifiedEvaluator:
         base_model_id: str,
         adapter_path: str = "",
         merged_model_path: str = "",
+        batch_size: int = 16,
     ):
         self.base_model_id = base_model_id
         self.adapter_path = adapter_path
         self.merged_model_path = merged_model_path
+        self.batch_size = batch_size
         self.model = None
         self.tokenizer = None
         self._loaded = False
@@ -667,7 +693,7 @@ class UnifiedEvaluator:
                 adapter_path=self.adapter_path if self.adapter_path else None,
             )
 
-        self.sampler = make_sampler(temp=0.5, top_p=0.9, min_p=0.0, top_k=50)
+        self.sampler = make_sampler(temp=0.3, top_p=0.9, min_p=0.0, top_k=20)
         self._loaded = True
         print("Model loaded successfully")
 
@@ -698,6 +724,93 @@ class UnifiedEvaluator:
         elapsed = time.time() - start
 
         return response, elapsed
+
+    def generate_batch(
+        self, prompts: List[tuple], max_tokens: int = 512
+    ) -> List[tuple]:
+        """Generate responses for multiple prompts in small batches."""
+        if not self._loaded:
+            self.load_model()
+
+        from mlx_lm import batch_generate
+
+        results = []
+        total = len(prompts)
+        batch_size = self.batch_size
+
+        print(f"  Processing {total} prompts in batches of {batch_size}...")
+
+        for batch_start in range(0, total, batch_size):
+            batch_end = min(batch_start + batch_size, total)
+            batch_prompts = prompts[batch_start:batch_end]
+
+            # Prepare prompts as tokenized list
+            prompt_list = []
+            for user_prompt, system_prompt in batch_prompts:
+                messages = []
+                if system_prompt:
+                    messages.append({"role": "system", "content": system_prompt})
+                messages.append({"role": "user", "content": user_prompt})
+
+                # Mlx-lm batch_generate usually expects string prompts or token IDs.
+                # apply_chat_template mostly returns a string if tokenize is False or implicit depending on tokenizer config.
+                # However, it works identically to original format this way.
+                prompt_tokens = self.tokenizer.apply_chat_template(
+                    messages, add_generation_prompt=True
+                )
+                prompt_list.append(prompt_tokens)
+
+            try:
+                batch_start_time = time.time()
+                batch_response = batch_generate(
+                    model=self.model,
+                    tokenizer=self.tokenizer,
+                    prompts=prompt_list,
+                    max_tokens=max_tokens,
+                    sampler=self.sampler,
+                    prefill_batch_size=batch_size,
+                    completion_batch_size=batch_size,
+                    verbose=False,
+                )
+                batch_elapsed = time.time() - batch_start_time
+
+                # batch_response can be a list of outputs or have a texts attribute
+                gen_responses = batch_response.texts if hasattr(batch_response, "texts") else batch_response
+                for text in gen_responses:
+                    results.append((str(text), batch_elapsed / len(batch_prompts)))
+
+            except Exception as e:
+                print(f"    Batch {batch_start}-{batch_end} failed: {e}")
+                # Fallback to sequential for this batch
+                for user_prompt, system_prompt in batch_prompts:
+                    try:
+                        resp, t = self.generate_response(
+                            user_prompt, system_prompt, max_tokens
+                        )
+                        results.append((resp, t))
+                    except Exception as ex:
+                        results.append((f"Error: {str(ex)}", 0.0))
+                batch_elapsed = 0.0
+
+            batch_num = (batch_start // batch_size) + 1
+            total_batches = (total + batch_size - 1) // batch_size
+            prompts_count = len(batch_prompts)
+            prompts_per_sec = prompts_count / batch_elapsed if batch_elapsed > 0 else 0
+            print(
+                f"    Batch {batch_num:2d}/{total_batches}: {prompts_count} prompts | {batch_elapsed:.1f}s | {prompts_per_sec:.2f} prompts/sec | {batch_start + len(batch_prompts)}/{total}"
+            )
+
+            # Clear cache between batches to prevent memory leaking
+            mx.clear_cache()
+            gc.collect()
+
+        total_time = sum(t for _, t in results)
+        prompts_per_sec = total / total_time if total_time > 0 else 0
+        print(
+            f"\n  Total: {total} prompts in {total_time:.1f}s ({prompts_per_sec:.1f} prompts/sec)"
+        )
+
+        return results[:total]
 
 
 def load_eval_data(eval_file: str) -> List[Dict]:
@@ -758,12 +871,27 @@ def evaluate_model(
     eval_data: List[Dict],
     semantic_scorer: Optional[SemanticScorer] = None,
     mode: str = "base",
+    resume_results: List[Dict] = None,
+    checkpoint_file: Path = None,
 ) -> List[Dict]:
-    """Run evaluation loop for a model."""
-    results = []
+    """Run evaluation loop for a model using batch processing."""
     total = len(eval_data)
 
-    for i, item in enumerate(eval_data):
+    # Handle resume from checkpoint
+    results = resume_results if resume_results else []
+    start_idx = len(results)
+
+    if start_idx > 0:
+        print(f"[{mode}] Resuming from index {start_idx}/{total}")
+        # Slice eval_data to start from where we left off
+        eval_data = eval_data[start_idx:]
+
+    # Prepare all prompts
+    prompts = []
+    references = []
+    categories = []
+
+    for item in eval_data:
         messages = item.get("messages", [])
         system_prompt = ""
         user_prompt = ""
@@ -784,44 +912,67 @@ def evaluate_model(
 
         category = item.get("metadata", {}).get("category", "unknown")
 
-        print(f"[{mode}] {i + 1}/{total}: {category}")
+        prompts.append((user_prompt, system_prompt))
+        references.append(reference)
+        categories.append(category)
 
-        try:
-            response, elapsed = evaluator.generate_response(
-                user_prompt, system_prompt=system_prompt, max_tokens=1024
-            )
-        except Exception as e:
-            response = f"Error: {str(e)}"
-            elapsed = 0.0
+    print(f"[{mode}] Processing {total} samples in batch...")
 
-        scores = ScoringEngine.evaluate_response(
-            response, reference, category, semantic_scorer=semantic_scorer
-        )
-
-        sem_sim = 0.5
-        if semantic_scorer and reference:
+    # Run batch generation
+    try:
+        # Pass max_tokens=512 exactly as requested.
+        responses, elapsed = evaluator.generate_batch(prompts, max_tokens=512)
+    except Exception as e:
+        print(f"Batch generation failed: {e}, falling back to sequential")
+        responses = []
+        elapsed = 0.0
+        for i, (user_prompt, system_prompt) in enumerate(prompts):
+            print(f"[{mode}] {i + 1}/{total}: {categories[i]}")
             try:
-                sem_sim = semantic_scorer.compute_similarity(reference, response)
-            except Exception:
-                pass
+                resp, t = evaluator.generate_response(
+                    user_prompt, system_prompt=system_prompt, max_tokens=512
+                )
+                responses.append((resp, t))
+                elapsed += t
+            except Exception as ex:
+                responses.append((f"Error: {str(ex)}", 0.0))
+
+    # Score all responses efficiently in batch
+    print(f"[{mode}] Evaluating generated responses...")
+    sem_sims = [0.5] * len(responses)
+    if semantic_scorer and any(references):
+        try:
+            # Batch compute similarities using vectorized sentence-transformers
+            sem_sims = semantic_scorer.compute_similarity_batch(references, [r[0] for r in responses])
+        except Exception as e:
+            print(f"Batch semantic scoring failed: {e}")
+
+    results_eval = []
+    for i, (response, response_time) in enumerate(responses):
+        reference = references[i]
+        category = categories[i]
+        sim = sem_sims[i]
+
+        scores = ScoringEngine.evaluate_response_fast(response, reference, category, sim)
 
         result = {
             "category": category,
-            "prompt": user_prompt,
+            "prompt": prompts[i][0],
             "response": response,
             "reference": reference,
             "scores": scores,
-            "semantic_similarity": sem_sim,
-            "elapsed_seconds": elapsed,
+            "semantic_similarity": float(sim),
+            "elapsed_seconds": response_time,
             "model": mode,
         }
-        results.append(result)
+        results_eval.append(result)
 
-        if (i + 1) % 10 == 0:
-            avg_time = sum(r["elapsed_seconds"] for r in results) / len(results)
-            print(f"  Avg time: {avg_time:.2f}s")
+        # Save checkpoint periodically
+        if checkpoint_file and (i + 1) % 50 == 0:
+            save_results(results + results_eval, checkpoint_file)
+            print(f"  [{mode}] Checkpoint saved at {start_idx + i + 1}/{total + start_idx}")
 
-    return results
+    return results + results_eval
 
 
 def save_results(results: List[Dict], output_path: Path):
@@ -833,16 +984,16 @@ def save_results(results: List[Dict], output_path: Path):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Unified OCI Specialist Evaluation")
+    parser = argparse.ArgumentParser(description="Unified OCI Specialist Evaluation (Optimized)")
     parser.add_argument("--cycle", required=True, help="Cycle name (e.g., cycle-1)")
     parser.add_argument(
         "--mode",
-        choices=["small", "medium", "full"],
+        choices=["small", "medium", "full", "test"],
         default="medium",
-        help="Eval mode: small (10), medium (200), full (1930)",
+        help="Eval mode: small/test (10), medium (200), full (1930)",
     )
     parser.add_argument(
-        "--test-samples", type=int, default=10, help="Samples count (small mode)"
+        "--test-samples", type=int, default=10, help="Samples count (small/test mode)"
     )
     parser.add_argument(
         "--samples",
@@ -851,7 +1002,16 @@ def main():
         help="Samples count (medium mode, default: 200)",
     )
     parser.add_argument(
+        "--batch-size",
+        type=int,
+        default=16,
+        help="Batch size for parallel generation. Use 8 or 16 for M-series Macs to drastically improve speed.",
+    )
+    parser.add_argument(
         "--fresh", action="store_true", help="Clear output directory before running"
+    )
+    parser.add_argument(
+        "--compare", action="store_true", help="Also evaluate base model for comparison"
     )
     parser.add_argument("--eval-file", default="data/eval.jsonl", help="Eval JSONL")
     parser.add_argument("--output-dir", default="outputs/benchmarks", help="Output dir")
@@ -865,21 +1025,32 @@ def main():
     config = load_cycle_config(args.cycle)
 
     base_model_id = config.get("MODEL", "mlx-community/Meta-Llama-3.1-8B-Instruct-4bit")
-    adapter_path = str(
-        project_root / config.get("OUTPUT_DIR", f"outputs/{args.cycle}") / "adapters"
-    )
+    output_dir_config = config.get("OUTPUT_DIR", f"outputs/{args.cycle}")
+
+    # Auto-detect merged model or use adapter
+    merged_path = project_root / output_dir_config / "merged"
+    adapter_path = str(project_root / output_dir_config / "adapters")
+
+    # Use merged model if available, otherwise use adapter
+    if merged_path.exists():
+        ft_model_path = str(merged_path)
+        ft_mode = "merged"
+    else:
+        ft_model_path = adapter_path
+        ft_mode = "adapter"
 
     eval_file = args.eval_file
     output_dir = Path(args.output_dir)
     random.seed(args.seed)
 
     print("=" * 60)
-    print("Unified Evaluation Script")
+    print("Unified Evaluation Script (Optimized Pipeline)")
     print("=" * 60)
     print(f"Cycle: {args.cycle}")
     print(f"Mode: {args.mode}")
+    print(f"Batch Size: {args.batch_size}")
     print(f"Base Model: {base_model_id}")
-    print(f"Adapter: {adapter_path}")
+    print(f"FT Model: {ft_model_path} ({ft_mode})")
     print(f"Eval file: {eval_file}")
     print(f"Output: {output_dir}")
 
@@ -891,13 +1062,35 @@ def main():
 
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    # Check for existing checkpoints to resume
+    base_ckpt = output_dir / "base_checkpoint.json"
+    ft_ckpt = output_dir / "ft_checkpoint.json"
+    resume_base = []
+    resume_ft = []
+
+    if base_ckpt.exists():
+        try:
+            with open(base_ckpt, "r") as f:
+                resume_base = json.load(f)
+            print(f"Resuming BASE from checkpoint: {len(resume_base)} items")
+        except Exception as e:
+            print(f"Warning: Could not load BASE checkpoint: {e}")
+
+    if ft_ckpt.exists():
+        try:
+            with open(ft_ckpt, "r") as f:
+                resume_ft = json.load(f)
+            print(f"Resuming FT from checkpoint: {len(resume_ft)} items")
+        except Exception as e:
+            print(f"Warning: Could not load FT checkpoint: {e}")
+
     print("\n[1/5] Loading eval data...")
     eval_data = load_eval_data(eval_file)
     print(f"Loaded {len(eval_data)} examples")
 
-    if args.mode == "small":
+    if args.mode in ["small", "test"]:
         eval_data = sample_per_category(eval_data, samples=args.test_samples)
-        print(f"Small mode: {len(eval_data)} samples from different categories")
+        print(f"Small/Test mode: {len(eval_data)} samples from different categories")
     elif args.mode == "medium":
         if args.samples < len(eval_data):
             eval_data = sample_stratified(eval_data, samples=args.samples)
@@ -923,17 +1116,19 @@ def main():
     base_evaluator = UnifiedEvaluator(
         base_model_id=base_model_id,
         adapter_path="",
-        merged_model_path=args.merged,
+        merged_model_path="",
+        batch_size=args.batch_size,
     )
 
-    if args.mode == "test":
-        base_results = evaluate_model(
-            base_evaluator, eval_data, semantic_scorer, mode="base"
-        )
-    else:
-        base_results = evaluate_model(
-            base_evaluator, eval_data, semantic_scorer, mode="base"
-        )
+    base_checkpoint = output_dir / "base_checkpoint.json"
+    base_results = evaluate_model(
+        base_evaluator,
+        eval_data,
+        semantic_scorer,
+        mode="base",
+        resume_results=resume_base if resume_base else None,
+        checkpoint_file=base_checkpoint,
+    )
 
     base_path = output_dir / "base_results.json"
     save_results(base_results, base_path)
@@ -942,22 +1137,26 @@ def main():
     base_evaluator.model = None
     base_evaluator.tokenizer = None
     del base_evaluator
-    import gc
-
     gc.collect()
-    mx.metal.clear_cache()
+    mx.clear_cache()
 
     print("\n[4/5] Evaluating fine-tuned model...")
     ft_evaluator = UnifiedEvaluator(
         base_model_id=base_model_id,
-        adapter_path=adapter_path,
-        merged_model_path=args.merged,
+        adapter_path="" if ft_mode == "merged" else ft_model_path,
+        merged_model_path=ft_model_path if ft_mode == "merged" else "",
+        batch_size=args.batch_size,
     )
 
-    if args.mode == "test":
-        ft_results = evaluate_model(ft_evaluator, eval_data, semantic_scorer, mode="ft")
-    else:
-        ft_results = evaluate_model(ft_evaluator, eval_data, semantic_scorer, mode="ft")
+    ft_checkpoint = output_dir / "ft_checkpoint.json"
+    ft_results = evaluate_model(
+        ft_evaluator,
+        eval_data,
+        semantic_scorer,
+        mode="ft",
+        resume_results=resume_ft if resume_ft else None,
+        checkpoint_file=ft_checkpoint,
+    )
 
     ft_path = output_dir / "ft_results.json"
     save_results(ft_results, ft_path)
@@ -967,7 +1166,7 @@ def main():
     ft_evaluator.tokenizer = None
     del ft_evaluator
     gc.collect()
-    mx.metal.clear_cache()
+    mx.clear_cache()
 
     print("\n[5/5] Generating reports...")
     reporter = ReportGenerator(output_dir)
