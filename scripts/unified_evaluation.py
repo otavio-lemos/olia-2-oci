@@ -5,8 +5,8 @@ Consolida: base vs FT comparison, scoring, similarity semântica, relatórios co
 Modos: --cycle cycle-1 --mode test (10 samples), --mode full (1930 samples)
 
 Usage:
-    python scripts/unified_evaluation.py --cycle cycle-1 --mode test --batch-size 16
-    python scripts/unified_evaluation.py --cycle cycle-1 --mode full --batch-size 16
+    python scripts/unified_evaluation.py --cycle cycle-1 --mode test
+    python scripts/unified_evaluation.py --cycle cycle-1 --mode full
 """
 
 import argparse
@@ -666,12 +666,10 @@ class UnifiedEvaluator:
         base_model_id: str,
         adapter_path: str = "",
         merged_model_path: str = "",
-        batch_size: int = 16,
     ):
         self.base_model_id = base_model_id
         self.adapter_path = adapter_path
         self.merged_model_path = merged_model_path
-        self.batch_size = batch_size
         self.model = None
         self.tokenizer = None
         self._loaded = False
@@ -728,105 +726,26 @@ class UnifiedEvaluator:
     def generate_batch(
         self, prompts: List[tuple], max_tokens: int = 512
     ) -> List[tuple]:
-        """Generate responses."""
+        """Generate responses sequentially (Optimized for early-stopping)."""
         if not self._loaded:
             self.load_model()
 
         results = []
         total = len(prompts)
-        batch_size = self.batch_size
 
-        if batch_size <= 1:
-            print(f"  Processing {total} prompts sequentially (Optimized for early-stopping)...")
-            start_all = time.time()
-            for i, (user_prompt, system_prompt) in enumerate(prompts):
-                resp, t = self.generate_response(user_prompt, system_prompt, max_tokens)
-                results.append((resp, t))
-                
-                # Exibir progresso a cada 10 amostras
-                if (i + 1) % 10 == 0:
-                    avg_t = sum(r[1] for r in results) / len(results)
-                    print(f"    [{i+1:3d}/{total}] Avg time per prompt: {avg_t:.2f}s")
-            
-            total_time = time.time() - start_all
-            print(f"\n  Total: {total} prompts in {total_time:.1f}s ({total / total_time:.1f} prompts/sec)")
-            return results
+        print(f"  Processing {total} prompts sequentially...")
+        start_all = time.time()
+        for i, (user_prompt, system_prompt) in enumerate(prompts):
+            resp, t = self.generate_response(user_prompt, system_prompt, max_tokens)
+            results.append((resp, t))
 
-        from mlx_lm import batch_generate
+            if (i + 1) % 10 == 0:
+                avg_t = sum(r[1] for r in results) / len(results)
+                print(f"    [{i+1:3d}/{total}] Avg time per prompt: {avg_t:.2f}s")
 
-        print(f"  Processing {total} prompts in batches of {batch_size}...")
-
-        for batch_start in range(0, total, batch_size):
-            batch_end = min(batch_start + batch_size, total)
-            batch_prompts = prompts[batch_start:batch_end]
-
-            # Prepare prompts as tokenized list
-            prompt_list = []
-            for user_prompt, system_prompt in batch_prompts:
-                messages = []
-                if system_prompt:
-                    messages.append({"role": "system", "content": system_prompt})
-                messages.append({"role": "user", "content": user_prompt})
-
-                # Mlx-lm batch_generate usually expects string prompts or token IDs.
-                # apply_chat_template mostly returns a string if tokenize is False or implicit depending on tokenizer config.
-                # However, it works identically to original format this way.
-                prompt_tokens = self.tokenizer.apply_chat_template(
-                    messages, add_generation_prompt=True
-                )
-                prompt_list.append(prompt_tokens)
-
-            try:
-                batch_start_time = time.time()
-                batch_response = batch_generate(
-                    model=self.model,
-                    tokenizer=self.tokenizer,
-                    prompts=prompt_list,
-                    max_tokens=max_tokens,
-                    sampler=self.sampler,
-                    prefill_batch_size=batch_size,
-                    completion_batch_size=batch_size,
-                    verbose=False,
-                )
-                batch_elapsed = time.time() - batch_start_time
-
-                # batch_response can be a list of outputs or have a texts attribute
-                gen_responses = batch_response.texts if hasattr(batch_response, "texts") else batch_response
-                for text in gen_responses:
-                    results.append((str(text), batch_elapsed / len(batch_prompts)))
-
-            except Exception as e:
-                print(f"    Batch {batch_start}-{batch_end} failed: {e}")
-                # Fallback to sequential for this batch
-                for user_prompt, system_prompt in batch_prompts:
-                    try:
-                        resp, t = self.generate_response(
-                            user_prompt, system_prompt, max_tokens
-                        )
-                        results.append((resp, t))
-                    except Exception as ex:
-                        results.append((f"Error: {str(ex)}", 0.0))
-                batch_elapsed = 0.0
-
-            batch_num = (batch_start // batch_size) + 1
-            total_batches = (total + batch_size - 1) // batch_size
-            prompts_count = len(batch_prompts)
-            prompts_per_sec = prompts_count / batch_elapsed if batch_elapsed > 0 else 0
-            print(
-                f"    Batch {batch_num:2d}/{total_batches}: {prompts_count} prompts | {batch_elapsed:.1f}s | {prompts_per_sec:.2f} prompts/sec | {batch_start + len(batch_prompts)}/{total}"
-            )
-
-            # Clear cache between batches to prevent memory leaking
-            mx.clear_cache()
-            gc.collect()
-
-        total_time = sum(t for _, t in results)
-        prompts_per_sec = total / total_time if total_time > 0 else 0
-        print(
-            f"\n  Total: {total} prompts in {total_time:.1f}s ({prompts_per_sec:.1f} prompts/sec)"
-        )
-
-        return results[:total]
+        total_time = time.time() - start_all
+        print(f"\n  Total: {total} prompts in {total_time:.1f}s ({total / total_time:.1f} prompts/sec)")
+        return results
 
 
 def load_eval_data(eval_file: str) -> List[Dict]:
@@ -1023,12 +942,6 @@ def main():
         help="Samples count (medium mode, default: 200)",
     )
     parser.add_argument(
-        "--batch-size",
-        type=int,
-        default=8,
-        help="Batch size for parallel generation. Use 8 or 16 for M-series Macs to drastically improve speed.",
-    )
-    parser.add_argument(
         "--max-tokens",
         type=int,
         default=512,
@@ -1075,7 +988,6 @@ def main():
     print("=" * 60)
     print(f"Cycle: {args.cycle}")
     print(f"Mode: {args.mode}")
-    print(f"Batch Size: {args.batch_size}")
     print(f"Base Model: {base_model_id}")
     print(f"FT Model: {ft_model_path} ({ft_mode})")
     print(f"Eval file: {eval_file}")
@@ -1144,7 +1056,6 @@ def main():
         base_model_id=base_model_id,
         adapter_path="",
         merged_model_path="",
-        batch_size=args.batch_size,
     )
 
     base_checkpoint = output_dir / "base_checkpoint.json"
@@ -1173,7 +1084,6 @@ def main():
         base_model_id=base_model_id,
         adapter_path="" if ft_mode == "merged" else ft_model_path,
         merged_model_path=ft_model_path if ft_mode == "merged" else "",
-        batch_size=args.batch_size,
     )
 
     ft_checkpoint = output_dir / "ft_checkpoint.json"

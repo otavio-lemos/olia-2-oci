@@ -172,16 +172,14 @@ bash training/run_all_cycles.sh --fresh
 
 ## Evaluation
 
-> **Performance Note:** The evaluation script uses a highly optimized hybrid pipeline. It runs LLM generation sequentially (which is fastest because it immediately stops at `<EOS>` without padding), and then batches the resulting outputs into vectorized Numpy arrays for ultra-fast Sentence-Transformer embedding extraction. 
-
 ```bash
-# Small mode (10 samples de categorias diferentes, ~1 min)
+# Small mode (10 samples de categorias diferentes, ~5 min)
 python scripts/unified_evaluation.py --cycle cycle-1 --mode small
 
-# Medium evaluation (200 samples stratified, ~5-10 min) - Recommended
+# Medium evaluation (200 samples stratified, ~30-40 min) - Recommended
 python scripts/unified_evaluation.py --cycle cycle-1 --mode medium --fresh
 
-# Full evaluation (1930 samples, ~40-60 min)
+# Full evaluation (1930 samples, ~4-6 hours)
 python scripts/unified_evaluation.py --cycle cycle-1 --mode full --fresh
 ```
 

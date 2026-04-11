@@ -42,23 +42,24 @@ def load_cycle_config(cycle_name):
     return config
 
 
-def load_dataset_jsonl(path):
-    dataset = []
-    with open(path) as f:
-        for line in f:
-            line = line.strip()
-            if line:
-                data = json.loads(line)
-                dataset.append({"messages": data["messages"]})
+def load_and_prepare_dataset(path, tokenizer):
+    """Load jsonl and apply chat template via high-performance HF map."""
+    dataset = load_dataset("json", data_files=path, split="train")
+    
+    def format_chat(examples):
+        texts = [tokenizer.apply_chat_template(msgs, tokenize=False) for msgs in examples["messages"]]
+        return {"text": texts}
+        
+    # Use HF Dataset mapping to parallelize and release memory automatically
+    columns_to_remove = dataset.column_names
+    dataset = dataset.map(
+        format_chat,
+        batched=True,
+        num_proc=os.cpu_count() or 4,
+        remove_columns=columns_to_remove,
+        desc=f"Formatting {Path(path).name}"
+    )
     return dataset
-
-
-def prepare_chat_dataset(messages_list, tokenizer):
-    texts = []
-    for example in messages_list:
-        text = tokenizer.apply_chat_template(example["messages"], tokenize=False)
-        texts.append({"text": text})
-    return texts
 
 
 class MetricsLogger:
@@ -230,16 +231,14 @@ def main():
             use_gradient_checkpointing=grad_checkpoint,
         )
 
-    logger.log("Loading datasets...")
-    train_dataset = load_dataset_jsonl(train_data)
-    valid_dataset = load_dataset_jsonl(valid_data)
+    logger.log("Loading and formatting datasets...")
+    train_hf = load_and_prepare_dataset(train_data, tokenizer)
+    valid_hf = load_and_prepare_dataset(valid_data, tokenizer)
 
-    logger.log("Converting to chat format...")
-    train_texts = prepare_chat_dataset(train_dataset, tokenizer)
-    valid_texts = prepare_chat_dataset(valid_dataset, tokenizer)
-
-    train_hf = Dataset.from_list(train_texts)
-    valid_hf = Dataset.from_list(valid_texts)
+    import gc
+    import mlx.core as mx
+    gc.collect()
+    mx.metal.clear_cache() if hasattr(mx, 'metal') else mx.clear_cache()
 
     logger.log(f"  Train: {len(train_hf)} examples")
     logger.log(f"  Valid: {len(valid_hf)} examples")
