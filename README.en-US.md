@@ -353,11 +353,11 @@ After completing the training (`cycle-1`), the fine-tuned model was evaluated ag
 | clarity | 3.49 | 3.19 | -0.30 |
 | overall | 3.33 | 3.46 | +0.12 |
 
-### Performance Comparison
+### Model Comparison
 
 ![Comparison Chart](outputs/benchmarks/comparison_chart_20260411_063001.png)
 
-### Category Breakdown
+### Category
 
 ![Category Chart](outputs/benchmarks/category_chart_20260411_063001.png)
 
