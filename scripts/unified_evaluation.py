@@ -851,10 +851,7 @@ def main():
         help="Samples count (medium mode, default: 200)",
     )
     parser.add_argument(
-        "--samples",
-        type=int,
-        default=200,
-        help="Full evaluation samples (default: 200)",
+        "--fresh", action="store_true", help="Clear output directory before running"
     )
     parser.add_argument("--eval-file", default="data/eval.jsonl", help="Eval JSONL")
     parser.add_argument("--output-dir", default="outputs/benchmarks", help="Output dir")
@@ -885,6 +882,12 @@ def main():
     print(f"Adapter: {adapter_path}")
     print(f"Eval file: {eval_file}")
     print(f"Output: {output_dir}")
+
+    if args.fresh and output_dir.exists():
+        import shutil
+
+        shutil.rmtree(output_dir)
+        print(f"Cleared output directory: {output_dir}")
 
     output_dir.mkdir(parents=True, exist_ok=True)
 
