@@ -889,6 +889,7 @@ def evaluate_model(
     mode: str = "base",
     resume_results: List[Dict] = None,
     checkpoint_file: Path = None,
+    max_tokens: int = 512,
 ) -> List[Dict]:
     """Run evaluation loop for a model using batch processing."""
     total = len(eval_data)
@@ -936,22 +937,25 @@ def evaluate_model(
 
     # Run batch generation
     try:
-        # Pass max_tokens=512 exactly as requested.
-        responses, elapsed = evaluator.generate_batch(prompts, max_tokens=512)
+        # Pass max_tokens from arguments
+        batch_results = evaluator.generate_batch(prompts, max_tokens=max_tokens)
+        responses = [r[0] for r in batch_results]
+        response_times = [r[1] for r in batch_results]
     except Exception as e:
         print(f"Batch generation failed: {e}, falling back to sequential")
         responses = []
-        elapsed = 0.0
+        response_times = []
         for i, (user_prompt, system_prompt) in enumerate(prompts):
             print(f"[{mode}] {i + 1}/{total}: {categories[i]}")
             try:
                 resp, t = evaluator.generate_response(
-                    user_prompt, system_prompt=system_prompt, max_tokens=512
+                    user_prompt, system_prompt=system_prompt, max_tokens=max_tokens
                 )
-                responses.append((resp, t))
-                elapsed += t
+                responses.append(resp)
+                response_times.append(t)
             except Exception as ex:
-                responses.append((f"Error: {str(ex)}", 0.0))
+                responses.append(f"Error: {str(ex)}")
+                response_times.append(0.0)
 
     # Score all responses efficiently in batch
     print(f"[{mode}] Evaluating generated responses...")
@@ -959,12 +963,13 @@ def evaluate_model(
     if semantic_scorer and any(references):
         try:
             # Batch compute similarities using vectorized sentence-transformers
-            sem_sims = semantic_scorer.compute_similarity_batch(references, [r[0] for r in responses])
+            sem_sims = semantic_scorer.compute_similarity_batch(references, responses)
         except Exception as e:
             print(f"Batch semantic scoring failed: {e}")
 
     results_eval = []
-    for i, (response, response_time) in enumerate(responses):
+    for i, response in enumerate(responses):
+        response_time = response_times[i]
         reference = references[i]
         category = categories[i]
         sim = sem_sims[i]
@@ -1020,8 +1025,14 @@ def main():
     parser.add_argument(
         "--batch-size",
         type=int,
-        default=1,
-        help="Batch size for parallel generation. Use 1 (default) for variable length outputs (much faster), or 8/16 for fixed lengths.",
+        default=8,
+        help="Batch size for parallel generation. Use 8 or 16 for M-series Macs to drastically improve speed.",
+    )
+    parser.add_argument(
+        "--max-tokens",
+        type=int,
+        default=512,
+        help="Max tokens per response. Lower this to (e.g., 150) for significantly faster evaluation.",
     )
     parser.add_argument(
         "--fresh", action="store_true", help="Clear output directory before running"
@@ -1144,6 +1155,7 @@ def main():
         mode="base",
         resume_results=resume_base if resume_base else None,
         checkpoint_file=base_checkpoint,
+        max_tokens=args.max_tokens,
     )
 
     base_path = output_dir / "base_results.json"
@@ -1172,6 +1184,7 @@ def main():
         mode="ft",
         resume_results=resume_ft if resume_ft else None,
         checkpoint_file=ft_checkpoint,
+        max_tokens=args.max_tokens,
     )
 
     ft_path = output_dir / "ft_results.json"
