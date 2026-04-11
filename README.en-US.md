@@ -1,161 +1,125 @@
-<!-- prettier-ignore -->
-<div align="center">
-
 # OCI Specialist LLM
 
-Fine-tuning pipeline for an OCI specialist LLM using Apple Silicon, MLX, and LoRA.
+[🇺🇸 English](README.en-US.md) | [🇧🇷 Português](README.md)
+
+Fine-tuned Large Language Model for Oracle Cloud Infrastructure (OCI) using Apple Silicon, MLX, and LoRA.
 
 [![License](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.12-blue?style=flat-square&logo=python&logoColor=white)](https://www.python.org)
 [![MLX](https://img.shields.io/badge/MLX-Apple%20Silicon-orange?style=flat-square)](https://mlx.ai)
 [![Model](https://img.shields.io/badge/Base%20Model-Meta--Llama--3.1--8B--Instruct--4bit-purple?style=flat-square)](https://huggingface.co/mlx-community/Meta-Llama-3.1-8B-Instruct-4bit)
-[![Dataset](https://img.shields.io/badge/Dataset-9940_examples-green?style=flat-square)](docs/taxonomy.md)
+[![Dataset](https://img.shields.io/badge/Dataset-19294_examples-green?style=flat-square)](docs/taxonomy.md)
 
-</div>
-
-> **Language**: [🇧🇷 PT-BR](README.md) | 🇺🇸 EN-US (secondary)
+> **Language**: Data and prompts in Brazilian Portuguese (PT-BR).
 
 ---
 
 ## Overview
 
-This project builds an LLM specialized in Oracle Cloud Infrastructure (OCI). The pipeline prioritizes dataset quality, low cost, rigorous validation, and follows strict quality rules to ensure accurate and helpful responses.
+This project trains a specialized LLM for Oracle Cloud Infrastructure using Apple's MLX framework on Apple Silicon. The pipeline covers dataset generation, validation, MLX LoRA fine-tuning, and evaluation.
 
-The model is designed to assist with:
-- Explaining OCI services, architecture, and best practices
-- Troubleshooting OCI workloads
-- Guiding migration from AWS, Azure, GCP, and on-premises to OCI
-- Writing OCI Terraform configurations
-- Providing security and IAM guidance
+```mermaid
+flowchart LR
+    subgraph GENERATION["Phase 1: Generation"]
+        A["generate_diverse_v2.py"]
+        A --> B["data/curated/<br/>87 JSONL files"]
+    end
+
+    subgraph PREPARATION["Phase 2: Preparation"]
+        B --> C1["Concat<br/>all_curated.jsonl"]
+        C1 --> C2["Validate<br/>validate_jsonl.py"]
+        C2 --> C3["Clean<br/>clean_dataset.py"]
+        C3 --> C4["Dedup<br/>dedupe_embedding.py"]
+        C4 --> C5["Split<br/>build_dataset_fixed.py"]
+        C5 --> D["train.jsonl<br/>valid.jsonl<br/>eval.jsonl"]
+    end
+
+    subgraph TRAINING["Phase 3: Training"]
+        D --> E["train_mlx_tune.py"]
+        E --> F["outputs/cycle-1/adapters/<br/>adapters.safetensors"]
+    end
+
+    subgraph EXPORT["Phase 4: Export"]
+        F --> G1["mlx_lm fuse<br/>→ merged-model"]
+        F --> G2["merge_export.py<br/>→ GGUF (Q4/Q5/Q8)"]
+        F --> G3["convert_hf_to_gguf.py<br/>→ llama.cpp GGUF"]
+    end
+
+    subgraph EVALUATION["Phase 5: Evaluation"]
+        F --> H["scripts/unified_evaluation.py<br/>base vs FT"]
+        H --> I["outputs/benchmarks/"]
+    end
+
+    subgraph INFERENCE["Phase 6: Inference"]
+        F --> J1["run_inference_v2.py<br/>MLX-LM"]
+        F --> J2["Ollama<br/>local deployment"]
+        F --> J3["llama.cpp<br/>CLI inference"]
+    end
+
+    style GENERATION fill:#e1f5fe
+    style PREPARATION fill:#fff3e0
+    style TRAINING fill:#e8f5e9
+    style EXPORT fill:#f3e5f5
+    style EVALUATION fill:#ffebee
+    style INFERENCE fill:#e0f2f1
+```
+
+**Tech Stack**: Python 3.12, MLX 0.31.1, MLX-LM 0.31.1, MLX-Tune 0.4.18, JSONL chat format.
 
 ---
 
-## Training Results
+## Features
 
-Multi-cycle training with decreasing learning rate completed successfully:
-
-### Cycle-3 (Dataset with 15 response structures, MAX_SEQ_LENGTH=4096)
-
-| Cycle | LR | Iters | Val Loss | Train Loss | Mode |
-|-------|-----|-------|----------|------------|------|
-| cycle-1 | 3e-5 | 200 | 0.449 | 0.391 | From scratch (new dataset) |
-| cycle-2 | 1e-5 | 50 | 0.350 | 0.280 | Resume cycle-1 |
-| cycle-3 | 5e-6 | 50 | **0.831** | **1.033** | Resume cycle-2 |
-
-> **Note**: Cycle-3 ran with new dataset (15 structures, 0 duplicates, SDK validated).
-> Higher val loss is expected — more diverse and challenging dataset.
-
-### Previous Cycle-3 (Dataset with 7 cycling structures)
-
-| Cycle | LR | Iters | Val Loss | Train Loss | Mode |
-|-------|-----|-------|----------|------------|------|
-| cycle-1-v3 | 3e-5 | 1,864 | 0.074 | 0.073 | From scratch |
-| cycle-2-v3 | 1e-5 | 932 | 0.057 | 0.056 | Resume cycle-1 |
-| cycle-3-v3 | 5e-6 | 466 | 0.053 | 0.039 | Resume cycle-2 |
-
-**Best adapter**: `outputs/cycle-3/adapters.safetensors` (new dataset, 15 structures)
-**Merged model**: `outputs/merged-model/` (~1.8GB)
-**FT Evaluation**: **4.09/5** (994/994 examples)
-
-### Monitoring
-
-During training, metrics are automatically captured:
-
-**Logs and metrics:**
-- [`outputs/logs/cycle-N/metrics.csv`](outputs/logs/) — raw metrics (step, train_loss, val_loss)
-- [`outputs/logs/cycle-N/training.log`](outputs/logs/) — full log
-
-**Direct links:**
-- [outputs/benchmarks/](https://github.com/otavio-lemos/olia-2-oci/tree/main/outputs/benchmarks/)
-- [outputs/logs/](https://github.com/otavio-lemos/olia-2-oci/tree/main/outputs/logs/)
-
-> After training and evaluation completion, the README is updated with final results.
+- **LoRA Fine-tuning**: Low-rank adaptation with 4-bit quantized base model
+- **Apple Silicon Optimized**: Runs natively on M1/M2/M3/M4/M5 Macs
+- **Comprehensive Evaluation**: Automated scoring with semantic similarity
+- **Multiple Export Formats**: Merge to base model, GGUF (Q4/Q5/Q8), or llama.cpp GGUF
+- **Local Inference**: Deploy with Ollama or llama.cpp for offline inference
+- **Richer Metadata**: Intent, persona, constraint, and lifecycle stage for RAG
 
 ---
 
 ## Dataset
 
-The dataset contains 9,940 unique examples generated with structural diversity and rigorous validation.
-
 | Metric | Value |
 |--------|-------|
-| **Total Examples** | 9,940 |
-| **Categories** | 72 OCI topics |
-| **Examples per Category** | 140 |
-| **Response Structures** | 15 (cost_analysis, security_audit, performance_tuning, disaster_recovery, monitoring_alerting, integration, migration, + 8 existing) |
-| **Category Mapping** | 5-7 relevant structures per category |
-| **SDK Validation** | Resource-specific model fields (9 SDK models) |
-| **Duplicates** | 0 (exact + near) |
-| **Fake CLI Commands** | 0 |
-| **Fake SDK Classes** | 0 |
-| **Fake TF Resources** | 0 |
+| **Total Generated** | 21,750 examples (87 categories × 250) |
+| **After Clean/Dedup** | 19,294 examples |
+| **Train** | 14,470 examples (75%) |
+| **Valid** | 2,894 examples (15%) |
+| **Eval** | 1,930 examples (10%) |
+| **Categories** | 87 OCI topics |
+| **Metadata** | intent, persona, constraint, lifecycle_stage |
 
-### Split Distribution
+### Split
 
-| Split | Examples | Percentage |
-|-------|----------|------------|
-| Train | 7,455 | 75.0% |
-| Valid | 1,491 | 15.0% |
-| Eval | 994 | 10.0% |
-| **Total** | **9,940** | **100%** |
+| Split | Examples | % |
+|-------|----------|---|
+| Train | 14,470 | 75% |
+| Valid | 2,894 | 15% |
+| Eval | 1,930 | 10% |
 
-### Difficulty Distribution (Train)
+### Categories
 
-| Difficulty | Count | Percentage |
-|------------|-------|------------|
-| Beginner | 2,182 | 29.3% |
-| Intermediate | 3,783 | 50.7% |
-| Advanced | 1,490 | 20.0% |
-
-### Categories by Group
-
-| Group | Topics | Examples |
-|-------|--------|----------|
-| OCI Core (compute, storage, networking, lb, database, container, serverless) | 20 | 2,800 |
-| Security (iam-basics, policies, vault, encryption, cloud-guard, waf) | 9 | 1,260 |
-| Migration (AWS/Azure/GCP/On-prem → OCI) | 14 | 1,960 |
-| Terraform (provider, compute, storage, networking, lb, database, container, serverless, security, observability, devops, state) | 12 | 1,680 |
-| Observability | 4 | 560 |
-| Troubleshooting | 8 | 1,120 |
-| DevOps | 4 | 560 |
-
-### Data Format
-
-Each example follows the JSON chat format:
-
-```json
-{
-  "messages": [
-    {"role": "system", "content": "You are an OCI specialist..."},
-    {"role": "user", "content": "How do I configure..."},
-    {"role": "assistant", "content": "## Solution\n\n### Steps..."}
-  ],
-  "metadata": {"category": "compute/instances", "difficulty": "intermediate", "source": "generated"}
-}
-```
+- **OCI Core** (compute, storage, networking, lb, database, container, serverless) - 20 topics
+- **Security** (iam, policies, vault, encryption, cloud-guard, waf, zero-trust, posture-management) - 10 topics
+- **Migration** (AWS/Azure/GCP/On-prem → OCI) - 14 topics
+- **Terraform** (provider, compute, storage, networking, etc) - 12 topics
+- **Observability** (logging, monitoring, stack-monitoring, apm) - 4 topics
+- **Troubleshooting** (connectivity, performance, authentication, database, compute, storage, oke, functions) - 8 topics
+- **DevOps** (ci-cd, resource-manager, artifacts, secrets) - 4 topics
+- **Governance** (landing-zone, compartments, tagging, budgets-cost, policies-guardrails, compliance, audit-readiness, resource-discovery) - 8 topics
+- **FinOps** (cost-optimization, showback-chargeback, rightsizing, storage-tiering) - 4 topics
+- **Platform** (backup-governance, sre-operations) - 2 topics
 
 ---
 
-## Quality Rules
+## Getting Started
 
-We enforce strict quality rules to ensure dataset accuracy:
+### Prerequisites
 
-- **NEVER** copy OCI documentation verbatim
-- **NEVER** invent non-existent Oracle services
-- **NEVER** use prices or limits without marking as mutable
-- **NEVER** create vague examples like "use best practices"
-- **NEVER** generate architectural responses without steps, risks, or justifications
-- **ALWAYS** validate JSONL before export
-- **ALWAYS** use verified CLI, SDK, and Terraform commands
-
----
-
-## Prerequisites
-
-- **Apple Silicon Mac** (M1/M2/M3/M4) for MLX training
-- **Python 3.12** (recommended via venv)
-
-### Setup Virtual Environment
+- Apple Silicon Mac (M1/M2/M3/M4/M5)
+- Python 3.12
 
 ```bash
 python3.12 -m venv venv
@@ -163,215 +127,349 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
+### Quick Start
+
+```bash
+# 1. Generate dataset
+python scripts/generate_diverse_v2.py
+
+# 2. Validate, clean, deduplicate and build splits
+bash scripts/prepare_data.sh
+
+# 3. Train (Cycle 1)
+bash training/run_all_cycles.sh --fresh
+
+# 4. Export to GGUF
+python scripts/merge_export.py --cycle cycle-1 --quant q4 --name oci-specialist
+```
+
 ---
 
-## Quick Start
-
-### Complete Pipeline
+## Training
 
 ```bash
-# 0. Activate virtual environment
-source venv/bin/activate
-
-# ========== 1. DATA PREPARATION ==========
-
-# 1.1 Concatenate all curated JSONL files
-cat data/curated/*.jsonl > data/all_curated.jsonl
-
-# 1.2 Validate dataset
-python scripts/validate_jsonl.py data/all_curated.jsonl
-
-# 1.3 Deduplicate
-python scripts/dedupe_dataset.py data/all_curated.jsonl --remove
-
-# 1.4 Create splits (train/valid/eval)
-python scripts/build_dataset_fixed.py --input data/all_curated.jsonl
-
-# Or use the complete script that does all of the above:
-# bash scripts/prepare_data.sh
-
-# ========== 2. TRAINING ==========
-
-# 2.1 Multi-cycle training (recommended)
-bash training/run_all_cycles.sh
-
-# ========== 3. POST-TRAINING ==========
-
-# 3.1 Export/Merge adapter (uses venv automatically)
-# Check which cycle has lowest val loss in outputs/logs/cycle-*/metrics.csv
-# cycle-3-v3 is the best from current training (val loss: 0.053)
-# Note: cycle-3-v3 was trained via resume from cycle-2
-ADAPTER_DIR=outputs/cycle-2 bash training/export_adapter.sh
-
-# 3.2 Test inference
-bash training/run_inference.sh
-
-# 3.3 Evaluate (full — 9,940 examples, recommended)
-python scripts/evaluate_model.py --cycle cycle-3 outputs/merged-model data/all_curated_clean.jsonl outputs/benchmarks
-
-# 3.3 Evaluate (quick — 994 examples from eval split)
-# python scripts/evaluate_model.py --cycle cycle-3 outputs/merged-model data/eval.jsonl outputs/benchmarks
+# Train with single cycle (recommended)
+bash training/run_all_cycles.sh --fresh
 ```
 
-### Multi-Cycle Training
+**Configuration**: See `config/cycle-1.env`
 
-The pipeline supports multi-cycle training with decreasing learning rate:
+| Parameter | Value |
+|-----------|-------|
+| MODEL | mlx-community/Meta-Llama-3.1-8B-Instruct-4bit |
+| LEARNING_RATE | 2e-4 |
+| LORA_RANK | 8 |
+| LORA_ALPHA | 16 |
+| LORA_DROPOUT | 0.05 |
+| NUM_LAYERS | 16 |
+| GRADIENT_CHECKPOINTING | true |
+| GRADIENT_ACCUMULATION | 4 |
+| WARMUP_STEPS | 300 |
+| ITERS | 3618 |
+| MAX_SEQ_LENGTH | 2048 |
+| WEIGHT_DECAY | 0.01 |
+| LR_SCHEDULER | cosine |
 
-| Variable | cycle-1 | cycle-2 | cycle-3 |
-|----------|---------|---------|---------|
-| `LEARNING_RATE` | 2e-5 | 5e-6 | 1e-6 |
-| `LORA_RANK` | 16 | 16 | 8 |
-| `LORA_ALPHA` | 32 | 32 | 16 |
-| `ITERS` (v3) | 1,864 | 932 | 466 |
-| `RESUME` | scratch | cycle-1 | cycle-2 |
+---
+
+## Evaluation
 
 ```bash
-# Run all cycles sequentially
-bash training/run_all_cycles.sh
+# Small mode (10 samples de categorias diferentes, ~5 min)
+python scripts/unified_evaluation.py --cycle cycle-1 --mode small
+
+# Medium evaluation (200 samples stratified, ~30-40 min) - Recommended
+python scripts/unified_evaluation.py --cycle cycle-1 --mode medium --fresh
+
+# Full evaluation (1930 samples, ~4-6 hours)
+python scripts/unified_evaluation.py --cycle cycle-1 --mode full --fresh
 ```
 
-### Cycle Configuration (`config/cycle-1.env`)
+Outputs include:
+- JSON results with detailed scoring
+- Markdown comparison report
+- Radar charts (metrics comparison)
+- Category bar charts
 
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `MODEL` | MLX base model (HuggingFace) | `mlx-community/Meta-Llama-3.1-8B-Instruct-4bit` |
-| `TRAIN_DATA` | Training data file | `data/train.jsonl` |
-| `VALID_DATA` | Validation data file | `data/valid.jsonl` |
-| `OUTPUT_DIR` | Folder to save LoRA adapters | `outputs/cycle-1` |
-| `EPOCHS` | Number of training epochs | `2` |
-| `BATCH_SIZE` | Batch size | `1` |
-| `LEARNING_RATE` | Learning rate | `5e-5` |
-| `LORA_RANK` | LoRA matrix rank | `8` |
-| `LORA_ALPHA` | LoRA scale | `16` |
-| `LORA_DROPOUT` | Dropout rate for regularization | `0.05` |
-| `GRADIENT_ACCUMULATION` | Gradient steps before update | `4` |
+---
 
-> 💡 **Tip**: To create a new training cycle, copy `config/cycle-1.env` to `config/cycle-N.env` and adjust values.
+## Inference
 
-### Pipeline Flow
+> All methods use the fine-tuned model and expose an OpenAI-compatible API or built-in UI on `http://localhost:8080`.
 
-```mermaid
-flowchart LR
-    subgraph DataPrep["1. Data Preparation"]
-        DP1[Generate Prompts] --> DP2{Execute Prompts}
-        DP2 -->|Generate| DP3[JSONL Data]
-        DP3 --> DP4[Save JSONL]
-        DP4 --> DP5[Validate]
-        DP5 --> DP6[Deduplicate]
-        DP6 --> DP7[Create Splits]
-        DP7 --> Train[train.jsonl]
-        DP7 --> Valid[valid.jsonl]
-        DP7 --> Eval[eval.jsonl]
-    end
-    
-    subgraph Training["2. Multi-Cycle Training"]
-        Train --> T1[Select Base Model]
-        Valid --> T1
-        T1 --> T2[Cycle 1: LR=5e-5]
-        T2 --> T3[Cycle 2: LR=1e-5]
-        T3 --> T4[Cycle 3: LR=5e-6]
-    end
-    
-    subgraph PostProcess["3. Post-Training"]
-        T4 --> P1[Export/Merge Adapter]
-        P1 --> P2[Test Inference]
-        P2 --> P3[Evaluate with eval.jsonl]
-    end
-    
-    P1 --> outputs/merged-model
-    P3 --> outputs/benchmarks
-    
-    style DP2 fill:#e1f5fe,stroke:#01579b
-    style DP3 fill:#fff3e0,stroke:#e65100
-    style DP4 fill:#fff3e0,stroke:#e65100
-    style Train fill:#e8f5e9,stroke:#2e7d32
-    style Valid fill:#e8f5e9,stroke:#2e7d32
-    style Eval fill:#e8f5e9,stroke:#2e7d32
-    style T4 fill:#c8e6c9,stroke:#1b5e20
+### MLX-LM — API Server (Apple Silicon)
+
+```bash
+# Start server with fine-tuned LoRA adapters
+mlx_lm.server \
+  --model mlx-community/Meta-Llama-3.1-8B-Instruct-4bit \
+  --adapter outputs/cycle-1/adapters \
+  --port 8080
 ```
+
+Connect via **Open WebUI** (GUI):
+
+```bash
+docker run -d -p 3000:8080 \
+  -e OPENAI_API_BASE_URL=http://host.docker.internal:8080/v1 \
+  -e OPENAI_API_KEY=ignore \
+  ghcr.io/open-webui/open-webui:main
+# Open: http://localhost:3000
+```
+
+Or via **CLI**:
+
+```bash
+curl http://localhost:8080/v1/chat/completions \
+  -H "Content-Type: application/json" \
+  -d '{"model":"oci-specialist","messages":[{"role":"user","content":"Liste 3 serviços do OCI"}]}'
+```
+
+### Ollama — Local Server + WebUI
+
+```bash
+# 1. Create and import model (one-time)
+cat > ./outputs/cycle-1/gguf/Modelfile << 'EOF'
+FROM ./oci-specialist-Q4_K_M.gguf
+PARAMETER temperature 0.1
+PARAMETER top_p 0.9
+PARAMETER top_k 40
+SYSTEM Você é um especialista em OCI (Oracle Cloud Infrastructure).
+EOF
+
+ollama create oci-specialist -f ./outputs/cycle-1/gguf/Modelfile
+
+# 2. Connect Open WebUI
+docker run -d -p 3000:8080 \
+  --add-host=host.docker.internal:host-gateway \
+  -e OLLAMA_BASE_URL=http://host.docker.internal:11434 \
+  ghcr.io/open-webui/open-webui:main
+# Open: http://localhost:3000
+
+# Or interactive CLI
+ollama run oci-specialist
+```
+
+### llama.cpp — HTTP Server + Built-in WebUI
+
+```bash
+# Build llama.cpp
+git clone https://github.com/ggerganov/llama.cpp.git
+cd llama.cpp
+make -j
+
+# Start server with fine-tuned GGUF
+./llama-server \
+  -m ../outputs/cycle-1/gguf/oci-specialist-Q4_K_M.gguf \
+  --host 0.0.0.0 --port 8080 --ctx-size 4096
+
+# WebUI:  http://localhost:8080
+# API:    http://localhost:8080/v1
+```
+
+> [!NOTE]
+> The model is ~4.7GB when exported to GGUF Q4 format.
 
 ---
 
 ## Project Structure
 
 ```
-olia-2-oci/
-├── AGENTS.md                      # Agent guidelines
-├── README.md                      # Portuguese version
-├── README.en-US.md                # English version (this file)
-├── CONTRIBUTING.md                # Contributing guide
-├── LICENSE                        # MIT License
-├── requirements.txt               # Pinned dependencies
-├── docs/                          # Project documentation
-│   ├── taxonomy.md               # Dataset topics (71 categories)
-│   ├── quality-rules.md          # Quality rules
-│   ├── eval-rubric.md            # Evaluation criteria
-│   ├── scope.md                  # Scope v1 vs v2
-│   └── pdca-cycle1-diagnostico.md # PDCA diagnostic
-├── config/                        # Training configurations
-│   ├── cycle-1.env               # Cycle 1: LR=5e-5
-│   ├── cycle-2.env               # Cycle 2: LR=1e-5 (resume)
-│   └── cycle-3.env               # Cycle 3: LR=5e-6 (resume)
-├── data/                          # Dataset
-│   ├── curated/                  # 71 topic files (140 examples each)
-│   ├── all_curated.jsonl         # Combined dataset (9,940)
-│   ├── all_curated_clean.jsonl   # Validated + deduplicated (9,940)
-│   ├── train.jsonl               # Training split (7,455)
-│   ├── valid.jsonl               # Validation split (1,491)
-│   ├── eval.jsonl                # Evaluation split (994)
-│   └── TEMPLATE.jsonl            # Reference format
-├── scripts/                       # Pipeline scripts
-│   ├── generate_prompt.py        # Generate prompts from taxonomy
-│   ├── generate_diverse_v2.py    # Dataset generator (9,940 examples)
-│   ├── validate_jsonl.py         # Validate JSONL format
-│   ├── dedupe_dataset.py         # Remove duplicates
-│   ├── build_dataset_fixed.py    # Create train/valid/eval splits
-│   ├── prepare_data.sh           # Pipeline orchestrator
-│   ├── evaluate_model.py         # Benchmarks with checkpoint/resume
-│   └── push_progress.sh          # Push progress to GitHub
-├── training/                      # MLX training scripts
-│   ├── train_mlx_v2.sh           # Training with logging and resume
-│   ├── run_all_cycles.sh         # Multi-cycle orchestrator
-│   ├── export_adapter.sh         # Merge adapter with base model
-│   ├── run_inference.sh          # Test inference
-│   └── log_metrics.py            # Capture metrics to CSV
-└── outputs/                       # Output artifacts
-    ├── cycle-1/                  # Adapter cycle 1
-    ├── cycle-2/                  # Adapter cycle 2
-    ├── cycle-3/                  # Adapter cycle 3 (BEST)
-    ├── merged-model/             # Final merged model (~1.8GB)
-    ├── logs/                     # Logs and metrics CSV per cycle
-    └── benchmarks/               # Evaluation reports + progress
+├── config/                  # Configuration files
+│   ├── cycle-1.env         # Training config
+│   ├── inference_prompts.yaml
+│   └── gguf.env
+├── data/                    # Datasets
+│   ├── curated/            # 87 topic files
+│   ├── train.jsonl         # 14,470 examples
+│   ├── valid.jsonl         # 2,894 examples
+│   └── eval.jsonl          # 1,930 examples
+├── docs/                   # Documentation
+│   ├── taxonomy.md
+│   ├── quality-rules.md
+│   └── eval-rubric.md
+├── scripts/                # Pipeline scripts
+│   ├── generate_diverse_v2.py
+│   ├── validate_jsonl.py
+│   ├── clean_dataset.py
+│   ├── dedupe_embedding.py
+│   ├── build_dataset_fixed.py
+│   ├── merge_export.py
+│   ├── convert_hf_to_gguf.py
+│   ├── unified_evaluation.py
+│   └── run_inference_v2.py
+├── training/               # Training scripts
+│   ├── train_mlx_tune.py
+│   └── run_all_cycles.sh
+├── outputs/                # Generated outputs
+│   └── cycle-1/
+│       ├── adapters/      # LoRA adapters
+│       └── gguf/          # Exported models
+└── venv/                   # Python virtual environment
 ```
 
 ---
 
-## Pipeline
+## Roadmap
 
-1. **Documentation** → Scope, taxonomy, quality rules
-2. **Data Generation** → MASTER_PROMPT → curated/ (9,940 examples)
-3. **Validation** → JSONL validator, deduplication
-4. **Dataset Building** → train (~75%), valid (~15%), eval (~10%)
-5. **Training** → MLX LoRA fine-tuning on Apple Silicon (multi-cycle, LR decay)
-6. **Evaluation** → Benchmark comparing base vs fine-tuned
+Based on the results of the initial training cycle (`cycle-1`), the following improvements are planned:
 
----
+1. **Implement RAG (Retrieval-Augmented Generation)**: The current fine-tuned model has improved significantly in structure and formatting, but it does not have real-time access to OCI documentation. To address issues where facts (like pricing, specific CLI flags, or rapidly changing parameters) are required, we plan to implement a RAG pipeline. This will combine the model's new formatting capabilities with accurate, up-to-date information retrieved from official Oracle documentation, which is more effective than attempting to encode all factual knowledge purely within the model's weights.
 
-## Outputs
-
-After training:
-
-- `outputs/cycle-{1,2,3}/` - LoRA adapters per cycle
-- `outputs/merged-model/` - Merged model (base + adapter)
-- `outputs/logs/cycle-{1,2,3}/` - Logs and metrics CSV per cycle
-- `outputs/benchmarks/` - Evaluation reports
-- `backup_pre_expansao/` - Dataset backup before expansions
+2. **Cycle 2 Fine-Tuning (`cycle-2`)**:
+    - **Dataset Auditing**: Perform a thorough review and cleanup of categories that showed regression during `cycle-1`, specifically focusing on Terraform and Governance. The generated examples may contain outdated syntax or confusing patterns that hindered the model.
+    - **Refine Dataset Tone for Clarity**: The `clarity` metric decreased during `cycle-1`. We will revise the dataset to ensure the tone is more conversational ("senior engineer explaining to a colleague") rather than overly bureaucratic or strictly matching official manuals, which can lead to dense or robotic outputs.
+    - **Increase Depth**: Replace generic questions with more complex, architectural scenario-based questions to improve the model's `depth` and `technical_correctness` metrics.
+    - **Hyperparameter Tuning**: Experiment with adjusting LoRA hyperparameters (e.g., increasing `LORA_RANK` to 16 or 32, and `LORA_ALPHA` to 32 or 64) to allow the model to absorb more domain-specific knowledge rather than just structural formatting.
 
 ---
 
-## Future Improvements
+## Resources
 
-1. **RAG Layer**: For factual accuracy in CLI commands, SDK classes, and Terraform resources, add a RAG layer with real-time documentation.
-2. **Response Diversity**: Expand from 8 to 20+ response structures.
-3. **Human Evaluation**: Human review of generated responses for nuanced quality assessment.
-4. **Continuous Training**: Pipeline supports adding new examples and retraining.
+- [MLX Documentation](https://mlx.ai)
+- [MLX-LM GitHub](https://github.com/ml-explore/mlx-lm)
+- [llama.cpp](https://github.com/ggerganov/llama.cpp)
+- [Oracle Cloud Infrastructure Docs](https://docs.oracle.com/en-us/iaas/Content/home.htm)
+- [HuggingFace Model](https://huggingface.co/mlx-community/Meta-Llama-3.1-8B-Instruct-4bit)
+
+---
+
+## License
+
+This project is licensed under the MIT License.
+
+---
+
+## Evaluation Summary
+
+After completing the training (`cycle-1`), the fine-tuned model was evaluated against the base model. Here is the summary of the evaluation (based on 200 samples):
+
+| Metric | Base Model | Fine-Tuned | Delta |
+|--------|-------------|------------|-------|
+| technical_correctness | 3.40 | 3.40 | +0.00 |
+| depth | 2.60 | 2.60 | +0.00 |
+| structure | 3.93 | 4.23 | +0.30 |
+| hallucination | 3.25 | 3.87 | +0.62 |
+| clarity | 3.49 | 3.19 | -0.30 |
+| overall | 3.33 | 3.46 | +0.12 |
+
+### Performance Comparison
+
+![Comparison Chart](outputs/benchmarks/comparison_chart_20260411_063001.png)
+
+### Category Breakdown
+
+![Category Chart](outputs/benchmarks/category_chart_20260411_063001.png)
+
+### Top Improvements & Regressions
+
+**Top 5 Gains:**
+1. `troubleshooting/functions` (+0.65)
+2. `networking/vcn` (+0.62)
+3. `storage/file` (+0.57)
+4. `troubleshooting/compute` (+0.57)
+5. `migration/azure-storage` (+0.55)
+
+**Areas for Improvement (Drops):**
+1. `troubleshooting/performance` (-0.31)
+2. `terraform/networking` (-0.27)
+3. `governance/tagging` (-0.22)
+4. `terraform/compute` (-0.21)
+5. `terraform/serverless` (-0.19)
+
+### Detailed Category Results
+
+<details>
+<summary>Click to expand all 87 categories</summary>
+
+| # | Category | Base | FT | Delta |
+|---|---------|------|----|-------|
+| 1 | compute/custom-images | 3.38 | 3.66 | +0.27 |
+| 2 | compute/instances | 3.44 | 3.58 | +0.14 |
+| 3 | compute/scaling | 3.55 | 3.56 | +0.01 |
+| 4 | container/instances | 3.42 | 3.25 | -0.17 |
+| 5 | container/oke | 3.24 | 3.27 | +0.03 |
+| 6 | database/autonomous | 3.23 | 3.46 | +0.24 |
+| 7 | database/autonomous-json | 3.38 | 3.60 | +0.22 |
+| 8 | database/exadata | 3.33 | 3.56 | +0.23 |
+| 9 | database/mysql | 3.24 | 3.48 | +0.24 |
+| 10 | database/nosql | 3.38 | 3.41 | +0.02 |
+| 11 | database/postgresql | 3.33 | 3.66 | +0.33 |
+| 12 | devops/artifacts | 3.38 | 3.29 | -0.09 |
+| 13 | devops/ci-cd | 3.43 | 3.86 | +0.43 |
+| 14 | devops/resource-manager | 3.54 | 3.55 | +0.01 |
+| 15 | devops/secrets | 3.41 | 3.61 | +0.20 |
+| 16 | finops/cost-optimization | 3.23 | 3.47 | +0.24 |
+| 17 | finops/rightsizing | 3.47 | 3.40 | -0.07 |
+| 18 | finops/showback-chargeback | 3.49 | 3.32 | -0.17 |
+| 19 | finops/storage-tiering | 3.26 | 3.22 | -0.04 |
+| 20 | governance/audit-readiness | 3.52 | 3.56 | +0.04 |
+| 21 | governance/budgets-cost | 3.53 | 3.38 | -0.15 |
+| 22 | governance/compartments | 3.42 | 3.27 | -0.14 |
+| 23 | governance/compliance | 3.33 | 3.25 | -0.08 |
+| 24 | governance/landing-zone | 3.30 | 3.23 | -0.07 |
+| 25 | governance/policies-guardrails | 3.34 | 3.33 | -0.02 |
+| 26 | governance/resource-discovery | 3.21 | 3.33 | +0.12 |
+| 27 | governance/tagging | 3.63 | 3.41 | -0.22 |
+| 28 | lb/load-balancer | 3.42 | 3.35 | -0.07 |
+| 29 | migration/aws-compute | 3.24 | 3.66 | +0.42 |
+| 30 | migration/aws-database | 3.17 | 3.37 | +0.19 |
+| 31 | migration/aws-storage | 3.25 | 3.76 | +0.51 |
+| 32 | migration/azure-compute | 3.38 | 3.37 | -0.00 |
+| 33 | migration/azure-database | 3.38 | 3.35 | -0.03 |
+| 34 | migration/azure-storage | 3.21 | 3.76 | +0.55 |
+| 35 | migration/data-transfer | 3.32 | 3.56 | +0.23 |
+| 36 | migration/gcp-compute | 3.20 | 3.66 | +0.46 |
+| 37 | migration/gcp-database | 3.22 | 3.45 | +0.23 |
+| 38 | migration/gcp-storage | 3.40 | 3.41 | +0.00 |
+| 39 | migration/onprem-compute | 3.36 | 3.53 | +0.17 |
+| 40 | migration/onprem-database | 3.30 | 3.42 | +0.12 |
+| 41 | migration/onprem-storage | 3.34 | 3.66 | +0.32 |
+| 42 | migration/onprem-vmware | 3.13 | 3.49 | +0.35 |
+| 43 | networking/connectivity | 3.32 | 3.68 | +0.36 |
+| 44 | networking/security | 3.38 | 3.66 | +0.28 |
+| 45 | networking/vcn | 3.24 | 3.86 | +0.62 |
+| 46 | observability/apm | 3.14 | 3.43 | +0.29 |
+| 47 | observability/logging | 3.37 | 3.50 | +0.13 |
+| 48 | observability/monitoring | 3.32 | 3.56 | +0.24 |
+| 49 | observability/stack-monitoring | 3.27 | 3.33 | +0.06 |
+| 50 | platform/backup-governance | 3.52 | 3.52 | -0.00 |
+| 51 | platform/sre-operations | 3.37 | 3.37 | +0.01 |
+| 52 | security/cloud-guard | 3.51 | 3.62 | +0.11 |
+| 53 | security/dynamic-groups | 3.35 | 3.24 | -0.11 |
+| 54 | security/encryption | 3.38 | 3.24 | -0.15 |
+| 55 | security/federation | 3.45 | 3.86 | +0.41 |
+| 56 | security/iam-basics | 3.43 | 3.31 | -0.12 |
+| 57 | security/policies | 3.36 | 3.36 | +0.00 |
+| 58 | security/posture-management | 3.40 | 3.39 | -0.00 |
+| 59 | security/vault-keys | 3.43 | 3.56 | +0.13 |
+| 60 | security/vault-secrets | 3.23 | 3.68 | +0.46 |
+| 61 | security/waf | 3.32 | 3.56 | +0.24 |
+| 62 | security/zero-trust | 3.27 | 3.56 | +0.29 |
+| 63 | serverless/api-gateway | 3.36 | 3.21 | -0.15 |
+| 64 | serverless/functions | 3.11 | 3.55 | +0.43 |
+| 65 | storage/block | 3.26 | 3.27 | +0.00 |
+| 66 | storage/file | 3.29 | 3.86 | +0.57 |
+| 67 | storage/object | 3.26 | 3.22 | -0.05 |
+| 68 | terraform/compute | 3.41 | 3.20 | -0.21 |
+| 69 | terraform/container | 3.10 | 3.01 | -0.08 |
+| 70 | terraform/database | 3.43 | 3.38 | -0.05 |
+| 71 | terraform/devops | 3.44 | 3.33 | -0.11 |
+| 72 | terraform/load-balancer | 3.21 | 3.33 | +0.12 |
+| 73 | terraform/networking | 3.64 | 3.37 | -0.27 |
+| 74 | terraform/observability | 3.41 | 3.57 | +0.16 |
+| 75 | terraform/provider | 3.40 | 3.31 | -0.09 |
+| 76 | terraform/security | 3.49 | 3.34 | -0.15 |
+| 77 | terraform/serverless | 3.23 | 3.04 | -0.19 |
+| 78 | terraform/state | 3.37 | 3.20 | -0.17 |
+| 79 | terraform/storage | 3.37 | 3.38 | +0.00 |
+| 80 | troubleshooting/authentication | 3.36 | 3.36 | +0.00 |
+| 81 | troubleshooting/compute | 3.13 | 3.70 | +0.57 |
+| 82 | troubleshooting/connectivity | 3.26 | 3.66 | +0.40 |
+| 83 | troubleshooting/database | 3.32 | 3.59 | +0.27 |
+| 84 | troubleshooting/functions | 3.01 | 3.66 | +0.65 |
+| 85 | troubleshooting/oke | 3.30 | 3.56 | +0.26 |
+| 86 | troubleshooting/performance | 3.51 | 3.21 | -0.31 |
+| 87 | troubleshooting/storage | 3.39 | 3.27 | -0.13 |
+
+</details>
