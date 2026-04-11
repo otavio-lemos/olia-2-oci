@@ -728,15 +728,31 @@ class UnifiedEvaluator:
     def generate_batch(
         self, prompts: List[tuple], max_tokens: int = 512
     ) -> List[tuple]:
-        """Generate responses for multiple prompts in small batches."""
+        """Generate responses."""
         if not self._loaded:
             self.load_model()
-
-        from mlx_lm import batch_generate
 
         results = []
         total = len(prompts)
         batch_size = self.batch_size
+
+        if batch_size <= 1:
+            print(f"  Processing {total} prompts sequentially (Optimized for early-stopping)...")
+            start_all = time.time()
+            for i, (user_prompt, system_prompt) in enumerate(prompts):
+                resp, t = self.generate_response(user_prompt, system_prompt, max_tokens)
+                results.append((resp, t))
+                
+                # Exibir progresso a cada 10 amostras
+                if (i + 1) % 10 == 0:
+                    avg_t = sum(r[1] for r in results) / len(results)
+                    print(f"    [{i+1:3d}/{total}] Avg time per prompt: {avg_t:.2f}s")
+            
+            total_time = time.time() - start_all
+            print(f"\n  Total: {total} prompts in {total_time:.1f}s ({total / total_time:.1f} prompts/sec)")
+            return results
+
+        from mlx_lm import batch_generate
 
         print(f"  Processing {total} prompts in batches of {batch_size}...")
 
@@ -1004,8 +1020,8 @@ def main():
     parser.add_argument(
         "--batch-size",
         type=int,
-        default=16,
-        help="Batch size for parallel generation. Use 8 or 16 for M-series Macs to drastically improve speed.",
+        default=1,
+        help="Batch size for parallel generation. Use 1 (default) for variable length outputs (much faster), or 8/16 for fixed lengths.",
     )
     parser.add_argument(
         "--fresh", action="store_true", help="Clear output directory before running"
