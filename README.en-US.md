@@ -10,10 +10,11 @@ Large Language Model (LLM) fine-tuned for Oracle Cloud Infrastructure (OCI) usin
 [![Model](https://img.shields.io/badge/Base%20Model-Qwen2.5--Coder--7B--Instruct--4bit-purple?style=flat-square)](https://huggingface.co/mlx-community/Qwen2.5-Coder-7B-Instruct-4bit)
 [![Dataset](https://img.shields.io/badge/Dataset-21327_examples-green?style=flat-square)](docs/taxonomy.md)
 [![LangGraph](https://img.shields.io/badge/Orchestration-LangGraph-black?style=flat-square&logo=langchain)](https://python.langchain.com/docs/langgraph)
-[![LangChain](https://img.shields.io/badge/Framework-LangChain-blue?style=flat-square&logo=langchain)](https://langchain.com)
 [![Chainlit](https://img.shields.io/badge/UI-Chainlit-orange?style=flat-square)](https://chainlit.io)
 [![FastAPI](https://img.shields.io/badge/API-FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
-[![FAISS](https://img.shields.io/badge/RAG-FAISS-76b900?style=flat-square)](https://github.com/facebookresearch/faiss)
+[![FAISS](https://img.shields.io/badge/Dense-FAISS-76b900?style=flat-square)](https://github.com/facebookresearch/faiss)
+[![BM25](https://img.shields.io/badge/Sparse-BM25-007acc?style=flat-square)](https://github.com/dorianbrown/rank_bm25)
+[![Rerank](https://img.shields.io/badge/Rerank-Cross--Encoder-red?style=flat-square)](https://www.sbert.net/docs/pretrained_models.html#cross-encoders)
 [![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97-Hugging%20Face-yellow?style=flat-square)](https://huggingface.co)
 
 ---
@@ -24,10 +25,12 @@ Large Language Model (LLM) fine-tuned for Oracle Cloud Infrastructure (OCI) usin
 - **Base LLM**: [Qwen 2.5 Coder 7B Instruct](https://huggingface.co/Qwen/Qwen2.5-Coder-7B-Instruct) (4-bit).
 - **Agent Orchestration**: [LangGraph](https://python.langchain.com/docs/langgraph) & [LangChain](https://langchain.com).
 - **OCI Copilot Interface**: [Chainlit](https://chainlit.io) (Interactive UI with HITL).
+- **Hybrid RAG**: **FAISS** (Dense Search) + **Rank-BM25** (Sparse Search).
+- **Re-ranking**: **Cross-Encoder** semantic validation for high precision.
+- **Search Fusion**: **Reciprocal Rank Fusion (RRF)**.
 - **Training and Inference**: [MLX Framework](https://mlx.ai) & [MLX-Tune](https://github.com/Aaronipher/mlx-tune).
-- **RAG (Hybrid Search)**: [FAISS](https://github.com/facebookresearch/faiss) (Dense) + [Rank-BM25](https://github.com/dorianbrown/rank_bm25) (Sparse).
 - **Backend Service**: [FastAPI](https://fastapi.tiangolo.com) (RAG API).
-- **Embeddings & Rerank**: [Hugging Face](https://huggingface.co) & [Sentence-Transformers](https://sbert.net).
+- **Embeddings**: [Sentence-Transformers](https://sbert.net) (Hugging Face).
 - **Hardware**: Optimized for Apple Silicon (M3 Pro 18GB).
 - **Development**: Python 3.12.
 
@@ -75,6 +78,7 @@ flowchart TD
 - **LoRA Fine-tuning**: Low-rank adaptation with **Qwen 2.5 Coder 7B Instruct** (4-bit) base model.
 - **M3 Pro Optimized**: Hyper-optimized configurations for 18GB RAM, using **native BF16** and zero disk Swap.
 - **Advanced Hybrid RAG**: Semantic (FAISS) + Lexical (BM25) search with local persistence and **Offline Ingestion**.
+- **Semantic Re-ranking**: Use of **Cross-Encoders** to validate the relevance of retrieved documents.
 - **Multi-Agent System**: Orchestration via **LangGraph** (Router, Discovery, Architecture, Execution).
 - **OCI Copilot Interface**: UI built with **Chainlit**, supporting file attachments, token streaming, and **Human-in-the-loop** for safe CLI commands.
 - **Merge & Export**: Pipeline to fuse LoRA adapters into the base model and export to GGUF format (local quantization).
@@ -249,8 +253,8 @@ This project was developed by integrating the following cutting-edge technologie
 - **Agent Orchestration**: [LangGraph](https://python.langchain.com/docs/langgraph) and [LangChain](https://langchain.com).
 - **User Interface**: [Chainlit](https://chainlit.io).
 - **Backend Services**: [FastAPI](https://fastapi.tiangolo.com).
-- **Search Engines (RAG)**: [FAISS](https://github.com/facebookresearch/faiss) (Dense) and [Rank-BM25](https://github.com/dorianbrown/rank_bm25) (Sparse).
-- **Embeddings and Re-ranking**: [Hugging Face](https://huggingface.co) and [Sentence-Transformers](https://sbert.net).
+- **Search Engines (RAG Hybrid)**: [FAISS](https://github.com/facebookresearch/faiss) (Dense), [Rank-BM25](https://github.com/dorianbrown/rank_bm25) (Sparse) and [Sentence-Transformers](https://sbert.net) (Cross-Encoder Re-ranking).
+- **Embeddings**: [Hugging Face](https://huggingface.co) and [Sentence-Transformers](https://sbert.net).
 - **Development**: [Python 3.12](https://www.python.org).
 - **Data**: Synthesized and validated specifically for Oracle Cloud Infrastructure (OCI) scenarios.
 

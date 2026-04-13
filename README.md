@@ -10,10 +10,11 @@ Large Language Model (LLM) fine-tuned para Oracle Cloud Infrastructure (OCI) usa
 [![Model](https://img.shields.io/badge/Base%20Model-Qwen2.5--Coder--7B--Instruct--4bit-purple?style=flat-square)](https://huggingface.co/mlx-community/Qwen2.5-Coder-7B-Instruct-4bit)
 [![Dataset](https://img.shields.io/badge/Dataset-21327_examples-green?style=flat-square)](docs/taxonomy.md)
 [![LangGraph](https://img.shields.io/badge/Orquestração-LangGraph-black?style=flat-square&logo=langchain)](https://python.langchain.com/docs/langgraph)
-[![LangChain](https://img.shields.io/badge/Framework-LangChain-blue?style=flat-square&logo=langchain)](https://langchain.com)
 [![Chainlit](https://img.shields.io/badge/UI-Chainlit-orange?style=flat-square)](https://chainlit.io)
 [![FastAPI](https://img.shields.io/badge/API-FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
-[![FAISS](https://img.shields.io/badge/RAG-FAISS-76b900?style=flat-square)](https://github.com/facebookresearch/faiss)
+[![FAISS](https://img.shields.io/badge/Dense-FAISS-76b900?style=flat-square)](https://github.com/facebookresearch/faiss)
+[![BM25](https://img.shields.io/badge/Sparse-BM25-007acc?style=flat-square)](https://github.com/dorianbrown/rank_bm25)
+[![Rerank](https://img.shields.io/badge/Rerank-Cross--Encoder-red?style=flat-square)](https://www.sbert.net/docs/pretrained_models.html#cross-encoders)
 [![Hugging Face](https://img.shields.io/badge/%F0%9F%A4%97-Hugging%20Face-yellow?style=flat-square)](https://huggingface.co)
 
 ---
@@ -24,10 +25,12 @@ Large Language Model (LLM) fine-tuned para Oracle Cloud Infrastructure (OCI) usa
 - **LLM Base**: [Qwen 2.5 Coder 7B Instruct](https://huggingface.co/Qwen/Qwen2.5-Coder-7B-Instruct) (4-bit).
 - **Orquestração de Agentes**: [LangGraph](https://python.langchain.com/docs/langgraph) & [LangChain](https://langchain.com).
 - **Interface OCI Copilot**: [Chainlit](https://chainlit.io) (Interactive UI com HITL).
+- **RAG Híbrido**: **FAISS** (Busca Densa) + **Rank-BM25** (Busca Esparsa).
+- **Re-ranking**: **Cross-Encoder** semântico para alta precisão.
+- **Fusão de Busca**: **Reciprocal Rank Fusion (RRF)**.
 - **Treinamento e Inferência**: [MLX Framework](https://mlx.ai) & [MLX-Tune](https://github.com/Aaronipher/mlx-tune).
-- **RAG (Busca Híbrida)**: [FAISS](https://github.com/facebookresearch/faiss) (Dense) + [Rank-BM25](https://github.com/dorianbrown/rank_bm25) (Sparse).
 - **Backend Service**: [FastAPI](https://fastapi.tiangolo.com) (RAG API).
-- **Embeddings & Rerank**: [Hugging Face](https://huggingface.co) & [Sentence-Transformers](https://sbert.net).
+- **Embeddings**: [Sentence-Transformers](https://sbert.net) (Hugging Face).
 - **Hardware**: Otimizado para Apple Silicon (M3 Pro 18GB).
 - **Desenvolvimento**: Python 3.12.
 
@@ -75,6 +78,7 @@ flowchart TD
 - **LoRA Fine-tuning**: Adaptação de baixo ranque com modelo base **Qwen 2.5 Coder 7B Instruct** (4-bit).
 - **Otimizado para M3 Pro**: Configurações hiper-otimizadas para 18GB de RAM, usando **BF16 nativo** e sem Swap em disco.
 - **RAG Híbrido Avançado**: Busca semântica (FAISS) + lexical (BM25) com persistência local e **Ingestão Offline**.
+- **Re-ranking Semântico**: Uso de **Cross-Encoders** para validar a relevância dos documentos recuperados.
 - **Sistema Multi-Agentes**: Orquestração via **LangGraph** (Router, Descoberta, Arquitetura, Execução).
 - **Interface OCI Copilot**: UI construída com **Chainlit**, suportando anexos de arquivos, streaming de tokens e **Human-in-the-loop** para segurança em comandos CLI.
 - **Merge & Export**: Pipeline para fundir adaptadores LoRA ao modelo base e exportar para GGUF (quantização local).
@@ -134,7 +138,7 @@ python scripts/merge_export.py --cycle cycle-1 --quant q4 --name oci-specialist
 ### Configuração Otimizada (`config/cycle-1.env`)
 
 | Parâmetro | Valor | Descrição |
-|-----------|-------|-----------|
+|-----------|-------|-------------|
 | **MODEL** | `Qwen2.5-Coder-7B-Instruct-4bit` | Base de código superior |
 | **NUM_LAYERS** | 14 | 50% das camadas (Total: 28) |
 | **BATCH_SIZE** | 1 | Agilidade em sequências únicas |
@@ -249,8 +253,8 @@ Este projeto foi desenvolvido integrando as seguintes tecnologias de ponta:
 - **Orquestração de Agentes**: [LangGraph](https://python.langchain.com/docs/langgraph) e [LangChain](https://langchain.com).
 - **Interface do Usuário**: [Chainlit](https://chainlit.io).
 - **Serviços de Backend**: [FastAPI](https://fastapi.tiangolo.com).
-- **Motores de Busca (RAG)**: [FAISS](https://github.com/facebookresearch/faiss) (Dense) e [Rank-BM25](https://github.com/dorianbrown/rank_bm25) (Sparse).
-- **Embeddings e Re-ranking**: [Hugging Face](https://huggingface.co) e [Sentence-Transformers](https://sbert.net).
+- **Motores de Busca (RAG Híbrido)**: [FAISS](https://github.com/facebookresearch/faiss) (Dense), [Rank-BM25](https://github.com/dorianbrown/rank_bm25) (Sparse) e [Sentence-Transformers](https://sbert.net) (Cross-Encoder Re-ranking).
+- **Embeddings**: [Hugging Face](https://huggingface.co) e [Sentence-Transformers](https://sbert.net).
 - **Desenvolvimento**: [Python 3.12](https://www.python.org).
 - **Dados**: Sintetizados e validados especificamente para cenários de Oracle Cloud Infrastructure (OCI).
 
