@@ -12,6 +12,14 @@ Large Language Model (LLM) fine-tuned para Oracle Cloud Infrastructure (OCI) usa
 
 > **Idioma**: Dados e prompts em Português do Brasil (PT-BR).
 
+### Core Stack
+- **LLM**: Qwen 2.5 Coder 7B Instruct (Fine-tuned via MLX LoRA).
+- **Orquestração**: LangGraph (Multi-Agent System).
+- **Interface**: Chainlit (Interactive UI com HITL).
+- **RAG**: Busca Híbrida (FAISS + BM25) com persistência local.
+- **Backend**: FastAPI (RAG Service).
+- **Hardware**: Otimizado para Apple Silicon (M3 Pro 18GB).
+
 ---
 
 ## Visão Geral

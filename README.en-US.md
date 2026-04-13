@@ -12,6 +12,14 @@ Large Language Model (LLM) fine-tuned for Oracle Cloud Infrastructure (OCI) usin
 
 > **Language**: Data and prompts in Brazilian Portuguese (PT-BR).
 
+### Core Stack
+- **LLM**: Qwen 2.5 Coder 7B Instruct (Fine-tuned via MLX LoRA).
+- **Orchestration**: LangGraph (Multi-Agent System).
+- **Interface**: Chainlit (Interactive UI with HITL).
+- **RAG**: Hybrid Search (FAISS + BM25) with local persistence.
+- **Backend**: FastAPI (RAG Service).
+- **Hardware**: Optimized for Apple Silicon (M3 Pro 18GB).
+
 ---
 
 ## Overview
