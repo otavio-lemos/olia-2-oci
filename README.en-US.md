@@ -121,10 +121,21 @@ flowchart LR
 - Apple Silicon Mac (M1/M2/M3/M4/M5)
 - Python 3.12
 
+### 1. Training Environment (LLM)
+
 ```bash
 python3.12 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
+```
+
+### 2. OCI Copilot Environment (RAG)
+
+```bash
+python3.12 -m venv venv-rag
+source venv-rag/bin/activate
+pip install -r requirements-rag.txt
+pip install langgraph chainlit
 ```
 
 ### Quick Start
@@ -190,6 +201,64 @@ Outputs include:
 - Markdown comparison report
 - Radar charts (metrics comparison)
 - Category bar charts
+
+---
+
+## RAG (Retrieval-Augmented Generation)
+
+*(Note: Make sure to activate the `venv-rag` environment as per the Getting Started section)*
+
+```bash
+# RAG Tests
+pytest tests/ -v
+```
+
+### Structure
+
+```text
+rag/
+├── config.py          # Loads YAML config
+├── loaders.py         # Document loaders
+├── splitter.py        # Text splitter
+├── dense_retriever.py # FAISS + embeddings (persisted)
+├── sparse_retriever.py# BM25 (persisted)
+├── hybrid_retriever.py# RRF fusion + Cross-Encoder reranking
+├── tools.py           # LangChain tools
+├── api.py             # FastAPI service (RAG Backend)
+├── app_chainlit.py    # Chainlit UI (OCI Copilot Frontend)
+├── orchestrator.py    # LangGraph State Machine (Orchestrator)
+└── demo.py            # Demo script
+```
+
+### Offline Ingestion
+
+To save RAM (especially on M3 Pro 18GB), RAG document ingestion must be done offline and saved to disk (`.faiss` and `.pkl`).
+
+```bash
+python scripts/update_rag.py
+```
+
+### Backend API (RAG)
+
+```bash
+# Start FastAPI server (loads indices from disk)
+uvicorn rag.api:app --host 0.0.0.0 --port 8000
+
+# Search
+curl -X POST "http://localhost:8000/rag/retrieve" \
+  -H "Content-Type: application/json" \
+  -d '{"query": "How to create an instance in OCI?", "strategy": "migracao"}'
+```
+
+### Recommended UI: Chainlit
+
+The official **OCI Copilot** interface is built with **Chainlit**. It connects to the RAG backend, exposes agent reasoning, supports local file attachments, on-the-fly strategy changing, and provides Human-In-The-Loop action buttons for safe script execution.
+
+```bash
+# Start Graphical Interface
+chainlit run rag/app_chainlit.py -w
+# Access: http://localhost:8000
+```
 
 ---
 

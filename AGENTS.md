@@ -58,7 +58,7 @@ CYCLE=cycle-1 python training/train_mlx_tune.py --fresh
 
 | Param | Valor |
 |-------|-------|
-| Iters | 3618 (train / grad_accum) |
+| Iters | 4000 |
 | LR | 2e-4 |
 | Rank | 8 |
 | Alpha | 16 |
@@ -66,28 +66,29 @@ CYCLE=cycle-1 python training/train_mlx_tune.py --fresh
 | Batch | 1 |
 | Grad Accum | 4 |
 | Num Layers | 16 |
-| Max Seq | 2048 |
-| Warmup | 300 (8%) |
+| Max Seq | 768 |
+| Warmup | 320 |
 | Weight Decay | 0.01 |
-| Grad Clip | 1.0 |
+| Grad Checkpointing | false |
+| BF16 | true |
 
 ### Performance Esperada (M3 Pro 18GB)
-- **Peak memory**: ~6.5 GB
-- **Velocidade**: ~85 tokens/sec, ~0.18 iters/sec
-- **Cycle 1 (3618 iters)**: ~3-4 horas
-- **Loss**: Val ~2.4 → ~0.24, Train ~2.2 → ~0.37
+- **Peak memory**: ~9.8 GB (sem checkpointing)
+- **Velocidade**: ~150-160 tokens/sec
+- **Cycle 1 (4000 iters)**: ~2-3 horas
+- **Loss**: Val ~2.8 → ~0.04, Train ~3.1 → ~0.05
 
 ## Data Flow
 
 ```
-data/curated/        → Generated examples (one file per topic, 140 examples each)
+data/curated/        → Generated examples (one file per topic)
                       format: [topic].jsonl
 data/all_curated.jsonl → concatenated examples
 data/all_curated_clean.jsonl → validated and deduplicated
-data/train.jsonl     → training set (~75%): 14,470 examples
-data/valid.jsonl     → validation set (~15%): 2,894 examples
-data/eval.jsonl      → evaluation set (~10%): 1,930 examples
-                      Total: 19,294 examples
+data/train.jsonl     → training set (~75%): 15,995 examples
+data/valid.jsonl     → validation set (~15%): 3,199 examples
+data/eval.jsonl      → evaluation set (~10%): 2,133 examples
+                      Total: 21,327 examples
 ```
 
 ## Quality Rules (Rigid)

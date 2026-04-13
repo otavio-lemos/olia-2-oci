@@ -121,10 +121,21 @@ flowchart LR
 - Mac com Apple Silicon (M1/M2/M3/M4/M5)
 - Python 3.12
 
+### 1. Ambiente de Treinamento (LLM)
+
 ```bash
 python3.12 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
+```
+
+### 2. Ambiente OCI Copilot (RAG)
+
+```bash
+python3.12 -m venv venv-rag
+source venv-rag/bin/activate
+pip install -r requirements-rag.txt
+pip install langgraph chainlit
 ```
 
 ### Início Rápido
@@ -205,13 +216,10 @@ As saídas incluem:
 
 ## RAG (Retrieval-Augmented Generation)
 
-```bash
-# Criar ambiente
-python -m venv venv-rag
-source venv-rag/bin/activate
-pip install -r requirements-rag.txt
+*(Nota: Certifique-se de ter ativado o ambiente `venv-rag` conforme a seção Começando)*
 
-# Testes
+```bash
+# Testes do RAG
 pytest tests/ -v
 ```
 
