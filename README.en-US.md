@@ -233,7 +233,17 @@ The following improvements are planned:
 
 ## Acknowledgments
 
-This project was developed using Apple Silicon hardware infrastructure and the MLX library, with data synthesized and validated specifically for OCI scenarios.
+This project was developed by integrating the following cutting-edge technologies:
+
+- **Hardware**: Apple Silicon (M3 Pro) with Unified Memory.
+- **Training and Inference**: [MLX Framework](https://mlx.ai) and MLX-Tune.
+- **Base Model**: [Qwen 2.5 Coder 7B Instruct](https://huggingface.co/Qwen/Qwen2.5-Coder-7B-Instruct) (Alibaba Cloud).
+- **Agent Orchestration**: [LangGraph](https://python.langchain.com/docs/langgraph) and [LangChain](https://langchain.com).
+- **User Interface**: [Chainlit](https://chainlit.io).
+- **Backend Services**: [FastAPI](https://fastapi.tiangolo.com).
+- **Search Engines (RAG)**: FAISS (Dense) and Rank-BM25 (Sparse).
+- **Embeddings and Re-ranking**: [Hugging Face](https://huggingface.co) and Sentence-Transformers.
+- **Data**: Synthesized and validated specifically for Oracle Cloud Infrastructure (OCI) scenarios.
 
 ---
 
