@@ -8,7 +8,7 @@ Large Language Model (LLM) fine-tuned para Oracle Cloud Infrastructure (OCI) usa
 [![Python](https://img.shields.io/badge/Python-3.12-blue?style=flat-square&logo=python&logoColor=white)](https://www.python.org)
 [![MLX](https://img.shields.io/badge/MLX-Apple%20Silicon-orange?style=flat-square)](https://mlx.ai)
 [![Model](https://img.shields.io/badge/Base%20Model-Meta--Llama--3.1--8B--Instruct--4bit-purple?style=flat-square)](https://huggingface.co/mlx-community/Meta-Llama-3.1-8B-Instruct-4bit)
-[![Dataset](https://img.shields.io/badge/Dataset-19294_examples-green?style=flat-square)](docs/taxonomy.md)
+[![Dataset](https://img.shields.io/badge/Dataset-21327_examples-green?style=flat-square)](docs/taxonomy.md)
 
 > **Idioma**: Dados e prompts em Português do Brasil (PT-BR).
 
@@ -84,10 +84,10 @@ flowchart LR
 | Métrica | Valor |
 |--------|-------|
 | **Total Gerado** | 21.750 exemplos (87 categorias × 250) |
-| **Após Limpeza/Desduplicação** | 19.294 exemplos |
-| **Treino (Train)** | 14.470 exemplos (75%) |
-| **Validação (Valid)** | 2.894 exemplos (15%) |
-| **Avaliação (Eval)** | 1.930 exemplos (10%) |
+| **Após Limpeza/Desduplicação** | 21.327 exemplos |
+| **Treino (Train)** | 15.995 exemplos (75%) |
+| **Validação (Valid)** | 3.199 exemplos (15%) |
+| **Avaliação (Eval)** | 2.133 exemplos (10%) |
 | **Categorias** | 87 tópicos do OCI |
 | **Metadados** | intent, persona, constraint, lifecycle_stage |
 
@@ -95,9 +95,9 @@ flowchart LR
 
 | Split | Exemplos | % |
 |-------|----------|---|
-| Treino (Train) | 14.470 | 75% |
-| Validação (Valid) | 2.894 | 15% |
-| Avaliação (Eval) | 1.930 | 10% |
+| Treino (Train) | 15.995 | 75% |
+| Validação (Valid) | 3.199 | 15% |
+| Avaliação (Eval) | 2.133 | 10% |
 
 ### Categorias
 
