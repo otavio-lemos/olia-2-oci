@@ -28,55 +28,38 @@ Large Language Model (LLM) fine-tuned for Oracle Cloud Infrastructure (OCI) usin
 
 ## Overview
 
-This project trains a specialized LLM for Oracle Cloud Infrastructure using Apple's MLX framework on Apple Silicon. The pipeline covers dataset generation, validation, fine-tuning via MLX LoRA, and integration with a RAG layer (OCI Copilot).
+This project trains a specialized LLM for Oracle Cloud Infrastructure using Apple's MLX framework on Apple Silicon. The pipeline covers dataset generation, validation, fine-tuning via MLX LoRA, weight fusion (Merge), and integration with a RAG layer (OCI Copilot).
 
 ```mermaid
-flowchart LR
-    subgraph GENERATION["Phase 1: Generation"]
-        A["generate_diverse_v2.py"]
-        A --> B["data/curated/<br/>87 JSONL files"]
+flowchart TD
+    subgraph GENERATION["1. Generation & Preparation"]
+        A1["generate_diverse_v2.py"] --> A2["prepare_data.sh"]
+        A2 --> A3["train.jsonl / valid.jsonl"]
     end
 
-    subgraph PREPARATION["Phase 2: Preparation"]
-        B --> C1["Concat<br/>all_curated.jsonl"]
-        C1 --> C2["Validation<br/>validate_jsonl.py"]
-        C2 --> C3["Cleaning<br/>clean_dataset.py"]
-        C3 --> C4["Dedup<br/>dedupe_embedding.py"]
-        C4 --> C5["Split<br/>build_dataset_fixed.py"]
-        C5 --> D["train.jsonl<br/>valid.jsonl<br/>eval.jsonl"]
+    subgraph TRAINING["2. Training & Merge"]
+        B1["train_mlx_tune.py"] --> B2["LoRA Adapters"]
+        B2 --> B3["Merge & Export (GGUF)"]
     end
 
-    subgraph TRAINING["Phase 3: Training"]
-        D --> E["train_mlx_tune.py"]
-        E --> F["outputs/cycle-1/adapters/<br/>adapters.safetensors"]
+    subgraph RAG["3. OCI Copilot (RAG)"]
+        C1["update_rag.py (Offline)"] --> C2["FAISS / BM25 Indices"]
+        C2 --> C3["FastAPI Backend"]
     end
 
-    subgraph EXPORT["Phase 4: Export"]
-        F --> G1["mlx_lm fuse<br/>→ merged-model"]
-        F --> G2["merge_export.py<br/>→ GGUF (Q4/Q5/Q8)"]
-        F --> G3["convert_hf_to_gguf.py<br/>→ llama.cpp GGUF"]
+    subgraph UI["4. Interface & Agents"]
+        D1["orchestrator.py (LangGraph)"] --> D2["app_chainlit.py (UI)"]
     end
 
-    subgraph EVALUATION["Phase 5: Evaluation"]
-        F --> H["scripts/unified_evaluation.py<br/>base vs FT"]
-        H --> I["outputs/benchmarks/"]
-    end
-
-    subgraph COPILOT["Phase 6: OCI Copilot (RAG)"]
-        F --> J1["api.py (FastAPI)"]
-        J1 --> J2["app_chainlit.py (UI)"]
-        J2 --> J3["orchestrator.py (LangGraph)"]
-    end
+    GENERATION --> TRAINING
+    TRAINING --> UI
+    RAG --> UI
 
     style GENERATION fill:#e1f5fe
-    style PREPARATION fill:#fff3e0
     style TRAINING fill:#e8f5e9
-    style EXPORT fill:#f3e5f5
-    style EVALUATION fill:#ffebee
-    style COPILOT fill:#e0f2f1
+    style RAG fill:#fff3e0
+    style UI fill:#f3e5f5
 ```
-
-**Tech Stack**: Python 3.12, MLX 0.31.1, Qwen 2.5 Coder 7B, LangGraph, Chainlit, FAISS.
 
 ---
 
@@ -87,6 +70,7 @@ flowchart LR
 - **Advanced Hybrid RAG**: Semantic (FAISS) + Lexical (BM25) search with local persistence and **Offline Ingestion**.
 - **Multi-Agent System**: Orchestration via **LangGraph** (Router, Discovery, Architecture, Execution).
 - **OCI Copilot Interface**: UI built with **Chainlit**, supporting file attachments, token streaming, and **Human-in-the-loop** for safe CLI commands.
+- **Merge & Export**: Pipeline to fuse LoRA adapters into the base model and export to GGUF format (local quantization).
 - **Automated Evaluation**: Benchmark pipeline to measure technical accuracy, hallucination, and depth.
 
 ---
@@ -112,51 +96,11 @@ flowchart LR
 
 ---
 
-## Getting Started
-
-### 1. Training Environment (LLM)
-
-```bash
-python3.12 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-```
-
-### 2. OCI Copilot Environment (RAG)
-
-```bash
-python3.12 -m venv venv-rag
-source venv-rag/bin/activate
-pip install -r requirements-rag.txt
-pip install langgraph chainlit
-```
-
-### Quick Start
-
-```bash
-# 1. Prepare data
-bash scripts/prepare_data.sh
-
-# 2. Ingest Documentation (Offline RAG)
-python scripts/update_rag.py
-
-# 3. Train Model
-bash training/run_all_cycles.sh --fresh
-
-# 4. Start Interface
-# Terminal 1: RAG API
-uvicorn rag.api:app --port 8000
-# Terminal 2: Copilot UI
-chainlit run rag/app_chainlit.py
-```
-
----
-
 ## Training
 
-Training uses the **Qwen 2.5 Coder 7B Instruct** (4-bit) model, optimized for maximum performance on Apple Silicon M3 Pro.
+Training uses the MLX-Tune framework, optimized for maximum performance on Apple Silicon M3 Pro.
 
-### Environment Preparation
+### 1. Environment Setup
 
 ```bash
 python3.12 -m venv venv
@@ -164,14 +108,23 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### Execution
+### 2. Execution
 
 ```bash
 # Run the consolidated training cycle
 bash training/run_all_cycles.sh --fresh
 ```
 
-**Optimized Configuration** (`config/cycle-1.env`):
+### 3. Weight Fusion (Merge) & Export
+
+After training, you must merge the LoRA adapters with the base model and export to GGUF format (compatible with llama.cpp/Ollama).
+
+```bash
+# Merge and export to GGUF Q4
+python scripts/merge_export.py --cycle cycle-1 --quant q4 --name oci-specialist
+```
+
+### Optimized Configuration (`config/cycle-1.env`)
 
 | Parameter | Value | Description |
 |-----------|-------|-------------|
@@ -180,7 +133,6 @@ bash training/run_all_cycles.sh --fresh
 | **BATCH_SIZE** | 1 | Agility in single sequences |
 | **GRAD_ACCUM** | 4 | Effective batch size of 4 |
 | **BF16** | true | Native hardware acceleration on M3 |
-| **GRAD_CHECKPOINT**| false | Priority for speed (Tokens/sec) |
 | **ITERS** | 4000 | Complete learning cycle |
 | **MAX_SEQ** | 768 | Ideal context for OCI |
 
@@ -188,7 +140,7 @@ bash training/run_all_cycles.sh --fresh
 
 ## Evaluation
 
-The evaluation pipeline compares the fine-tuned model against the base model to ensure no catastrophic regressions occurred.
+The evaluation pipeline compares the fine-tuned model against the base model using technical and semantic metrics.
 
 ```bash
 # Recommended Evaluation (200 stratified samples, ~30 min)
@@ -215,7 +167,7 @@ python scripts/unified_evaluation.py --cycle cycle-1 --mode full --fresh
 
 OCI Copilot uses a persistent RAG layer to access real-time facts from Oracle documentation.
 
-### RAG Setup
+### 1. RAG Setup
 
 ```bash
 python3.12 -m venv venv-rag
@@ -224,36 +176,33 @@ pip install -r requirements-rag.txt
 pip install langgraph chainlit
 ```
 
-### Offline Ingestion (Mandatory)
-To save RAM, indices must be generated before starting the system:
+### 2. Offline Ingestion (Mandatory)
+To save RAM during chat, indices must be generated offline:
 ```bash
 python scripts/update_rag.py
 ```
 
-### Module Structure
-- `api.py`: FastAPI backend serving FAISS and BM25 indices.
-- `orchestrator.py`: **LangGraph** orchestrator (Router -> Specialists -> Execution).
-- `app_chainlit.py`: Visual interface with attachment support and manual command approval.
+### 3. Orchestration and Agents
+- **Backend API**: `rag/api.py` serves FAISS and BM25 indices via FastAPI.
+- **Orchestrator**: `rag/orchestrator.py` uses **LangGraph** to manage the state machine between specialist agents.
+- **Strategies**: Dynamic weights between dense/sparse configured in `config/oci-copilot-agents.yaml`.
 
 ---
 
-## Inference
+## Inference and UI
 
-After training, you can spin up the model for local or API use.
+After training and merge, use the official **Chainlit** interface to interact with the Copilot.
 
-### MLX-LM API
+### 1. Start RAG Backend
 ```bash
-mlx_lm.server --model mlx-community/Qwen2.5-Coder-7B-Instruct-4bit --adapter outputs/cycle-1/adapters
-```
-
-### OCI Copilot UI (Official)
-```bash
-# Start the full ecosystem
-# Terminal 1:
 uvicorn rag.api:app --port 8000
-# Terminal 2:
-chainlit run rag/app_chainlit.py
 ```
+
+### 2. Start Visual Interface
+```bash
+chainlit run rag/app_chainlit.py -w
+```
+Access at: `http://localhost:8000` (or configured port).
 
 ---
 
@@ -265,7 +214,7 @@ chainlit run rag/app_chainlit.py
 ### Performance by Category
 ![Category Chart](outputs/benchmarks/category_chart_20260411_063001.png)
 
-### Top Gains
+### Top Gains by Topic
 1. **Troubleshooting Functions**: +0.65
 2. **Networking VCN**: +0.62
 3. **Storage File**: +0.57
@@ -279,7 +228,7 @@ chainlit run rag/app_chainlit.py
 The following improvements are planned:
 
 1. **OpenRouter Integration**: Routing to frontier models (Claude/GPT-4) for complex tasks.
-2. **Hugging Face Hub Export**: Publishing trained adapters.
+2. **Hugging Face Hub Export**: Publishing trained adapters and quantized models.
 
 ---
 
