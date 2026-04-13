@@ -12,6 +12,8 @@ Large Language Model (LLM) fine-tuned para Oracle Cloud Infrastructure (OCI) usa
 
 ---
 
+> **Idioma**: Dados e prompts em Português do Brasil (PT-BR).
+
 ### 🚀 Core Stack & Componentes
 - **LLM Base**: [Qwen 2.5 Coder 7B Instruct](https://huggingface.co/Qwen/Qwen2.5-Coder-7B-Instruct) (4-bit).
 - **Orquestração de Agentes**: [LangGraph](https://python.langchain.com/docs/langgraph) & [LangChain](https://langchain.com).
@@ -21,8 +23,7 @@ Large Language Model (LLM) fine-tuned para Oracle Cloud Infrastructure (OCI) usa
 - **Backend Service**: [FastAPI](https://fastapi.tiangolo.com) (RAG API).
 - **Embeddings & Rerank**: [Hugging Face](https://huggingface.co) & [Sentence-Transformers](https://sbert.net).
 - **Hardware**: Otimizado para Apple Silicon (M3 Pro 18GB).
-- **Linguagem**: Python 3.12.
-- **Idioma**: Dados e prompts em Português do Brasil (PT-BR).
+- **Desenvolvimento**: Python 3.12.
 
 ---
 
