@@ -45,19 +45,22 @@ def load_cycle_config(cycle_name):
 def load_and_prepare_dataset(path, tokenizer):
     """Load jsonl and apply chat template via high-performance HF map."""
     dataset = load_dataset("json", data_files=path, split="train")
-    
+
     def format_chat(examples):
-        texts = [tokenizer.apply_chat_template(msgs, tokenize=False) for msgs in examples["messages"]]
+        texts = [
+            tokenizer.apply_chat_template(msgs, tokenize=False)
+            for msgs in examples["messages"]
+        ]
         return {"text": texts}
-        
+
     # Use HF Dataset mapping to parallelize and release memory automatically
     columns_to_remove = dataset.column_names
     dataset = dataset.map(
         format_chat,
         batched=True,
-        num_proc=os.cpu_count() or 4,
+        num_proc=min(4, os.cpu_count() or 1),
         remove_columns=columns_to_remove,
-        desc=f"Formatting {Path(path).name}"
+        desc=f"Formatting {Path(path).name}",
     )
     return dataset
 
@@ -101,17 +104,25 @@ class MetricsLogger:
                 writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction="ignore")
                 writer.writeheader()
                 writer.writerows(self.metrics)
-            self.log(
-                f"\n[metrics] Exported {len(self.metrics)} rows to {self.metrics_file}"
-            )
+
+    def save_metrics(self):
+        if self.metrics:
+            fieldnames = ["step", "train_loss", "val_loss", "elapsed", "timestamp"]
+            with open(self.metrics_file, "w", newline="") as f:
+                writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction="ignore")
+                writer.writeheader()
+                writer.writerows(self.metrics)
 
 
 class TrainingCallback:
-    def __init__(self, logger, total_steps):
+    def __init__(self, logger, total_steps, save_steps):
         self.logger = logger
         self.total_steps = total_steps
+        self.save_steps = save_steps
+        self.train_start = None
 
     def on_train_begin(self, args, control, logs=None):
+        self.train_start = time.time()
         self.logger.log(f"Training started at step 1/{self.total_steps}")
 
     def on_step_end(self, args, control, logs=None):
@@ -119,6 +130,13 @@ class TrainingCallback:
             step = logs.get("step", 0)
             loss = logs.get("loss", 0)
             self.logger.log(f"Step {step}: loss={loss:.4f}")
+            self.logger.record_metric(
+                step=step,
+                train_loss=loss,
+                elapsed=time.time() - self.train_start if self.train_start else None,
+            )
+            if step % self.save_steps == 0:
+                self.logger.save_metrics()
 
 
 def main():
@@ -153,6 +171,7 @@ def main():
     max_seq_length = int(cfg.get("MAX_SEQ_LENGTH", "2048"))
     seed = int(cfg.get("SEED", "42"))
     grad_checkpoint = cfg.get("GRADIENT_CHECKPOINTING", "false").lower() == "true"
+    bf16 = cfg.get("BF16", "false").lower() == "true"
     output_dir = cfg["OUTPUT_DIR"]
     prev_adapter = cfg.get("PREV_ADAPTER", "")
     val_batches = int(cfg.get("VAL_BATCHES", "5"))
@@ -191,6 +210,7 @@ def main():
     logger.log(f"Max Seq Length: {max_seq_length}")
     logger.log(f"Seed: {seed}")
     logger.log(f"Grad Checkpoint: {grad_checkpoint}")
+    logger.log(f"BF16: {bf16}")
     logger.log(f"Adapter Path: {adapter_path}")
     if prev_adapter and Path(prev_adapter).exists():
         logger.log(f"Resuming from: {prev_adapter}")
@@ -237,8 +257,9 @@ def main():
 
     import gc
     import mlx.core as mx
+
     gc.collect()
-    mx.metal.clear_cache() if hasattr(mx, 'metal') else mx.clear_cache()
+    mx.clear_cache()
 
     logger.log(f"  Train: {len(train_hf)} examples")
     logger.log(f"  Valid: {len(valid_hf)} examples")
@@ -264,9 +285,11 @@ def main():
         data_seed=seed,
         num_layers=num_layers,
         grad_checkpoint=grad_checkpoint,
+        bf16=bf16,
     )
 
     logger.log("Creating trainer...")
+    callback = TrainingCallback(logger, iters, save_steps)
     trainer = SFTTrainer(
         model=model,
         train_dataset=train_hf,
@@ -274,6 +297,7 @@ def main():
         tokenizer=tokenizer,
         args=sft_config,
         adapter_path="adapters",
+        callbacks=[callback],
     )
 
     logger.log("")
@@ -299,6 +323,8 @@ def main():
         metrics_dict = train_result.metrics
         train_loss = metrics_dict.get("train_loss", "N/A")
         logger.record_metric(step=iters, train_loss=train_loss, elapsed=elapsed)
+
+    logger.save_metrics()
 
     logger.log("")
     logger.log(f"  Training completed in {elapsed:.1f}s ({elapsed / 60:.1f} min)")

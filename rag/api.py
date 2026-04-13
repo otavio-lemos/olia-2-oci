@@ -1,6 +1,7 @@
 """FastAPI service para RAG."""
 
 import os
+from contextlib import asynccontextmanager
 from typing import Optional
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
@@ -11,11 +12,24 @@ from rag.dense_retriever import create_dense_retriever
 from rag.sparse_retriever import create_sparse_retriever
 from rag.hybrid_retriever import HybridRetrieverWithConfig
 
-
-app = FastAPI(title="OCI Copilot RAG Service")
-
 RETRIEVER: Optional[HybridRetrieverWithConfig] = None
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Tenta carregar índices persistidos do disco no startup
+    global RETRIEVER
+    try:
+        dense = create_dense_retriever(documents=None)
+        sparse = create_sparse_retriever(documents=None)
+        if dense and sparse:
+            RETRIEVER = HybridRetrieverWithConfig(dense, sparse)
+            print("Successfully loaded persisted RAG indices.")
+    except Exception as e:
+        print(f"No persisted RAG indices found or failed to load: {e}")
+    yield
+    # Shutdown
+
+app = FastAPI(title="OCI Copilot RAG Service", lifespan=lifespan)
 
 class RetrieveRequest(BaseModel):
     query: str
@@ -36,7 +50,7 @@ async def health():
 @app.post("/rag/retrieve")
 async def retrieve(request: RetrieveRequest):
     if not RETRIEVER:
-        raise HTTPException(503, "RAG not initialized")
+        raise HTTPException(503, "RAG not initialized. Ingest data first.")
 
     if request.strategy:
         RETRIEVER.set_strategy(request.strategy)
@@ -67,10 +81,11 @@ async def list_workflows():
 
 @app.post("/rag/ingest")
 async def ingest_documents(urls: list = None, domain: str = "general"):
-    """Ingere documentos."""
+    """Ingere documentos e persiste no disco."""
     docs = load_oracle_docs(urls, domain)
     chunks = split_with_metadata(docs)
 
+    # Cria e salva no disco automaticamente pelas novas funções
     dense = create_dense_retriever(chunks)
     sparse = create_sparse_retriever(chunks)
 

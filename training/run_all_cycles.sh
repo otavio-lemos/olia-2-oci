@@ -18,7 +18,7 @@ done
 cd "$PROJECT_DIR"
 
 # Find all cycle configs
-CYCLES=$(ls config/cycle-*.env 2>/dev/null | sed 's|config/cycle-||' | sed 's|\.env||' | sort -V)
+CYCLES=$(ls config/cycle-*.env 2>/dev/null | sed 's|config/||' | sed 's|\.env||' | sort -V)
 
 if [ -z "$CYCLES" ]; then
     echo "ERROR: No cycle configs found in config/"
@@ -41,7 +41,7 @@ for CYCLE in $CYCLES; do
         rm -rf outputs/$CYCLE
     fi
     
-    CYCLE=$CYCLE python training/train_mlx_tune.py
+    CYCLE=$CYCLE caffeinate -i python training/train_mlx_tune.py
 done
 
 echo ""

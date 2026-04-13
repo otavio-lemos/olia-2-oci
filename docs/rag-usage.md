@@ -1,35 +1,44 @@
 # RAG Layer - Como Utilizar
 
-## Quick Start
+A camada de RAG utiliza Lazy Loading em RAM para respeitar limites de hardware (como M3 Pro 18GB). A ingestão de dados agora é feita **Offline**.
 
-```python
-from rag.tools import create_rag_tool
-from rag.loaders import load_oci_docs
+## 1. Ingestão Offline (Batch)
 
-# Carregar documentos
-docs = load_oci_docs("./data/docs")
+Sempre rode o script de update para popular os bancos `.faiss` e `.pkl` no disco:
 
-# Criar RAG tool
-rag_tool = create_rag_tool(docs)
-
-# Usar como tool LangChain
-result = rag_tool.invoke("Como migrar de AWS para OCI?")
-print(result)
+```bash
+python scripts/update_rag.py
 ```
 
-## API FastAPI
+## 2. API FastAPI (Backend)
+
+O backend agora carega os índices do disco usando o `lifespan` do FastAPI.
 
 ```bash
 # Iniciar servidor
-python -m rag.api
+uvicorn rag.api:app --host 0.0.0.0 --port 8000
 
 # Testar endpoint
-curl -X POST "http://localhost:8000/rag" \
+curl -X POST "http://localhost:8000/rag/retrieve" \
   -H "Content-Type: application/json" \
   -d '{"query": "Como criar instance no OCI?", "strategy": "migracao"}'
 ```
 
-## Estratégias de Retrieval
+## 3. Interface Visual (Frontend OCI Copilot)
+
+A interface do Copilot é construída em **Chainlit** para suportar anexos de arquivo, streaming de resposta e botões de aprovação de execução (Human-In-The-Loop). 
+
+*Certifique-se de que a API Backend (FastAPI) esteja rodando na porta 8000 em outro terminal.*
+
+```bash
+# Iniciar a UI (com Hot Reload)
+chainlit run rag/app_chainlit.py -w
+```
+**Acesse via navegador em:** `http://localhost:8000` (A porta do Chainlit pode ser a 8000 também por padrão, ajustando a porta original se der conflito).
+
+## Estratégias e Orquestração
+
+O **LangGraph** (em `rag/orchestrator.py`) gerencia o estado da aplicação e usa as estratégias configuradas no YAML.
 
 | Estratégia | Descrição | Pesos (dense, sparse) |
 |------------|-----------|---------------------|
@@ -38,7 +47,7 @@ curl -X POST "http://localhost:8000/rag" \
 | `configuracao` | Para config | [0.4, 0.6] |
 | `troubleshooting` | Para problemas | [0.5, 0.5] |
 
-## Demo
+## Demo CLI Rápido
 
 ```bash
 python -m rag.demo
@@ -46,4 +55,4 @@ python -m rag.demo
 
 ## Configuração
 
-Editar `config/oci-copilot-agents.yaml` para personalizar estratégias.
+Editar `config/oci-copilot-agents.yaml` para personalizar estratégias, prompts de sistema e metadados.

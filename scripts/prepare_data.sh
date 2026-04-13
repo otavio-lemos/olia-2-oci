@@ -27,7 +27,7 @@ ${PYTHON} scripts/clean_dataset.py --input data/all_curated.jsonl --output data/
 
 echo ""
 echo "=== Step 4: Deduplicate (embedding-based, semantic) ==="
-${PYTHON} scripts/dedupe_embedding.py --input data/all_curated_clean.jsonl --output data/all_curated_semantic_dedup.jsonl --threshold 0.97
+${PYTHON} scripts/dedupe_embedding.py --input data/all_curated_clean.jsonl --output data/all_curated_semantic_dedup.jsonl --threshold 0.97 --question-threshold 0.97 --answer-threshold 0.97
 if [ -f "data/all_curated_semantic_dedup.jsonl" ]; then
     echo "Deduplicated (semantic): $(wc -l < data/all_curated_semantic_dedup.jsonl) lines"
 fi

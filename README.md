@@ -217,33 +217,34 @@ pytest tests/ -v
 
 ### Estrutura
 
-```
+```text
 rag/
 ├── config.py          # Carrega config YAML
 ├── loaders.py         # Document loaders
 ├── splitter.py        # Text splitter
-├── dense_retriever.py # FAISS + embeddings
-├── sparse_retriever.py # BM25
-├── hybrid_retriever.py # RRF fusion
+├── dense_retriever.py # FAISS + embeddings (persistido)
+├── sparse_retriever.py# BM25 (persistido)
+├── hybrid_retriever.py# RRF fusion + Cross-Encoder reranking
 ├── tools.py           # LangChain tools
-├── api.py             # FastAPI service
+├── api.py             # FastAPI service (Backend RAG)
+├── app_chainlit.py    # Chainlit UI (Frontend OCI Copilot)
+├── orchestrator.py    # Máquina de Estados LangGraph (Orquestrador)
 └── demo.py            # Demo script
 ```
 
-### Estratégias
+### Ingestão Offline
 
-| Estratégia | Descrição | Pesos (dense, sparse) |
-|------------|-----------|---------------------|
-| `default` | Hybrid padrão | [0.7, 0.3] |
-| `migracao` | Para migração | [0.6, 0.4] |
-| `configuracao` | Para config | [0.4, 0.6] |
-| `troubleshooting` | Para problemas | [0.5, 0.5] |
-
-### API
+Para economizar RAM (especialmente em M3 Pro 18GB), a ingestão de documentos para o RAG deve ser feita offline e salva no disco (`.faiss` e `.pkl`).
 
 ```bash
-# Iniciar servidor
-python -m rag.api
+python scripts/update_rag.py
+```
+
+### API Backend (RAG)
+
+```bash
+# Iniciar servidor FastAPI (sobe os índices do disco)
+uvicorn rag.api:app --host 0.0.0.0 --port 8000
 
 # Buscar
 curl -X POST "http://localhost:8000/rag/retrieve" \
@@ -251,9 +252,15 @@ curl -X POST "http://localhost:8000/rag/retrieve" \
   -d '{"query": "Como criar instance no OCI?", "strategy": "migracao"}'
 ```
 
-### UI Recomendada
+### UI Recomendada: Chainlit
 
-Usar **Open WebUI** (docker) ou **RAGFlow** para interface completa.
+A interface oficial do **OCI Copilot** é construída com **Chainlit**. Ela se conecta ao backend RAG e expõe o raciocínio dos agentes, permitindo anexar arquivos, mudar a estratégia de busca on-the-fly e possui botões de ação para executar scripts OCI/Terraform de forma segura (Human-In-The-Loop).
+
+```bash
+# Iniciar a Interface Gráfica
+chainlit run rag/app_chainlit.py -w
+# Acesse: http://localhost:8000
+```
 
 ---
 

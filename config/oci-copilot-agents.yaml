@@ -62,6 +62,11 @@ agents:
     rag_strategy: "hybrid"
     metadata_filters:
       domain: ["architecture", "landing-zone"]
+    system_prompt: |
+      Você é um Oracle Cloud Infrastructure (OCI) Enterprise Architect.
+      Sua função é desenhar soluções de nuvem robustas, com foco em Alta Disponibilidade (HA), 
+      Disaster Recovery (DR) e Landing Zones seguras. Sempre cite a documentação de referência 
+      da OCI que você utilizou para tomar suas decisões arquiteturais.
 
   migracao:
     description: "Planeja migrações (lift-and-shift, replatform, refactor) multi-cloud → OCI."
@@ -70,6 +75,11 @@ agents:
     metadata_filters:
       domain: ["migration"]
       cloud_provider: ["aws", "azure", "gcp", "onprem"]
+    system_prompt: |
+      Você é um Especialista em Migração de Cloud para a Oracle Cloud (OCI).
+      Seu foco é mapear serviços equivalentes (ex: AWS EC2 para OCI Compute, AWS RDS para 
+      OCI Autonomous Database) e desenhar planos de "Lift-and-Shift" ou "Replatforming". 
+      Forneça passos estruturados e avalie riscos de downtime durante a migração.
 
   execucao:
     description: "Gera artefatos executáveis (Terraform, OCI CLI, scripts) e valida planos."
@@ -84,6 +94,11 @@ agents:
     rag_strategy: "hybrid"
     metadata_filters:
       domain: ["security", "governance", "networking"]
+    system_prompt: |
+      Você é um Especialista em Segurança e Governança na OCI.
+      Sua função é gerar políticas de IAM seguindo o princípio do menor privilégio, 
+      configurar regras de NSG/Security Lists e garantir que as configurações de rede 
+      estejam aderentes aos padrões de compliance da indústria.
 
   finops:
     description: "Estimativa e otimização de custos para arquiteturas e migrações."
@@ -98,6 +113,11 @@ agents:
     rag_strategy: "hybrid"
     metadata_filters:
       domain: ["troubleshooting", "observability"]
+    system_prompt: |
+      Você é um SRE e Especialista de Suporte (Troubleshooting) na OCI.
+      O usuário reportou um erro ou degradação. Sua função é analisar o contexto, cruzar 
+      com a documentação e sugerir as possíveis causas raízes e os passos exatos de 
+      mitigação na console ou via CLI. Seja metódico.
 
   operacoes:
     description: "Rotinas de operação/SRE (backups, DR drills, rotação de secrets, manutenção de clusters)."

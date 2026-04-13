@@ -147,18 +147,19 @@ Os workflows (migracao, arquitetura, configuracao, etc.) definem a ordem em que 
 
 ## 6. Implantação da infraestrutura
 
-### 6.1 Ambiente de desenvolvimento local
+### 6.1 Ambiente de desenvolvimento local (M3 Pro 18GB)
 
-Componentes mínimos para dev:
+Componentes mínimos desenhados para respeitar a RAM local:
 
-- **Vector DB** (Qdrant/PGVector/FAISS via serviço) com índice `oci_docs_dense_index`.
-- **Motor de busca sparse** (Elasticsearch/OpenSearch/Meilisearch/Postgres FTS) com índice `oci_docs_sparse_index`.
-- **Serviço de RAG** (microserviço em Python/Go) que:
-  - Carrega `config/oci-copilot-agents.yaml` na inicialização.
-  - Expõe um endpoint HTTP/JSON `/rag/retrieve` usado pelos agentes.
-- **LLM servidor** (MLX-LM / Ollama / llama.cpp) com o modelo fine‑tuned oci‑specialist.
-
-Sugestão: docker‑compose com serviços `rag-service`, `vector-db`, `search-db`, `llm-server`.
+- **Vector DB e Sparse Engine Persistidos** (`.faiss` e `.pkl`) criados via Ingestão Offline (`scripts/update_rag.py`). Sem containers Docker pesados.
+- **Serviço de RAG (Backend)** (`rag/api.py`):
+  - Carrega `config/oci-copilot-agents.yaml` e os índices do disco usando FastAPI Lifespan.
+  - Expõe endpoint HTTP/JSON `/rag/retrieve` em `localhost:8000`.
+- **Frontend / UI do Copilot** (`rag/app_chainlit.py`):
+  - Interface Chainlit com Human-In-The-Loop e Chain of Thought.
+- **Orquestrador de Workflow** (`rag/orchestrator.py`):
+  - Máquina de Estados **LangGraph** para transitar entre os agentes (Router -> Execucao, etc).
+- **LLM servidor**: Inferência com `mlx_lm` ou `llama.cpp` apontando para o modelo fine‑tuned local (`oci-specialist-Q4_K_M.gguf`).
 
 ### 6.2 Ambiente de produção (exemplo em OCI)
 

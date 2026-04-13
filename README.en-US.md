@@ -314,9 +314,9 @@ make -j
 
 Based on the results of the initial training cycle (`cycle-1`), the following improvements are planned:
 
-1. **Implement RAG (Retrieval-Augmented Generation)**: The current fine-tuned model has improved significantly in structure and formatting, but it does not have real-time access to OCI documentation. To address issues where facts (like pricing, specific CLI flags, or rapidly changing parameters) are required, we plan to implement a RAG pipeline. This will combine the model's new formatting capabilities with accurate, up-to-date information retrieved from official Oracle documentation, which is more effective than attempting to encode all factual knowledge purely within the model's weights.
+1. ~~**Implement RAG (Retrieval-Augmented Generation)**~~ ✅ **IMPLEMENTED**: The project now includes a multi-agent RAG pipeline using LangGraph, FAISS/BM25 local indices (offline ingestion), and a robust **Chainlit** UI.
 
-2. **Cycle 2 Fine-Tuning (`cycle-2`)**:
+2. ~~**Cycle 2 Fine-Tuning (`cycle-2`)**~~ 🏃 **IN PROGRESS**:
     - **Dataset Auditing**: Perform a thorough review and cleanup of categories that showed regression during `cycle-1`, specifically focusing on Terraform and Governance. The generated examples may contain outdated syntax or confusing patterns that hindered the model.
     - **Refine Dataset Tone for Clarity**: The `clarity` metric decreased during `cycle-1`. We will revise the dataset to ensure the tone is more conversational ("senior engineer explaining to a colleague") rather than overly bureaucratic or strictly matching official manuals, which can lead to dense or robotic outputs.
     - **Increase Depth**: Replace generic questions with more complex, architectural scenario-based questions to improve the model's `depth` and `technical_correctness` metrics.

@@ -25,9 +25,9 @@ class EmbeddingDeduplicator:
     def __init__(
         self,
         model_name: str = "sentence-transformers/paraphrase-MiniLM-L6-v2",
-        threshold: float = 0.975,
+        threshold: float = 0.97,
         question_threshold: float = 0.97,
-        answer_threshold: float = 0.96,
+        answer_threshold: float = 0.97,
     ):
         self.model_name = model_name
         self.threshold = threshold
@@ -190,7 +190,7 @@ def main():
     parser.add_argument(
         "--threshold",
         type=float,
-        default=0.975,
+        default=0.97,
         help="Combined similarity threshold (0-1)",
     )
     parser.add_argument(
@@ -202,7 +202,7 @@ def main():
     parser.add_argument(
         "--answer-threshold",
         type=float,
-        default=0.96,
+        default=0.97,
         help="Answer similarity threshold (0-1)",
     )
     parser.add_argument(

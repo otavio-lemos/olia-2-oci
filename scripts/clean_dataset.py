@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 """
-Clean OCI dataset by fixing all detected content issues:
-1. Remove generic template responses (irrecuperaveis)
-2. Remove examples with wrong CLI commands
+Clean OCI dataset by fixing content issues:
+1. Remove responses that are too short (< 50 chars)
+2. Remove responses with fake OCI CLIs or cross-cloud references
 3. FIX context pollution (remove [context: shape=...] de perguntas)
-4. Semantic deduplication of responses
-5. Add Portuguese diacritics
+4. Add Portuguese diacritics
+
+NOTE: Deduplication is DISABLED here - use dedupe_embedding.py instead
+      for proper semantic deduplication.
 
 Usage:
     python scripts/clean_dataset.py --input data/curated/ --output data/all_curated_clean.jsonl --all
@@ -474,138 +476,60 @@ DIACRITICS_MAP = {
     "solucionavel": "solucionável",
 }
 
-# Categories where checklist patterns are valid and should NOT be removed
-CHECKLIST_FRIENDLY_CATEGORIES = {
-    "identity/access-reviews",
-    "compliance/evidence-automation",
-    "data/governance",
-    "resilience/dr-exercises",
-    "governance/landing-zone",
-    "governance/compartments",
-    "governance/tagging",
-    "governance/budgets-cost",
-    "governance/policies-guardrails",
-    "governance/compliance",
-    "governance/audit-readiness",
-    "finops/cost-optimization",
-    "finops/showback-chargeback",
-    "platform/sre-operations",
-    "platform/backup-governance",
-}
-
-GENERIC_TEMPLATES = [
-    r"Para configurar \w+ no OCI, siga estes passos",
-    r"Acesse o Console OCI e navegue ate o servico correspondente",
-    r"No Console, clique em 'Create' para o servico desejado",
-    r"Configure os parametros conforme sua necessidade",
-    r"Ajuste as configuracoes de rede e seguranca",
-    r"Teste o acesso e conectividade",
-    r"Verifique logs e metricas",
-    r"Documente a configuracao",
+WRONG_CLI_PATTERNS = [
+    r"oci\s+instances\s+",
+    r"oci\s+storage\s+",
+    r"oci\s+connectivity\s+",
+    r"oci\s+block\s+",
+    r"oci\s+autonomous-json",
+    r"oci\s+azure-storage",
+    r"oci\s+onprem-storage",
+    r"oci\s+observability\s+",
+    r"oci\s+authentication\s+",
+    r"oci\.Compute\.InstancesClient",
+    r"oci\.Storage\.BlockClient",
+    r"oci\.ConnectivityClient",
+    r"oci_compute_instances",
+    r"oci_storage_block",
+    r"oci_connectivity",
 ]
 
-FOUR_STEP_PATTERN = [
-    r"Passo 1: Preparacao",
-    r"Passo 2: Criacao",
-    r"Passo 3: Configuracao",
-    r"Passo 4: Validacao",
+CROSS_CLOUD_PATTERNS = [
+    r"provider\s+[\"']?aws[\"']?",
+    r"resource\s+[\"']?aws_",
+    r"resource\s+[\"']?azurerm_",
+    r"aws_instance",
+    r"aws_lb",
+    r"aws_vpc",
+    r"aws_security_group",
+    r"aws_s3",
+    r"aws_iam",
+    r"azurerm_network_security_group",
+    r"azurerm_virtual_network",
+    r"azurerm_subnet",
+    r"azurerm_public_ip",
+    r"\bEC2\b",
+    r"\bCloudWatch\b",
+    r"AWS Management Console",
+    r"Azure Portal",
 ]
 
-GENERIC_TROUBLESHOOTING = [
-    r"Problema comum 1: Recurso nao inicia",
-    r"Problema comum 2: Erro de permissao",
-    r"Problema comum 3: Timeout de conexao",
-    r"Verificar estado do recurso",
-    r"Checklist de validacao",
-]
-
-GENERIC_BEST_PRACTICES = [
-    r"1\. Planejamento e Design",
-    r"2\. Implementacao",
-    r"3\. Seguranca",
-    r"4\. Operacao",
-    r"5\. Otimizacao",
-    r"Defina claramente os requisitos de",
-    r"Use Infrastructure as Code",
-    r"Implemente tagging consistente",
-]
-
-GENERIC_SECURITY_AUDIT = [
-    r"Checklist de Seguranca",
-    r"1\. Identity & Access Management",
-    r"Policies com principio de menor privilegio",
-    r"Grupos IAM organizados por funcao",
-    r"MFA habilitado para todos os usuarios",
-    r"Encryption em repouso",
-    r"Encryption em transito",
-]
-
-GENERIC_INTEGRATION = [
-    r"Servicos OCI que integram com",
-    r"OCI Vault.*Encryption keys",
-    r"OCI Monitoring.*Metricas e alertas",
-    r"OCI Logging.*Logs estruturados",
-]
-
-WRONG_CLI_MAP = {
-    "terraform/": [
-        r"oci compute instance launch",
-        r"oci compute instance list",
-        r"oci compute instance update",
-        r"oci compute instance terminate",
-        r"oci compute instance get",
-        r"oci network vcn create",
-        r"oci network vcn delete",
-        r"oci db autonomous-database create",
-        r"oci db autonomous-database delete",
-    ],
-    "database/": [
-        r"oci compute instance launch",
-        r"oci compute instance terminate",
-    ],
-    "networking/": [
-        r"oci compute instance launch",
-        r"oci compute instance terminate",
-    ],
-}
+MIN_CONTENT_LENGTH = 50
 
 
 def is_generic_template(content: str, category: str = "") -> bool:
-    # Skip generic check for checklist-friendly categories
-    if category in CHECKLIST_FRIENDLY_CATEGORIES:
-        return False
-
-    four_step = sum(
-        1 for p in FOUR_STEP_PATTERN if re.search(p, content, re.IGNORECASE)
-    )
-    if four_step >= 4:
-        return True
-    generic = sum(1 for p in GENERIC_TEMPLATES if re.search(p, content, re.IGNORECASE))
-    if generic >= 5:
-        return True
-    trouble = sum(
-        1 for p in GENERIC_TROUBLESHOOTING if re.search(p, content, re.IGNORECASE)
-    )
-    if trouble >= 4:
-        return True
-    bp = sum(1 for p in GENERIC_BEST_PRACTICES if re.search(p, content, re.IGNORECASE))
-    if bp >= 6:
-        return True
-    sec = sum(1 for p in GENERIC_SECURITY_AUDIT if re.search(p, content, re.IGNORECASE))
-    if sec >= 5:
-        return True
-    integ = sum(1 for p in GENERIC_INTEGRATION if re.search(p, content, re.IGNORECASE))
-    if integ >= 3:
+    if not content or len(content.strip()) < MIN_CONTENT_LENGTH:
         return True
     return False
 
 
-def has_wrong_cli(content: str, category: str) -> bool:
-    for cat_prefix, patterns in WRONG_CLI_MAP.items():
-        if category.startswith(cat_prefix):
-            for pattern in patterns:
-                if re.search(pattern, content):
-                    return True
+def has_wrong_cli(content: str) -> bool:
+    for pattern in WRONG_CLI_PATTERNS:
+        if re.search(pattern, content, re.IGNORECASE):
+            return True
+    for pattern in CROSS_CLOUD_PATTERNS:
+        if re.search(pattern, content, re.IGNORECASE):
+            return True
     return False
 
 
@@ -705,7 +629,7 @@ def main():
     parser.add_argument(
         "--remove-generic",
         action="store_true",
-        help="Remove generic template responses",
+        help="Remove responses that are too short (< 50 chars)",
     )
     parser.add_argument(
         "--remove-wrong-cli",
@@ -717,7 +641,11 @@ def main():
         action="store_true",
         help="Fix context pollution (remove [context: shape=...] from user messages)",
     )
-    parser.add_argument("--dedup", action="store_true", help="Deduplicate responses")
+    parser.add_argument(
+        "--dedup",
+        action="store_true",
+        help="Deduplicate responses (DISABLED - use dedupe_embedding.py instead)",
+    )
     parser.add_argument("--diacritics", action="store_true", help="Add diacritics")
     parser.add_argument(
         "--remove-shapes-from-responses",
@@ -730,7 +658,7 @@ def main():
     remove_generic = args.remove_generic or do_all
     remove_wrong_cli = args.remove_wrong_cli or do_all
     fix_pollution = args.fix_pollution or do_all
-    dedup = args.dedup or do_all
+    dedup = args.dedup
     add_diacritics_flag = args.diacritics or do_all
     remove_shapes_from_responses = args.remove_shapes_from_responses or do_all
 
@@ -744,7 +672,7 @@ def main():
     stats = {"total": len(examples)}
 
     if remove_generic:
-        print("\n[1/5] Removing generic template responses...")
+        print("\n[1/5] Removing responses that are too short...")
         filtered = []
         for ex in examples:
             assistant = ""
@@ -752,8 +680,7 @@ def main():
                 if msg.get("role") == "assistant":
                     assistant = msg.get("content", "")
                     break
-            category = ex.get("metadata", {}).get("category", "")
-            if not is_generic_template(assistant, category):
+            if not is_generic_template(assistant):
                 filtered.append(ex)
             else:
                 stats["removed_generic"] = stats.get("removed_generic", 0) + 1
@@ -761,16 +688,15 @@ def main():
         print(f"  Removed {stats.get('removed_generic', 0)}, {len(examples)} remaining")
 
     if remove_wrong_cli:
-        print("\n[2/5] Removing wrong CLI commands...")
+        print("\n[2/5] Removing fake OCI CLIs and cross-cloud references...")
         filtered = []
         for ex in examples:
-            category = ex.get("metadata", {}).get("category", "unknown")
             assistant = ""
             for msg in ex.get("messages", []):
                 if msg.get("role") == "assistant":
                     assistant = msg.get("content", "")
                     break
-            if not has_wrong_cli(assistant, category):
+            if not has_wrong_cli(assistant):
                 filtered.append(ex)
             else:
                 stats["removed_wrong_cli"] = stats.get("removed_wrong_cli", 0) + 1
@@ -810,36 +736,11 @@ def main():
         print(f"  Fixed {fixed} examples")
 
     if dedup:
-        print("\n[4/5] Deduplicating responses...")
-        seen: Set[str] = set()
-        filtered = []
-        for ex in examples:
-            user_content = "".join(
-                [
-                    msg.get("content", "")
-                    for msg in ex.get("messages", [])
-                    if msg.get("role") == "user"
-                ]
-            )
-            assistant_content = "".join(
-                [
-                    msg.get("content", "")
-                    for msg in ex.get("messages", [])
-                    if msg.get("role") == "assistant"
-                ]
-            )
-            category = ex.get("metadata", {}).get("category", "unknown")
-            # Deduplicate based on the combination of Question + Answer
-            key = f"{category}:{response_hash(user_content + assistant_content)}"
-            if key not in seen:
-                seen.add(key)
-                filtered.append(ex)
-            else:
-                stats["removed_dedup"] = stats.get("removed_dedup", 0) + 1
-        examples = filtered
         print(
-            f"  Removed {stats.get('removed_dedup', 0)} duplicates, {len(examples)} remaining"
+            "\n[4/5] Deduplicating responses (DISABLED - use dedupe_embedding.py instead)..."
         )
+        print("  Skipped - dedup semântico está em dedupe_embedding.py")
+        stats["removed_dedup"] = 0
 
     if add_diacritics_flag:
         print("\n[5/5] Adding Portuguese diacritics...")

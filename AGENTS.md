@@ -134,6 +134,16 @@ data/eval.jsonl      → evaluation set (~10%): 1,930 examples
 - `outputs/benchmarks/` - evaluation reports
 - `outputs/logs/` - training logs and metrics CSV
 
+## RAG Layer & Orchestration (OCI Copilot)
+
+O projeto evoluiu para um sistema Multi-Agentes para atuar como o **OCI Copilot** rodando localmente de forma eficiente no Mac (M3 Pro 18GB).
+
+### Componentes Principais
+- **UI (Frontend):** `rag/app_chainlit.py` (Substituiu o Open WebUI). Interface robusta e transparente construída com **Chainlit**, suportando anexos de arquivos locais, streaming de respostas do LLM, configurações de estratégia e Action Buttons com Human-in-the-loop (HITL).
+- **Orquestração:** `rag/orchestrator.py`. Máquina de estados baseada em **LangGraph** que traduz o arquivo `config/oci-copilot-agents.yaml` em um grafo real de agentes (ex: Router → Descoberta → Arquitetura). Possui trava de segurança para execução de comandos (`_execution_node`).
+- **Ingestão Offline:** `scripts/update_rag.py`. Para economizar RAM durante a inferência, a ingestão de documentos é feita offline e persiste em disco os índices via FAISS (`.faiss`) e BM25 (`.pkl`). O RAG utiliza "Lazy Loading".
+- **Retrievers:** `hybrid_retriever.py` usa FAISS (Densa) e BM25 (Esparsa) com fusão **Reciprocal Rank Fusion (RRF)** e suporte a Cross-Encoder Re-ranking caso o modelo seja provisionado.
+
 ## Provider Strategy
 
 - **OpenCode Zen**: Critical project engineering and review
