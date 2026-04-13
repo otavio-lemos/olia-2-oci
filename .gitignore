@@ -27,3 +27,7 @@ backup_*/
 
 /* Firecrawl cache */
 .firecrawl/
+
+# Worktrees (isolated workspaces)
+/.worktrees/
+worktrees/
