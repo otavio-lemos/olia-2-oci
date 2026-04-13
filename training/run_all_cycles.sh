@@ -1,6 +1,5 @@
 #!/bin/bash
 # Auto-detects and runs ALL cycles that exist in config/
-# Each cycle uses the adapter from previous cycle via PREV_ADAPTER
 #
 # Usage:
 #   bash training/run_all_cycles.sh --fresh  # runs all cycles
@@ -33,35 +32,16 @@ echo "============================================"
 
 source venv/bin/activate
 
-# Track previous cycle
-PREV_OUTPUT=""
-
 # Run each cycle in order
 for CYCLE in $CYCLES; do
     echo ""
     echo "=== CICLO: $CYCLE ==="
     
-    # Clean if --fresh
     if [ -n "$FRESH" ]; then
         rm -rf outputs/$CYCLE
     fi
     
-    # If not first cycle, update PREV_ADAPTER in config
-    if [ -n "$PREV_OUTPUT" ]; then
-        echo "Setting PREV_ADAPTER to: $PREV_OUTPUT/adapters"
-        sed -i "s|^PREV_ADAPTER=.*|PREV_ADAPTER=\"$PREV_OUTPUT/adapters\"|" config/${CYCLE}.env
-    fi
-    
-    # Run training for this cycle
     CYCLE=$CYCLE python training/train_mlx_tune.py
-    
-    # Remember this cycle's output for next iteration
-    PREV_OUTPUT="outputs/$CYCLE"
-    
-    # Restore PREV_ADAPTER to empty for next config
-    if [ -n "$PREV_OUTPUT" ]; then
-        sed -i 's|^PREV_ADAPTER=.*|PREV_ADAPTER=""|' config/${CYCLE}.env 2>/dev/null || true
-    fi
 done
 
 echo ""
