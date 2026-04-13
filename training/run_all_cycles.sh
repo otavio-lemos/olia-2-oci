@@ -41,7 +41,7 @@ for CYCLE in $CYCLES; do
         rm -rf outputs/$CYCLE
     fi
     
-    python training/train_mlx_tune.py --cycle $CYCLE
+    CYCLE=$CYCLE python training/train_mlx_tune.py
 done
 
 echo ""
