@@ -393,16 +393,9 @@ make -j
 
 As seguintes melhorias estão em progresso ou planejadas:
 
-1. ~~**Implementar RAG**~~ ✅ **IMPLEMENTADO** - Veja seção RAG acima.
+1. ~~**Implementar RAG (Retrieval-Augmented Generation)**~~ ✅ **IMPLEMENTADO**: O projeto agora possui um pipeline Multi-Agente usando LangGraph, FAISS/BM25 locais (ingestão offline) e uma interface **Chainlit** robusta.
 
-2. ~~**Ciclo 2 de Fine-Tuning**~~ 🏃 **EM ANDAMENTO**:
-    - **Auditoria do Dataset**: ✅ Concluída para categorias com regressão (Terraform, Governance)
-    - **Geração**: ✅ 500 novos exemplos com tom conversacional
-    - **Preparação**: ✅ Dataset mesclado (5500 exemplos: 5000 cycle-1 + 500 cycle-2)
-    - **Configuração**: LORA_RANK=16, LORA_ALPHA=32 (em config/cycle-2.env)
-    - **Treinamento**: Execute `CYCLE=cycle-2 bash training/run_all_cycles.sh --fresh`
-
-3. **Integração com o Hugging Face Hub**: Upload dos adaptadores e modelos GGUF para o Hugging Face Hub (futuro).
+2. **Integração com o Hugging Face Hub**: Upload dos adaptadores e modelos GGUF (incluindo o Qwen 2.5 Coder 7B fine-tunado) para o Hugging Face Hub (futuro).
 
 ---
 
