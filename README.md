@@ -7,7 +7,7 @@ Large Language Model (LLM) fine-tuned para Oracle Cloud Infrastructure (OCI) usa
 [![License](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.12-blue?style=flat-square&logo=python&logoColor=white)](https://www.python.org)
 [![MLX](https://img.shields.io/badge/MLX-Apple%20Silicon-orange?style=flat-square)](https://mlx.ai)
-[![Model](https://img.shields.io/badge/Base%20Model-Meta--Llama--3.1--8B--Instruct--4bit-purple?style=flat-square)](https://huggingface.co/mlx-community/Meta-Llama-3.1-8B-Instruct-4bit)
+[![Model](https://img.shields.io/badge/Base%20Model-Qwen2.5--Coder--7B--Instruct--4bit-purple?style=flat-square)](https://huggingface.co/mlx-community/Qwen2.5-Coder-7B-Instruct-4bit)
 [![Dataset](https://img.shields.io/badge/Dataset-21327_examples-green?style=flat-square)](docs/taxonomy.md)
 
 > **Idioma**: Dados e prompts em Português do Brasil (PT-BR).
@@ -281,7 +281,7 @@ chainlit run rag/app_chainlit.py -w
 ```bash
 # Iniciar o servidor com os adaptadores LoRA fine-tuned
 mlx_lm.server \
-  --model mlx-community/Meta-Llama-3.1-8B-Instruct-4bit \
+  --model mlx-community/Qwen2.5-Coder-7B-Instruct-4bit \
   --adapter outputs/cycle-1/adapters \
   --port 8080
 ```
@@ -412,7 +412,7 @@ As seguintes melhorias estão em progresso ou planejadas:
 - [MLX-LM GitHub](https://github.com/ml-explore/mlx-lm)
 - [llama.cpp](https://github.com/ggerganov/llama.cpp)
 - [Documentação Oficial do OCI](https://docs.oracle.com/en-us/iaas/Content/home.htm)
-- [Modelo Base no HuggingFace](https://huggingface.co/mlx-community/Meta-Llama-3.1-8B-Instruct-4bit)
+- [Modelo Base no HuggingFace](https://huggingface.co/mlx-community/Qwen2.5-Coder-7B-Instruct-4bit)
 
 ---
 
@@ -554,4 +554,4 @@ Após completar o treinamento (`cycle-1`), o modelo fine-tuned foi avaliado cont
 | 86 | troubleshooting/performance | 3.51 | 3.21 | -0.31 |
 | 87 | troubleshooting/storage | 3.39 | 3.27 | -0.13 |
 
-</details>
+</details>>
