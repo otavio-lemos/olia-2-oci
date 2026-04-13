@@ -10,17 +10,19 @@ Large Language Model (LLM) fine-tuned para Oracle Cloud Infrastructure (OCI) usa
 [![Model](https://img.shields.io/badge/Base%20Model-Qwen2.5--Coder--7B--Instruct--4bit-purple?style=flat-square)](https://huggingface.co/mlx-community/Qwen2.5-Coder-7B-Instruct-4bit)
 [![Dataset](https://img.shields.io/badge/Dataset-21327_examples-green?style=flat-square)](docs/taxonomy.md)
 
-> **Idioma**: Dados e prompts em Português do Brasil (PT-BR).
+---
 
-### Core Stack
-- **LLM**: Qwen 2.5 Coder 7B Instruct (Fine-tuned via MLX LoRA).
-- **Framework**: [MLX Framework](https://mlx.ai) / MLX-Tune (Native Apple Silicon).
-- **Orquestração**: [LangGraph](https://python.langchain.com/docs/langgraph) & [LangChain](https://langchain.com) (Multi-Agent System).
-- **Interface**: [Chainlit](https://chainlit.io) (Interactive UI com HITL).
-- **RAG**: Busca Híbrida (FAISS + Rank-BM25) com persistência local.
-- **Backend**: [FastAPI](https://fastapi.tiangolo.com) (RAG Service).
-- **Embeddings**: [Sentence-Transformers](https://sbert.net) (Hugging Face).
+### 🚀 Core Stack & Componentes
+- **LLM Base**: [Qwen 2.5 Coder 7B Instruct](https://huggingface.co/Qwen/Qwen2.5-Coder-7B-Instruct) (4-bit).
+- **Orquestração de Agentes**: [LangGraph](https://python.langchain.com/docs/langgraph) & [LangChain](https://langchain.com).
+- **Interface OCI Copilot**: [Chainlit](https://chainlit.io) (Interactive UI com HITL).
+- **Treinamento e Inferência**: [MLX Framework](https://mlx.ai) & [MLX-Tune](https://github.com/Aaronipher/mlx-tune).
+- **RAG (Busca Híbrida)**: [FAISS](https://github.com/facebookresearch/faiss) (Dense) + [Rank-BM25](https://github.com/dorianbrown/rank_bm25) (Sparse).
+- **Backend Service**: [FastAPI](https://fastapi.tiangolo.com) (RAG API).
+- **Embeddings & Rerank**: [Hugging Face](https://huggingface.co) & [Sentence-Transformers](https://sbert.net).
 - **Hardware**: Otimizado para Apple Silicon (M3 Pro 18GB).
+- **Linguagem**: Python 3.12.
+- **Idioma**: Dados e prompts em Português do Brasil (PT-BR).
 
 ---
 

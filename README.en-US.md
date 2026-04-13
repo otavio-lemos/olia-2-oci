@@ -10,17 +10,19 @@ Large Language Model (LLM) fine-tuned for Oracle Cloud Infrastructure (OCI) usin
 [![Model](https://img.shields.io/badge/Base%20Model-Qwen2.5--Coder--7B--Instruct--4bit-purple?style=flat-square)](https://huggingface.co/mlx-community/Qwen2.5-Coder-7B-Instruct-4bit)
 [![Dataset](https://img.shields.io/badge/Dataset-21327_examples-green?style=flat-square)](docs/taxonomy.md)
 
-> **Language**: Data and prompts in Brazilian Portuguese (PT-BR).
+---
 
-### Core Stack
-- **LLM**: Qwen 2.5 Coder 7B Instruct (Fine-tuned via MLX LoRA).
-- **Framework**: [MLX Framework](https://mlx.ai) / MLX-Tune (Native Apple Silicon).
-- **Orchestration**: [LangGraph](https://python.langchain.com/docs/langgraph) & [LangChain](https://langchain.com) (Multi-Agent System).
-- **Interface**: [Chainlit](https://chainlit.io) (Interactive UI with HITL).
-- **RAG**: Hybrid Search (FAISS + Rank-BM25) with local persistence.
-- **Backend**: [FastAPI](https://fastapi.tiangolo.com) (RAG Service).
-- **Embeddings**: [Sentence-Transformers](https://sbert.net) (Hugging Face).
+### 🚀 Core Stack & Components
+- **Base LLM**: [Qwen 2.5 Coder 7B Instruct](https://huggingface.co/Qwen/Qwen2.5-Coder-7B-Instruct) (4-bit).
+- **Agent Orchestration**: [LangGraph](https://python.langchain.com/docs/langgraph) & [LangChain](https://langchain.com).
+- **OCI Copilot Interface**: [Chainlit](https://chainlit.io) (Interactive UI with HITL).
+- **Training and Inference**: [MLX Framework](https://mlx.ai) & [MLX-Tune](https://github.com/Aaronipher/mlx-tune).
+- **RAG (Hybrid Search)**: [FAISS](https://github.com/facebookresearch/faiss) (Dense) + [Rank-BM25](https://github.com/dorianbrown/rank_bm25) (Sparse).
+- **Backend Service**: [FastAPI](https://fastapi.tiangolo.com) (RAG API).
+- **Embeddings & Rerank**: [Hugging Face](https://huggingface.co) & [Sentence-Transformers](https://sbert.net).
 - **Hardware**: Optimized for Apple Silicon (M3 Pro 18GB).
+- **Language**: Python 3.12.
+- **Language (Locale)**: Brazilian Portuguese (PT-BR) data and prompts.
 
 ---
 
