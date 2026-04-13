@@ -23,14 +23,14 @@ for arg in "$@"; do
     fi
 done
 
-CYCLE="cycle-1"  # Padrão: apenas 1 ciclo
+CYCLE="${CYCLE:-cycle-1}"  # Usa CYCLE env ou padrão para cycle-1
 
 mkdir -p "outputs/logs"
 
 # Clean outputs if --fresh
 if [ -n "$FRESH" ]; then
     echo "[fresh] Cleaning outputs..."
-    for dir in outputs/cycle-1 outputs/logs outputs/benchmarks outputs/merged-model; do
+    for dir in outputs/${CYCLE} outputs/logs outputs/benchmarks outputs/merged-model; do
         if [ -d "$dir" ]; then
             rm -rf "$dir"
             echo "[fresh] Cleaned: $dir"
