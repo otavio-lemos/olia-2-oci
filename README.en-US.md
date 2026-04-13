@@ -14,10 +14,12 @@ Large Language Model (LLM) fine-tuned for Oracle Cloud Infrastructure (OCI) usin
 
 ### Core Stack
 - **LLM**: Qwen 2.5 Coder 7B Instruct (Fine-tuned via MLX LoRA).
-- **Orchestration**: LangGraph (Multi-Agent System).
-- **Interface**: Chainlit (Interactive UI with HITL).
-- **RAG**: Hybrid Search (FAISS + BM25) with local persistence.
-- **Backend**: FastAPI (RAG Service).
+- **Framework**: [MLX Framework](https://mlx.ai) / MLX-Tune (Native Apple Silicon).
+- **Orchestration**: [LangGraph](https://python.langchain.com/docs/langgraph) & [LangChain](https://langchain.com) (Multi-Agent System).
+- **Interface**: [Chainlit](https://chainlit.io) (Interactive UI with HITL).
+- **RAG**: Hybrid Search (FAISS + Rank-BM25) with local persistence.
+- **Backend**: [FastAPI](https://fastapi.tiangolo.com) (RAG Service).
+- **Embeddings**: [Sentence-Transformers](https://sbert.net) (Hugging Face).
 - **Hardware**: Optimized for Apple Silicon (M3 Pro 18GB).
 
 ---
@@ -108,9 +110,49 @@ flowchart LR
 
 ---
 
+## Getting Started
+
+### 1. Training Environment (LLM)
+
+```bash
+python3.12 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+```
+
+### 2. OCI Copilot Environment (RAG)
+
+```bash
+python3.12 -m venv venv-rag
+source venv-rag/bin/activate
+pip install -r requirements-rag.txt
+pip install langgraph chainlit
+```
+
+### Quick Start
+
+```bash
+# 1. Prepare data
+bash scripts/prepare_data.sh
+
+# 2. Ingest Documentation (Offline RAG)
+python scripts/update_rag.py
+
+# 3. Train Model
+bash training/run_all_cycles.sh --fresh
+
+# 4. Start Interface
+# Terminal 1: RAG API
+uvicorn rag.api:app --port 8000
+# Terminal 2: Copilot UI
+chainlit run rag/app_chainlit.py
+```
+
+---
+
 ## Training
 
-Training now uses the **Qwen 2.5 Coder 7B Instruct** (4-bit) model, optimized for maximum performance on Apple Silicon M3 Pro.
+Training uses the **Qwen 2.5 Coder 7B Instruct** (4-bit) model, optimized for maximum performance on Apple Silicon M3 Pro.
 
 ### Environment Preparation
 
@@ -244,13 +286,14 @@ The following improvements are planned:
 This project was developed by integrating the following cutting-edge technologies:
 
 - **Hardware**: Apple Silicon (M3 Pro) with Unified Memory.
-- **Training and Inference**: [MLX Framework](https://mlx.ai) and MLX-Tune.
+- **Training and Inference**: [MLX Framework](https://mlx.ai) and [MLX-Tune](https://github.com/Aaronipher/mlx-tune).
 - **Base Model**: [Qwen 2.5 Coder 7B Instruct](https://huggingface.co/Qwen/Qwen2.5-Coder-7B-Instruct) (Alibaba Cloud).
 - **Agent Orchestration**: [LangGraph](https://python.langchain.com/docs/langgraph) and [LangChain](https://langchain.com).
 - **User Interface**: [Chainlit](https://chainlit.io).
 - **Backend Services**: [FastAPI](https://fastapi.tiangolo.com).
-- **Search Engines (RAG)**: FAISS (Dense) and Rank-BM25 (Sparse).
-- **Embeddings and Re-ranking**: [Hugging Face](https://huggingface.co) and Sentence-Transformers.
+- **Search Engines (RAG)**: [FAISS](https://github.com/facebookresearch/faiss) (Dense) and [Rank-BM25](https://github.com/dorianbrown/rank_bm25) (Sparse).
+- **Embeddings and Re-ranking**: [Hugging Face](https://huggingface.co) and [Sentence-Transformers](https://sbert.net).
+- **Development**: [Python 3.12](https://www.python.org).
 - **Data**: Synthesized and validated specifically for Oracle Cloud Infrastructure (OCI) scenarios.
 
 ---
