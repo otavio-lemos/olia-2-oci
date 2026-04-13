@@ -193,6 +193,60 @@ As saídas incluem:
 
 ---
 
+## RAG (Retrieval-Augmented Generation)
+
+```bash
+# Criar ambiente
+python -m venv venv-rag
+source venv-rag/bin/activate
+pip install -r requirements-rag.txt
+
+# Testes
+pytest tests/ -v
+```
+
+### Estrutura
+
+```
+rag/
+├── config.py          # Carrega config YAML
+├── loaders.py         # Document loaders
+├── splitter.py        # Text splitter
+├── dense_retriever.py # FAISS + embeddings
+├── sparse_retriever.py # BM25
+├── hybrid_retriever.py # RRF fusion
+├── tools.py           # LangChain tools
+├── api.py             # FastAPI service
+└── demo.py            # Demo script
+```
+
+### Estratégias
+
+| Estratégia | Descrição | Pesos (dense, sparse) |
+|------------|-----------|---------------------|
+| `default` | Hybrid padrão | [0.7, 0.3] |
+| `migracao` | Para migração | [0.6, 0.4] |
+| `configuracao` | Para config | [0.4, 0.6] |
+| `troubleshooting` | Para problemas | [0.5, 0.5] |
+
+### API
+
+```bash
+# Iniciar servidor
+python -m rag.api
+
+# Buscar
+curl -X POST "http://localhost:8000/rag/retrieve" \
+  -H "Content-Type: application/json" \
+  -d '{"query": "Como criar instance no OCI?", "strategy": "migracao"}'
+```
+
+### UI Recomendada
+
+Usar **Open WebUI** (docker) ou **RAGFlow** para interface completa.
+
+---
+
 ## Inferência
 
 > Todos os métodos usam o modelo fine-tuned e expõem uma API compatível com OpenAI ou uma interface (UI) integrada em `http://localhost:8080`.
@@ -312,9 +366,9 @@ make -j
 
 ## Roadmap
 
-Com base nos resultados do ciclo de treinamento inicial (`cycle-1`), as seguintes melhorias estão planejadas:
+As seguintes melhorias estão em progresso ou planejadas:
 
-1. **Implementar RAG (Retrieval-Augmented Generation)**: O modelo fine-tuned atual teve uma melhora significativa na estrutura e formatação, mas não possui acesso em tempo real à documentação do OCI. Para resolver problemas onde informações factuais são necessárias (como preços, flags específicas de CLI ou parâmetros que mudam rapidamente), planejamos implementar um pipeline RAG. Isso combinará os novos recursos de formatação do modelo com informações precisas e atualizadas extraídas da documentação oficial da Oracle, o que é mais eficaz do que tentar armazenar todo o conhecimento factual puramente nos pesos do modelo.
+1. ~~**Implementar RAG**~~ ✅ **IMPLEMENTADO** - Veja seção RAG acima.
 
 2. **Ciclo 2 de Fine-Tuning (`cycle-2`)**:
     - **Auditoria do Dataset**: Realizar uma revisão completa e limpeza nas categorias que apresentaram regressão durante o `cycle-1`, focando especificamente em Terraform e Governance. Os exemplos gerados podem conter sintaxe desatualizada ou padrões confusos que atrapalharam o modelo.
@@ -322,7 +376,7 @@ Com base nos resultados do ciclo de treinamento inicial (`cycle-1`), as seguinte
     - **Aumentar Profundidade (Depth)**: Substituir perguntas genéricas por perguntas baseadas em cenários arquiteturais mais complexos, visando melhorar as métricas de `depth` e `technical_correctness`.
     - **Ajuste de Hiperparâmetros (Tuning)**: Testar ajustes nos hiperparâmetros do LoRA (por exemplo, aumentar `LORA_RANK` para 16 ou 32, e `LORA_ALPHA` para 32 ou 64) para permitir que o modelo absorva mais conhecimento do domínio em vez de focar apenas em formatação estrutural.
 
-3. **Integração com o Hugging Face Hub**: Fazer o upload dos adaptadores fine-tuned finais e dos modelos GGUF mesclados para o Hugging Face Hub. Isso tornará os modelos facilmente acessíveis para a comunidade e facilitará o deploy em outros ambientes.
+3. **Integração com o Hugging Face Hub**: Upload dos adaptadores e modelos GGUF para o Hugging Face Hub (futuro).
 
 ---
 
