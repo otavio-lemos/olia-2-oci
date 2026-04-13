@@ -16,7 +16,7 @@ Large Language Model (LLM) fine-tuned for Oracle Cloud Infrastructure (OCI) usin
 
 ## Overview
 
-This project trains a specialized LLM for Oracle Cloud Infrastructure using Apple's MLX framework on Apple Silicon. The pipeline covers dataset generation, validation, MLX LoRA fine-tuning, and integration with a RAG layer (OCI Copilot).
+This project trains a specialized LLM for Oracle Cloud Infrastructure using Apple's MLX framework on Apple Silicon. The pipeline covers dataset generation, validation, fine-tuning via MLX LoRA, and integration with a RAG layer (OCI Copilot).
 
 ```mermaid
 flowchart LR
@@ -27,8 +27,8 @@ flowchart LR
 
     subgraph PREPARATION["Phase 2: Preparation"]
         B --> C1["Concat<br/>all_curated.jsonl"]
-        C1 --> C2["Validate<br/>validate_jsonl.py"]
-        C2 --> C3["Clean<br/>clean_dataset.py"]
+        C1 --> C2["Validation<br/>validate_jsonl.py"]
+        C2 --> C3["Cleaning<br/>clean_dataset.py"]
         C3 --> C4["Dedup<br/>dedupe_embedding.py"]
         C4 --> C5["Split<br/>build_dataset_fixed.py"]
         C5 --> D["train.jsonl<br/>valid.jsonl<br/>eval.jsonl"]
@@ -70,11 +70,12 @@ flowchart LR
 
 ## Features
 
-- **LoRA Fine-tuning**: Low-rank adaptation with Qwen 2.5 Coder 7B (4-bit) base model.
-- **M3 Pro Optimized**: Hyper-optimized settings for 18GB RAM, using native BF16 and zero Swap.
-- **Hybrid RAG**: Semantic (FAISS) + Lexical (BM25) search with disk persistence and Offline Ingestion.
-- **Multi-Agent**: Orchestration via LangGraph (Router, Discovery, Architecture, Execution).
-- **Advanced UI**: Chainlit interface with support for attachments, streaming, and Human-in-the-loop for CLI commands.
+- **LoRA Fine-tuning**: Low-rank adaptation with **Qwen 2.5 Coder 7B Instruct** (4-bit) base model.
+- **M3 Pro Optimized**: Hyper-optimized configurations for 18GB RAM, using **native BF16** and zero disk Swap.
+- **Advanced Hybrid RAG**: Semantic (FAISS) + Lexical (BM25) search with local persistence and **Offline Ingestion**.
+- **Multi-Agent System**: Orchestration via **LangGraph** (Router, Discovery, Architecture, Execution).
+- **OCI Copilot Interface**: UI built with **Chainlit**, supporting file attachments, token streaming, and **Human-in-the-loop** for safe CLI commands.
+- **Automated Evaluation**: Benchmark pipeline to measure technical accuracy, hallucination, and depth.
 
 ---
 
@@ -99,9 +100,11 @@ flowchart LR
 
 ---
 
-## Getting Started
+## Training
 
-### 1. Training Environment (LLM)
+Training now uses the **Qwen 2.5 Coder 7B Instruct** (4-bit) model, optimized for maximum performance on Apple Silicon M3 Pro.
+
+### Environment Preparation
 
 ```bash
 python3.12 -m venv venv
@@ -109,7 +112,58 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 2. OCI Copilot Environment (RAG)
+### Execution
+
+```bash
+# Run the consolidated training cycle
+bash training/run_all_cycles.sh --fresh
+```
+
+**Optimized Configuration** (`config/cycle-1.env`):
+
+| Parameter | Value | Description |
+|-----------|-------|-------------|
+| **MODEL** | `Qwen2.5-Coder-7B-Instruct-4bit` | Superior code base |
+| **NUM_LAYERS** | 14 | 50% of layers (Total: 28) |
+| **BATCH_SIZE** | 1 | Agility in single sequences |
+| **GRAD_ACCUM** | 4 | Effective batch size of 4 |
+| **BF16** | true | Native hardware acceleration on M3 |
+| **GRAD_CHECKPOINT**| false | Priority for speed (Tokens/sec) |
+| **ITERS** | 4000 | Complete learning cycle |
+| **MAX_SEQ** | 768 | Ideal context for OCI |
+
+---
+
+## Evaluation
+
+The evaluation pipeline compares the fine-tuned model against the base model to ensure no catastrophic regressions occurred.
+
+```bash
+# Recommended Evaluation (200 stratified samples, ~30 min)
+python scripts/unified_evaluation.py --cycle cycle-1 --mode medium --fresh
+
+# Full Evaluation (2133 samples, ~4-6 hours)
+python scripts/unified_evaluation.py --cycle cycle-1 --mode full --fresh
+```
+
+### Summary of Results (Initial)
+
+| Metric | Base Model | Fine-Tuned | Delta |
+|--------|-------------|------------|-------|
+| technical_correctness | 3.40 | 3.40 | +0.00 |
+| depth | 2.60 | 2.60 | +0.00 |
+| structure | 3.93 | 4.23 | +0.30 |
+| hallucination | 3.25 | 3.87 | +0.62 |
+| clarity | 3.49 | 3.19 | -0.30 |
+| **Overall** | **3.33** | **3.46** | **+0.12** |
+
+---
+
+## RAG (Retrieval-Augmented Generation)
+
+OCI Copilot uses a persistent RAG layer to access real-time facts from Oracle documentation.
+
+### RAG Setup
 
 ```bash
 python3.12 -m venv venv-rag
@@ -118,102 +172,72 @@ pip install -r requirements-rag.txt
 pip install langgraph chainlit
 ```
 
-### Quick Start
-
+### Offline Ingestion (Mandatory)
+To save RAM, indices must be generated before starting the system:
 ```bash
-# 1. Prepare data
-bash scripts/prepare_data.sh
-
-# 2. Ingest Documentation (RAG Offline)
 python scripts/update_rag.py
+```
 
-# 3. Train Model
-bash training/run_all_cycles.sh --fresh
+### Module Structure
+- `api.py`: FastAPI backend serving FAISS and BM25 indices.
+- `orchestrator.py`: **LangGraph** orchestrator (Router -> Specialists -> Execution).
+- `app_chainlit.py`: Visual interface with attachment support and manual command approval.
 
-# 4. Start Interface
-# Terminal 1: RAG API
+---
+
+## Inference
+
+After training, you can spin up the model for local or API use.
+
+### MLX-LM API
+```bash
+mlx_lm.server --model mlx-community/Qwen2.5-Coder-7B-Instruct-4bit --adapter outputs/cycle-1/adapters
+```
+
+### OCI Copilot UI (Official)
+```bash
+# Start the full ecosystem
+# Terminal 1:
 uvicorn rag.api:app --port 8000
-# Terminal 2: Copilot UI
+# Terminal 2:
 chainlit run rag/app_chainlit.py
 ```
 
 ---
 
-## Training
+## Benchmark
 
-Training uses the **Qwen 2.5 Coder 7B Instruct** (4-bit) model, optimized for the M3 Pro chip.
+### Metrics Comparison
+![Comparison Chart](outputs/benchmarks/comparison_chart_20260411_063001.png)
 
-```bash
-bash training/run_all_cycles.sh --fresh
-```
+### Performance by Category
+![Category Chart](outputs/benchmarks/category_chart_20260411_063001.png)
 
-**Current Configuration** (`config/cycle-1.env`):
-
-| Parameter | Value |
-|-----------|-------|
-| MODEL | mlx-community/Qwen2.5-Coder-7B-Instruct-4bit |
-| NUM_LAYERS | 14 |
-| BATCH_SIZE | 1 |
-| GRADIENT_ACCUMULATION | 4 |
-| BF16 | true |
-| GRADIENT_CHECKPOINTING | false |
-| ITERS | 4000 |
-| MAX_SEQ_LENGTH | 768 |
-| LEARNING_RATE | 2e-4 |
-| LORA_RANK | 8 |
-| LORA_ALPHA | 16 |
-
----
-
-## OCI Copilot (RAG)
-
-The RAG system now operates persistently and orchestrated.
-
-### Offline Ingestion
-To save RAM, generate indices before use:
-```bash
-python scripts/update_rag.py
-```
-
-### LangGraph Orchestration
-The `rag/orchestrator.py` file manages the flow between agents:
-- **Router**: Classifies user intent.
-- **Specialists**: Query RAG with dynamic weights (Hybrid).
-- **Execution**: Generates commands and waits for manual approval (HITL).
-
----
-
-## Inference and UI
-
-The official interface is **Chainlit**, accessible at `http://localhost:8000` after starting the script.
-
-```bash
-chainlit run rag/app_chainlit.py -w
-```
+### Top Gains
+1. **Troubleshooting Functions**: +0.65
+2. **Networking VCN**: +0.62
+3. **Storage File**: +0.57
+4. **Troubleshooting Compute**: +0.57
+5. **Migration Azure Storage**: +0.55
 
 ---
 
 ## Roadmap
 
-1. ~~**Implement RAG**~~ ✅ **COMPLETED**
-2. ~~**Migrate to Qwen 2.5 Coder**~~ ✅ **COMPLETED**
-3. **Hugging Face Hub Integration**: Upload adapters and GGUF models.
+1. ~~**Hybrid RAG Implementation**~~ ✅ Completed.
+2. ~~**Migration to Qwen 2.5 Coder Architecture**~~ ✅ Completed.
+3. ~~**Multi-Agent Orchestration with LangGraph**~~ ✅ Completed.
+4. **OpenRouter Integration**: Routing to frontier models (Claude/GPT-4) for complex tasks.
+5. **Hugging Face Hub Export**: Publishing trained adapters.
+
+---
+
+## Acknowledgments
+
+This project was developed using Apple Silicon hardware infrastructure and the MLX library, with data synthesized and validated specifically for OCI scenarios.
 
 ---
 
 ## License
 
-This project is licensed under the MIT License.
-
----
-
-## Evaluation Summary (Initial Results)
-
-| Metric | Base Model | Fine-Tuned (Cycle 1) | Delta |
-|--------|-------------|------------|-------|
-| technical_correctness | 3.40 | 3.40 | +0.00 |
-| depth | 2.60 | 2.60 | +0.00 |
-| structure | 3.93 | 4.23 | +0.30 |
-| hallucination | 3.25 | 3.87 | +0.62 |
-| clarity | 3.49 | 3.19 | -0.30 |
-| overall | 3.33 | 3.46 | +0.12 |
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
