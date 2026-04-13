@@ -65,7 +65,7 @@ CYCLE=cycle-1 python training/train_mlx_tune.py --fresh
 | Dropout | 0.05 |
 | Batch | 1 |
 | Grad Accum | 4 |
-| Num Layers | 16 |
+| Num Layers | 14 |
 | Max Seq | 768 |
 | Warmup | 320 |
 | Weight Decay | 0.01 |

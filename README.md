@@ -182,7 +182,7 @@ CYCLE=cycle-2 bash training/run_all_cycles.sh --fresh
 | LORA_RANK | 16 |
 | LORA_ALPHA | 32 |
 | LORA_DROPOUT | 0.05 |
-| NUM_LAYERS | 16 |
+| NUM_LAYERS | 14 |
 | GRADIENT_CHECKPOINTING | true |
 | GRADIENT_ACCUMULATION | 4 |
 | WARMUP_STEPS | 300 |
