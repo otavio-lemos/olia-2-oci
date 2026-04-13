@@ -1,9 +1,12 @@
 #!/bin/bash
-# Simple: run cycle-1, then cycle-2
-# 
+# Auto-detects and runs ALL cycles that exist in config/
+#
 # Usage:
-#   bash training/run_all_cycles.sh --fresh  # runs both cycles
+#   bash training/run_all_cycles.sh --fresh  # runs all cycles
 set -e
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 
 FRESH=""
 for arg in "$@"; do
@@ -12,18 +15,39 @@ for arg in "$@"; do
     fi
 done
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "$SCRIPT_DIR/.."
+cd "$PROJECT_DIR"
+
+# Find all cycle configs
+CYCLES=$(ls config/cycle-*.env 2>/dev/null | sed 's|config/cycle-||' | sed 's|\.env||' | sort -V)
+
+if [ -z "$CYCLES" ]; then
+    echo "ERROR: No cycle configs found in config/"
+    exit 1
+fi
+
+echo "============================================"
+echo "OCI Specialist LLM - Auto Training"
+echo "Found cycles: $CYCLES"
+echo "============================================"
 
 source venv/bin/activate
 
-echo "=== CICLO 1 ==="
-rm -rf outputs/cycle-1
-python training/train_mlx_tune.py --cycle cycle-1 $FRESH
+# Run each cycle in order
+for CYCLE in $CYCLES; do
+    echo ""
+    echo "=== CICLO: $CYCLE ==="
+    
+    if [ -n "$FRESH" ]; then
+        rm -rf outputs/$CYCLE
+    fi
+    
+    python training/train_mlx_tune.py --cycle $CYCLE $FRESH
+    
+    # After first cycle, subsequent cycles continue from previous
+    FRESH=""
+done
 
 echo ""
-echo "=== CICLO 2 (continuando do cycle-1) ==="
-python training/train_mlx_tune.py --cycle cycle-2 --fresh
-
-echo ""
-echo "=== PRONTO! cycle-1 + cycle-2 ==="
+echo "============================================"
+echo "✓ ALL CYCLES COMPLETE: $CYCLES"
+echo "============================================"
