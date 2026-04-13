@@ -2,162 +2,65 @@
 
 ## Project Overview
 
-This project builds a fine-tuned LLM specialist in Oracle Cloud Infrastructure (OCI) using Apple Silicon, MLX, and LoRA. The pipeline prioritizes dataset quality, low cost, rigorous validation, and a future RAG layer.
+This project builds a fine-tuned LLM specialist in Oracle Cloud Infrastructure (OCI) using Apple Silicon, MLX, and LoRA. The pipeline prioritizes dataset quality, low cost, and a robust RAG layer (OCI Copilot).
 
 ## Tech Stack
 
 - **Hardware**: Apple Silicon M3 Pro (18GB unified memory)
-- **Framework**: MLX-Tune 0.4.18 (wrapper sobre MLX-LM 0.31.1)
-- **MLX Core**: 0.31.1
-- **Method**: LoRA (Low-Rank Adaptation) with 4-bit quantized base model
-- **Format**: JSONL chat format
-- **Python**: 3.12 (venv: `venv/`)
-
-### Dependencies (venv)
-```
-mlx==0.31.1
-mlx-lm==0.31.1
-mlx-tune==0.4.18
-transformers==5.4.0
-sentence-transformers==5.3.0
-scikit-learn==1.8.0
-```
+- **Model**: Qwen 2.5 Coder 7B Instruct (4-bit)
+- **Framework**: MLX-Tune 0.4.18
+- **Orchestration**: LangGraph, Chainlit (UI)
+- **Data**: JSONL chat format (PT-BR)
 
 ## Pipeline Stages
 
-1. **Documentation** → scope, taxonomy, quality rules, eval rubric
-2. **Data Generation** → generate examples using prompts
-3. **Data Collection** → raw → sanitized → curated
-4. **Validation** → JSONL validator, deduplication
-5. **Dataset Building** → build, split, export
-6. **Training** → MLX-Tune LoRA fine-tuning (single cycle)
-7. **Evaluation** → benchmark base vs fine-tuned
+1. **Data Generation** → generate examples using prompts
+2. **Validation** → JSONL validator, deduplication
+3. **Training** → MLX-Tune LoRA fine-tuning (Single Cycle)
+4. **Ingestion** → Offline document ingestion for RAG
+5. **Deployment** → local inference via Chainlit UI
 
-## Training Architecture
+## Training Configuration (Cycle 1)
 
-### MLX-Tune Training Script
-- **Main script**: `training/train_mlx_tune.py`
-- **Config**: `config/cycle-N.env` (via `CYCLE` env var)
-- **API**: mlx-tune SFTTrainer (Unsloth-compatible)
-- **Suporte nativo**:
-  - Warmup steps
-  - Weight decay
-  - Gradient clipping (max_grad_norm)
-  - LR schedulers (cosine, linear, etc)
-
-### Como rodar treinamento
-```bash
-# Ativar venv primeiro
-source venv/bin/activate
-
-# Treinar (do zero)
-CYCLE=cycle-1 python training/train_mlx_tune.py --fresh
-```
-
-### Configuração do Cycle 1
-
-| Param | Valor |
-|-------|-------|
+| Parameter | Value |
+|-----------|-------|
+| MODEL | mlx-community/Qwen2.5-Coder-7B-Instruct-4bit |
 | Iters | 4000 |
-| LR | 2e-4 |
-| Rank | 8 |
-| Alpha | 16 |
-| Dropout | 0.05 |
 | Batch | 1 |
 | Grad Accum | 4 |
 | Num Layers | 14 |
 | Max Seq | 768 |
-| Warmup | 320 |
-| Weight Decay | 0.01 |
-| Grad Checkpointing | false |
 | BF16 | true |
+| Grad Checkpointing | false |
 
-### Performance Esperada (M3 Pro 18GB)
-- **Peak memory**: ~9.8 GB (sem checkpointing)
-- **Velocidade**: ~150-160 tokens/sec
-- **Cycle 1 (4000 iters)**: ~2-3 horas
-- **Loss**: Val ~2.8 → ~0.04, Train ~3.1 → ~0.05
+### Expected Performance (M3 Pro 18GB)
+- **Peak memory**: ~9.8 GB
+- **Throughput**: ~150-165 tokens/sec
+- **Duration**: ~2.5 hours
 
 ## Data Flow
 
 ```
-data/curated/        → Generated examples (one file per topic)
-                      format: [topic].jsonl
-data/all_curated.jsonl → concatenated examples
-data/all_curated_clean.jsonl → validated and deduplicated
-data/train.jsonl     → training set (~75%): 15,995 examples
-data/valid.jsonl     → validation set (~15%): 3,199 examples
-data/eval.jsonl      → evaluation set (~10%): 2,133 examples
-                      Total: 21,327 examples
+data/curated/        → Generated topic-specific JSONL files
+data/all_curated.jsonl → Concatenated and sanitized dataset
+data/train.jsonl     → 15,995 examples (75%)
+data/valid.jsonl     → 3,199 examples (15%)
+data/eval.jsonl      → 2,133 examples (10%)
+Total: 21,327 examples
 ```
-
-## Quality Rules (Rigid)
-
-- **NEVER** copy OCI documentation verbatim
-- **NEVER** invent non-existent Oracle services
-- **NEVER** use prices or limits without marking as mutable content
-- **NEVER** create vague examples like "use best practices"
-- **NEVER** generate architectural responses without steps, risks, or justifications
-- **NEVER** mix training and evaluation data
-- **ALWAYS** validate JSONL before export
-- **ALWAYS** generate quality reports
-- **ALWAYS** review examples by category before consolidating
-
-## JSONL Format
-
-```json
-{
-  "messages": [
-    {"role": "system", "content": "Você é um arquiteto especialista em OCI..."},
-    {"role": "user", "content": "Como criar instância no OCI?"},
-    {"role": "assistant", "content": "Para criar uma instância..."}
-  ],
-  "metadata": {
-    "category": "oci-core/compute",
-    "difficulty": "intermediate",
-    "source": "generated"
-  }
-}
-```
-
-## Prohibited Content
-
-- Literal documentation copies
-- Made-up OCI services or features
-- Unmarked mutable content (prices, limits, quotas)
-- Generic advice without specific steps
-- Responses without justification in architectural scenarios
-
-## Output Artifacts
-
-- `data/curated/` - individual generated examples
-- `outputs/cycle-N/` - trained LoRA adapters per cycle
-- `outputs/benchmarks/` - evaluation reports
-- `outputs/logs/` - training logs and metrics CSV
 
 ## RAG Layer & Orchestration (OCI Copilot)
 
-O projeto evoluiu para um sistema Multi-Agentes para atuar como o **OCI Copilot** rodando localmente de forma eficiente no Mac (M3 Pro 18GB).
+The project includes a multi-agent system acting as the **OCI Copilot**, optimized for local execution.
 
-### Componentes Principais
-- **UI (Frontend):** `rag/app_chainlit.py` (Substituiu o Open WebUI). Interface robusta e transparente construída com **Chainlit**, suportando anexos de arquivos locais, streaming de respostas do LLM, configurações de estratégia e Action Buttons com Human-in-the-loop (HITL).
-- **Orquestração:** `rag/orchestrator.py`. Máquina de estados baseada em **LangGraph** que traduz o arquivo `config/oci-copilot-agents.yaml` em um grafo real de agentes (ex: Router → Descoberta → Arquitetura). Possui trava de segurança para execução de comandos (`_execution_node`).
-- **Ingestão Offline:** `scripts/update_rag.py`. Para economizar RAM durante a inferência, a ingestão de documentos é feita offline e persiste em disco os índices via FAISS (`.faiss`) e BM25 (`.pkl`). O RAG utiliza "Lazy Loading".
-- **Retrievers:** `hybrid_retriever.py` usa FAISS (Densa) e BM25 (Esparsa) com fusão **Reciprocal Rank Fusion (RRF)** e suporte a Cross-Encoder Re-ranking caso o modelo seja provisionado.
+### Components
+- **UI:** `rag/app_chainlit.py`. Features file attachments, streaming, and Human-in-the-loop (HITL) for safe CLI execution.
+- **Orchestration:** `rag/orchestrator.py` (LangGraph). Manages state and logic between agents (Router, Specialists, Execution).
+- **Ingestion:** `scripts/update_rag.py`. Offline processing to persist FAISS and BM25 indices to disk, ensuring memory efficiency during chat.
 
-## Provider Strategy
+## Quality Rules
 
-- **OpenCode Zen**: Critical project engineering and review
-- **Prompt execution**: Prompts are executed as specified in each tmp/prompt_*.md file
-
-## Checkpoints
-
-1. Taxonomy and categories approval
-2. Quality rules approval
-3. Generation prompts review
-4. First 50 examples review
-5. Validation scripts review
-6. Deduplication review
-7. Benchmark review
-8. Short training run
-9. Base vs fine-tuned comparison
+- **NEVER** copy documentation verbatim.
+- **ALWAYS** include technical steps and justifications.
+- **ALWAYS** validate JSONL structure before ingestion.
+- **NEVER** allow autonomous execution of destructive OCI commands (HITL required).
