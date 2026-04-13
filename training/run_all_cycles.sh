@@ -23,7 +23,10 @@ for arg in "$@"; do
     fi
 done
 
-CYCLE="${CYCLE:-cycle-1}"  # Usa CYCLE env ou padrão para cycle-1
+# Se nao passou CYCLE via env, usa cycle-1
+if [ -z "$CYCLE" ]; then
+    CYCLE="cycle-1"
+fi
 
 mkdir -p "outputs/logs"
 
