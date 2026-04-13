@@ -32,19 +32,20 @@ echo "============================================"
 
 source venv/bin/activate
 
+IS_FIRST=1
+
 # Run each cycle in order
 for CYCLE in $CYCLES; do
     echo ""
     echo "=== CICLO: $CYCLE ==="
     
-    if [ -n "$FRESH" ]; then
+    if [ -n "$FRESH" ] && [ $IS_FIRST -eq 1 ]; then
         rm -rf outputs/$CYCLE
+        python training/train_mlx_tune.py --cycle $CYCLE --fresh
+        IS_FIRST=0
+    else
+        python training/train_mlx_tune.py --cycle $CYCLE
     fi
-    
-    python training/train_mlx_tune.py --cycle $CYCLE $FRESH
-    
-    # After first cycle, subsequent cycles continue from previous
-    FRESH=""
 done
 
 echo ""
