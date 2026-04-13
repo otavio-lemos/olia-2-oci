@@ -224,11 +224,10 @@ chainlit run rag/app_chainlit.py
 
 ## Roadmap
 
-1. ~~**Hybrid RAG Implementation**~~ ✅ Completed.
-2. ~~**Migration to Qwen 2.5 Coder Architecture**~~ ✅ Completed.
-3. ~~**Multi-Agent Orchestration with LangGraph**~~ ✅ Completed.
-4. **OpenRouter Integration**: Routing to frontier models (Claude/GPT-4) for complex tasks.
-5. **Hugging Face Hub Export**: Publishing trained adapters.
+The following improvements are planned:
+
+1. **OpenRouter Integration**: Routing to frontier models (Claude/GPT-4) for complex tasks.
+2. **Hugging Face Hub Export**: Publishing trained adapters.
 
 ---
 
