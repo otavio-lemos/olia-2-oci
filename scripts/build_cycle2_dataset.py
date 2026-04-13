@@ -1,0 +1,132 @@
+#!/usr/bin/env python3
+"""Build train/valid/eval from single JSONL or directory of JSON files."""
+
+import json
+import sys
+import random
+from pathlib import Path
+from typing import List, Dict, Any
+from collections import defaultdict
+
+
+def load_examples(input_path: Path) -> List[Dict[str, Any]]:
+    """Load from single JSONL OR directory of JSON files."""
+    examples = []
+
+    if input_path.is_file() and input_path.suffix == ".jsonl":
+        with open(input_path, "r", encoding="utf-8") as f:
+            for line in f:
+                try:
+                    ex = json.loads(line.strip())
+                    if isinstance(ex, dict):
+                        examples.append(ex)
+                except json.JSONDecodeError:
+                    continue
+    elif input_path.is_dir():
+        for json_file in input_path.rglob("*.jsonl"):
+            if json_file.name in ["all_unique.jsonl", "all_curated.jsonl"]:
+                continue
+            with open(json_file, "r", encoding="utf-8") as f:
+                for line in f:
+                    try:
+                        ex = json.loads(line.strip())
+                        if isinstance(ex, dict):
+                            examples.append(ex)
+                    except json.JSONDecodeError:
+                        continue
+    else:
+        raise ValueError(f"Input must be JSONL file or directory: {input_path}")
+
+    print(f"✅ Loaded {len(examples)} examples from {input_path}")
+    return examples
+
+
+def ensure_chat_format(example: Dict[str, Any]) -> Dict[str, Any]:
+    """Ensure chat format - preserves existing system prompt if present."""
+    if "messages" in example:
+        # Already chat format - preserve as-is (including existing system prompt)
+        return example
+
+    # Convert legacy format (should not happen with new data)
+    raise ValueError(
+        f"Example at line does not have 'messages' field - legacy format not supported"
+    )
+
+
+def balanced_split_v2(
+    examples: List[Dict[str, Any]], ratios: Dict[str, float], seed: int = 42
+) -> Dict[str, List]:
+    """Simple random split with exact ratios."""
+    import random
+
+    # Shuffle all examples randomly
+    random.seed(seed)
+    shuffled = list(examples)
+    random.shuffle(shuffled)
+
+    n = len(shuffled)
+    total_ratios = sum(ratios.values())
+
+    # Calculate exact split indices
+    train_size = int(n * ratios["train"] / total_ratios)
+    valid_size = int(n * ratios["valid"] / total_ratios)
+    eval_size = n - train_size - valid_size  # Exact remainder
+
+    splits = {
+        "train": shuffled[:train_size],
+        "valid": shuffled[train_size : train_size + valid_size],
+        "eval": shuffled[train_size + valid_size :],
+    }
+
+    return splits
+
+
+def save_jsonl(examples: List[Dict], filepath: Path):
+    filepath.parent.mkdir(parents=True, exist_ok=True)
+    with open(filepath, "w", encoding="utf-8") as f:
+        for ex in examples:
+            f.write(json.dumps(ex, ensure_ascii=False) + "\n")
+
+
+def main():
+    import argparse
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--input", "-i", required=True, help="JSONL file or curated dir"
+    )
+    parser.add_argument("--output", "-o", default="data/", help="Output directory")
+    parser.add_argument("--train-ratio", type=float, default=0.75)
+    parser.add_argument("--valid-ratio", type=float, default=0.15)
+    parser.add_argument("--eval-ratio", type=float, default=0.10)
+    parser.add_argument("--seed", type=int, default=42)
+    args = parser.parse_args()
+
+    print("🚀 Building OCI specialist dataset...")
+
+    # Load
+    examples = load_examples(Path(args.input))
+    chat_examples = [ensure_chat_format(ex) for ex in examples]
+
+    # Split
+    ratios = {
+        "train": args.train_ratio,
+        "valid": args.valid_ratio,
+        "eval": args.eval_ratio,
+    }
+    splits = balanced_split_v2(chat_examples, ratios)
+
+    # Save
+    output_dir = Path(args.output)
+    save_jsonl(splits["train"], output_dir / "train.jsonl")
+    save_jsonl(splits["valid"], output_dir / "valid.jsonl")
+    save_jsonl(splits["eval"], output_dir / "eval.jsonl")
+
+    print("\n✅ Dataset splits criados:")
+    print(f"   📚 train.jsonl: {len(splits['train'])} exemplos")
+    print(f"   ✅ valid.jsonl: {len(splits['valid'])} exemplos")
+    print(f"   🧪 eval.jsonl:  {len(splits['eval'])} exemplos")
+
+
+if __name__ == "__main__":
+    main()

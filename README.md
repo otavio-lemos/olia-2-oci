@@ -148,18 +148,28 @@ python scripts/merge_export.py --cycle cycle-1 --quant q4 --name oci-specialist
 ## Treinamento
 
 ```bash
-# Treinar com um único ciclo (recomendado)
+# Ciclo 1 (original)
 bash training/run_all_cycles.sh --fresh
+
+# Ciclo 2 (com LORA_RANK=16)
+CYCLE=cycle-2 bash training/run_all_cycles.sh --fresh
 ```
 
-**Configuração**: Veja `config/cycle-1.env`
+**Configuração**: Veja `config/cycle-1.env` (Ciclo 1) ou `config/cycle-2.env` (Ciclo 2)
+
+### Ciclo 1
 
 | Parâmetro | Valor |
 |-----------|-------|
-| MODEL | mlx-community/Meta-Llama-3.1-8B-Instruct-4bit |
-| LEARNING_RATE | 2e-4 |
 | LORA_RANK | 8 |
 | LORA_ALPHA | 16 |
+
+### Ciclo 2
+
+| Parâmetro | Valor |
+|-----------|-------|
+| LORA_RANK | 16 |
+| LORA_ALPHA | 32 |
 | LORA_DROPOUT | 0.05 |
 | NUM_LAYERS | 16 |
 | GRADIENT_CHECKPOINTING | true |
@@ -370,11 +380,12 @@ As seguintes melhorias estão em progresso ou planejadas:
 
 1. ~~**Implementar RAG**~~ ✅ **IMPLEMENTADO** - Veja seção RAG acima.
 
-2. **Ciclo 2 de Fine-Tuning (`cycle-2`)**:
-    - **Auditoria do Dataset**: Realizar uma revisão completa e limpeza nas categorias que apresentaram regressão durante o `cycle-1`, focando especificamente em Terraform e Governance. Os exemplos gerados podem conter sintaxe desatualizada ou padrões confusos que atrapalharam o modelo.
-    - **Refinar o Tom do Dataset para Clareza**: A métrica de `clarity` (clareza) diminuiu durante o `cycle-1`. O dataset será revisado para garantir um tom mais natural e conversacional ("engenheiro sênior explicando a um colega") em vez de um tom muito burocrático e robótico para evitar respostas difíceis de ler.
-    - **Aumentar Profundidade (Depth)**: Substituir perguntas genéricas por perguntas baseadas em cenários arquiteturais mais complexos, visando melhorar as métricas de `depth` e `technical_correctness`.
-    - **Ajuste de Hiperparâmetros (Tuning)**: Testar ajustes nos hiperparâmetros do LoRA (por exemplo, aumentar `LORA_RANK` para 16 ou 32, e `LORA_ALPHA` para 32 ou 64) para permitir que o modelo absorva mais conhecimento do domínio em vez de focar apenas em formatação estrutural.
+2. ~~**Ciclo 2 de Fine-Tuning**~~ 🏃 **EM ANDAMENTO**:
+    - **Auditoria do Dataset**: ✅ Concluída para categorias com regressão (Terraform, Governance)
+    - **Geração**: ✅ 500 novos exemplos com tom conversacional
+    - **Preparação**: ✅ Dataset mesclado (5500 exemplos: 5000 cycle-1 + 500 cycle-2)
+    - **Configuração**: LORA_RANK=16, LORA_ALPHA=32 (em config/cycle-2.env)
+    - **Treinamento**: Execute `CYCLE=cycle-2 bash training/run_all_cycles.sh --fresh`
 
 3. **Integração com o Hugging Face Hub**: Upload dos adaptadores e modelos GGUF para o Hugging Face Hub (futuro).
 
