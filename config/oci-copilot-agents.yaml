@@ -1,0 +1,214 @@
+version: 1
+
+rag:
+  # Config global de RAG
+  default_strategy: hybrid  # dense + sparse
+  dense:
+    embedding_model: "oci-specialist-embedding-v1"
+    index: "oci_docs_dense_index"
+    top_k: 20
+  sparse:
+    engine: "elasticsearch"
+    index: "oci_docs_sparse_index"
+    top_k: 40
+  fusion:
+    method: "rrf"           # reciprocal rank fusion
+    dense_weight: 0.7
+    sparse_weight: 0.3
+  re_ranking:
+    enabled: true
+    model: "oci-migration-cross-encoder-v1"
+    top_k: 10
+  query_rewriting:
+    enabled: true
+    # o próprio LLM especialista reescreve a query para retrieval
+    system_prompt: |
+      Você é um otimizador de consultas para recuperação de documentos
+      de nuvem (AWS, Azure, GCP, On-prem e OCI). Reescreva a pergunta
+      do usuário incluindo nomes exatos de serviços, produtos, padrões
+      de migração e termos relevantes para buscar na documentação.
+
+  # Regras específicas por tipo (override da estratégia global se necessário)
+  by_type:
+    migracao:
+      dense.top_k: 30
+      sparse.top_k: 60
+      fusion.dense_weight: 0.6
+      fusion.sparse_weight: 0.4
+    configuracao:
+      # para config, dar um pouco mais de peso para sparse (flags, parâmetros)
+      fusion.dense_weight: 0.4
+      fusion.sparse_weight: 0.6
+    troubleshooting:
+      re_ranking.enabled: true
+      dense.top_k: 15
+      sparse.top_k: 50
+
+agents:
+  router:
+    description: "Classifica intenção, seleciona tipo e orquestra o fluxo."
+    tools: ["intent_classifier", "rag_retrieve"]
+    rag_strategy: "dense"  # foca em entender a intenção
+
+  descoberta:
+    description: "Assessment inicial de workloads, requisitos e restrições."
+    tools: ["rag_retrieve", "inventory_reader", "question_asker"]
+    rag_strategy: "hybrid"
+    default_type: "descoberta"
+
+  arquitetura:
+    description: "Desenha/revisa arquiteturas alvo em OCI (landing zones, rede, bancos, HA/DR)."
+    tools: ["rag_retrieve", "diagram_helper", "oci_reference_architectures"]
+    rag_strategy: "hybrid"
+    metadata_filters:
+      domain: ["architecture", "landing-zone"]
+
+  migracao:
+    description: "Planeja migrações (lift-and-shift, replatform, refactor) multi-cloud → OCI."
+    tools: ["rag_retrieve", "migration_patterns", "oci_migration_guides"]
+    rag_strategy: "hybrid"
+    metadata_filters:
+      domain: ["migration"]
+      cloud_provider: ["aws", "azure", "gcp", "onprem"]
+
+  execucao:
+    description: "Gera artefatos executáveis (Terraform, OCI CLI, scripts) e valida planos."
+    tools: ["rag_retrieve", "terraform_generator", "oci_cli_generator", "terraform_validator"]
+    rag_strategy: "hybrid"
+    metadata_filters:
+      doc_type: ["example", "how-to", "code"]
+
+  configuracao_seg:
+    description: "Configuração de IAM, rede, policies, guardrails e compliance."
+    tools: ["rag_retrieve", "policy_generator", "policy_linter", "network_template_helper"]
+    rag_strategy: "hybrid"
+    metadata_filters:
+      domain: ["security", "governance", "networking"]
+
+  finops:
+    description: "Estimativa e otimização de custos para arquiteturas e migrações."
+    tools: ["rag_retrieve", "oci_pricing_api", "cost_simulator"]
+    rag_strategy: "hybrid"
+    metadata_filters:
+      domain: ["finops", "cost-optimization"]
+
+  troubleshooting:
+    description: "Diagnóstico de problemas (performance, erro, disponibilidade) usando docs + métricas/logs."
+    tools: ["rag_retrieve", "metrics_reader", "logs_search", "incident_playbooks"]
+    rag_strategy: "hybrid"
+    metadata_filters:
+      domain: ["troubleshooting", "observability"]
+
+  operacoes:
+    description: "Rotinas de operação/SRE (backups, DR drills, rotação de secrets, manutenção de clusters)."
+    tools: ["rag_retrieve", "runbook_library", "scheduler_api"]
+    rag_strategy: "hybrid"
+    metadata_filters:
+      domain: ["operations", "sre-operations"]
+
+  devops:
+    description: "CI/CD, Resource Manager, pipelines e integração com VCS."
+    tools: ["rag_retrieve", "pipeline_templates", "resource_manager_api"]
+    rag_strategy: "hybrid"
+    metadata_filters:
+      domain: ["devops", "ci-cd"]
+
+  documentacao:
+    description: "Gera ADRs, runbooks, relatórios executivos e documentação de migração."
+    tools: ["rag_retrieve", "summary_builder", "doc_formatter"]
+    rag_strategy: "dense"
+    metadata_filters:
+      doc_type: ["reference", "how-to", "best-practices"]
+
+workflows:
+  # Tipos / modos de alto nível
+  migracao:
+    entry_agent: "router"
+    pipeline:
+      - "descoberta"
+      - "arquitetura"
+      - "migracao"
+      - "finops"
+      - "execucao"
+      - "documentacao"
+
+  arquitetura:
+    entry_agent: "router"
+    pipeline:
+      - "descoberta"
+      - "arquitetura"
+      - "finops"
+      - "configuracao_seg"
+      - "documentacao"
+
+  configuracao:
+    entry_agent: "router"
+    pipeline:
+      - "configuracao_seg"
+      - "execucao"
+      - "troubleshooting"   # opcional, se detectado problema
+      - "documentacao"
+
+  troubleshooting:
+    entry_agent: "router"
+    pipeline:
+      - "troubleshooting"
+      - "configuracao_seg"
+      - "operacoes"
+      - "documentacao"
+
+  finops:
+    entry_agent: "router"
+    pipeline:
+      - "finops"
+      - "arquitetura"        # se alteração estrutural for necessária
+      - "configuracao_seg"
+      - "documentacao"
+
+  governanca:
+    entry_agent: "router"
+    pipeline:
+      - "configuracao_seg"
+      - "arquitetura"
+      - "finops"
+      - "documentacao"
+
+  devops:
+    entry_agent: "router"
+    pipeline:
+      - "devops"
+      - "configuracao_seg"
+      - "operacoes"
+      - "documentacao"
+
+  performance:
+    entry_agent: "router"
+    pipeline:
+      - "troubleshooting"
+      - "arquitetura"
+      - "execucao"
+      - "documentacao"
+
+  operacao:
+    entry_agent: "router"
+    pipeline:
+      - "operacoes"
+      - "configuracao_seg"
+      - "documentacao"
+
+  descoberta:
+    entry_agent: "router"
+    pipeline:
+      - "descoberta"
+      - "documentacao"
+
+  documentacao:
+    entry_agent: "router"
+    pipeline:
+      - "documentacao"
+
+  auto:
+    # modo automático: router decide qual workflow usar
+    entry_agent: "router"
+    pipeline:
+      - "router"
