@@ -7,9 +7,11 @@ Large Language Model (LLM) fine-tuned for Oracle Cloud Infrastructure (OCI) usin
 [![License](https://img.shields.io/badge/License-MIT-yellow?style=flat-square)](LICENSE)
 [![Python](https://img.shields.io/badge/Python-3.12-blue?style=flat-square&logo=python&logoColor=white)](https://www.python.org)
 [![MLX](https://img.shields.io/badge/MLX-Apple%20Silicon-orange?style=flat-square)](https://mlx.ai)
+[![MLX-Tune](https://img.shields.io/badge/Finetune-MLX--Tune-blue?style=flat-square)](https://github.com/Aaronipher/mlx-tune)
 [![Model](https://img.shields.io/badge/Base%20Model-Qwen2.5--Coder--7B--Instruct--4bit-purple?style=flat-square)](https://huggingface.co/mlx-community/Qwen2.5-Coder-7B-Instruct-4bit)
 [![Dataset](https://img.shields.io/badge/Dataset-21327_examples-green?style=flat-square)](docs/taxonomy.md)
 [![LangGraph](https://img.shields.io/badge/Orchestration-LangGraph-black?style=flat-square&logo=langchain)](https://python.langchain.com/docs/langgraph)
+[![LangChain](https://img.shields.io/badge/Framework-LangChain-blue?style=flat-square&logo=langchain)](https://langchain.com)
 [![Chainlit](https://img.shields.io/badge/UI-Chainlit-orange?style=flat-square)](https://chainlit.io)
 [![FastAPI](https://img.shields.io/badge/API-FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
 [![FAISS](https://img.shields.io/badge/Dense-FAISS-76b900?style=flat-square)](https://github.com/facebookresearch/faiss)
@@ -23,14 +25,17 @@ Large Language Model (LLM) fine-tuned for Oracle Cloud Infrastructure (OCI) usin
 
 ### 🚀 Core Stack & Components
 - **Base LLM**: [Qwen 2.5 Coder 7B Instruct](https://huggingface.co/Qwen/Qwen2.5-Coder-7B-Instruct) (4-bit).
-- **Agent Orchestration**: [LangGraph](https://python.langchain.com/docs/langgraph) & [LangChain](https://langchain.com).
+- **Orchestration**: [LangGraph](https://python.langchain.com/docs/langgraph) (Multi-Agent State Machine).
+- **Agents Framework**: [LangChain](https://langchain.com) (Chain of Thought).
 - **OCI Copilot Interface**: [Chainlit](https://chainlit.io) (Interactive UI with HITL).
-- **Hybrid RAG**: **FAISS** (Dense Search) + **Rank-BM25** (Sparse Search).
-- **Re-ranking**: **Cross-Encoder** semantic validation for high precision.
-- **Search Fusion**: **Reciprocal Rank Fusion (RRF)**.
-- **Training and Inference**: [MLX Framework](https://mlx.ai) & [MLX-Tune](https://github.com/Aaronipher/mlx-tune).
-- **Backend Service**: [FastAPI](https://fastapi.tiangolo.com) (RAG API).
-- **Embeddings**: [Sentence-Transformers](https://sbert.net) (Hugging Face).
+- **Training**: [MLX-Tune](https://github.com/Aaronipher/mlx-tune) (SFTTrainer API).
+- **Inference**: [MLX Framework](https://mlx.ai) (Apple Silicon Native).
+- **RAG Dense**: [FAISS](https://github.com/facebookresearch/faiss) (Semantic Search).
+- **RAG Sparse**: [Rank-BM25](https://github.com/dorianbrown/rank_bm25) (Lexical Search).
+- **RAG Re-ranking**: [Sentence-Transformers](https://sbert.net) (Cross-Encoder).
+- **RAG Fusion**: Reciprocal Rank Fusion (RRF).
+- **Backend API**: [FastAPI](https://fastapi.tiangolo.com).
+- **Embeddings**: [Hugging Face](https://huggingface.co) (all-MiniLM-L6-v2).
 - **Hardware**: Optimized for Apple Silicon (M3 Pro 18GB).
 - **Development**: Python 3.12.
 
@@ -57,7 +62,7 @@ flowchart TD
         C2 --> C3["FastAPI Backend"]
     end
 
-    subgraph UI["4. Interface & Agents"]
+    subgraph UI["4. Interface & Agentes"]
         D1["orchestrator.py (LangGraph)"] --> D2["app_chainlit.py (UI)"]
     end
 
