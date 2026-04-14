@@ -43,6 +43,7 @@ O processo de desenvolvimento do OCI Specialist LLM segue uma ordem rigorosa de 
 flowchart TD
     subgraph GENERATION["1. Geração & Preparação"]
         A1["generate_diverse_v2.py"] --> A2["prepare_data.sh"]
+        A1b["generate_llm_v1.py\n(OpenRouter)"] --> A2
         A2 --> A3["train.jsonl / valid.jsonl"]
     end
 
@@ -144,22 +145,105 @@ Pipeline para validar, limpar, desduplicar e gerar splits do dataset.
 
 ```mermaid
 flowchart LR
-    A["generate_diverse_v2.py\n(87 tópicos)"] --> B["data/curated/\n(arquivos JSONL)"]
-    B --> C["prepare_data.sh"]
-    C --> D["validate_jsonl.py\n(estrutura)"]
-    D --> E["clean_dataset.py\n(conteúdo)"]
-    E --> F["dedupe_embedding.py\n(semântico)"]
-    F --> G["build_dataset_fixed.py\n(splits)"]
-    G --> H["train.jsonl\nvalid.jsonl\neval.jsonl"]
+    A1["generate_diverse_v2.py\n(templates locais)"] --> C
+    A2["generate_llm_v1.py\n(OpenRouter API)"] --> C
+    C["data/curated/\n(arquivos JSONL)"] --> D["prepare_data.sh"]
+    D --> E["validate_jsonl.py\n(estrutura)"]
+    E --> F["clean_dataset.py\n(conteúdo)"]
+    F --> G["dedupe_embedding.py\n(semântico)"]
+    G --> H["build_dataset_fixed.py\n(splits)"]
+    H --> I["train.jsonl\nvalid.jsonl\neval.jsonl"]
 ```
 
-### Comandos
+### Opção A — Geração Local (templates)
+
+Gera exemplos usando templates locais determinísticos. Rápido, sem custo, sem dependência de internet.
 
 ```bash
-# 1. Gerar dataset (87 categorias × 250 exemplos)
+# Gerar dataset (87 categorias × 250 exemplos)
 python scripts/generate_diverse_v2.py
+```
 
-# 2. Validar, limpar, desduplicar e gerar splits (75/15/10%)
+### Opção B — Geração via LLM (OpenRouter) ✨
+
+Gera exemplos usando LLMs reais (DeepSeek, Llama 3.3 70B, Qwen3) via [OpenRouter](https://openrouter.ai).
+Produz respostas mais naturais e variadas, complementando a Opção A.
+
+> [!NOTE]
+> Execute com o ambiente **venv** ativado: `source venv/bin/activate`
+
+#### Pré-requisitos
+
+```bash
+# Dependência adicional necessária
+pip install openai pyyaml
+```
+
+#### Configuração
+
+```bash
+# 1. Copiar o template de configuração
+cp config/llm_provider.example.yaml config/llm_provider.yaml
+
+# 2. Editar o arquivo com sua API key do OpenRouter
+#    Obtenha gratuitamente em: https://openrouter.ai/keys
+#    Edite o campo: provider.api_key
+```
+
+> [!WARNING]
+> O arquivo `config/llm_provider.yaml` contém sua API key e **nunca deve ser commitado**.
+> Ele já está no `.gitignore`. Apenas o `config/llm_provider.example.yaml` (sem secrets) é versionado.
+
+#### Modelos Gratuitos Configurados (abril 2026)
+
+| Modelo | ID no OpenRouter | Qualidade |
+|--------|-----------------|-----------|
+| DeepSeek Chat V3 | `deepseek/deepseek-chat-v3-0324:free` | ⭐⭐⭐⭐⭐ |
+| Llama 3.3 70B Instruct | `meta-llama/llama-3.3-70b-instruct:free` | ⭐⭐⭐⭐⭐ |
+| Qwen3 Coder | `qwen/qwen3-coder:free` | ⭐⭐⭐⭐⭐ |
+
+> [!NOTE]
+> O tier gratuito do OpenRouter tem limite de **~200 req/dia por modelo**.
+> Com 3 modelos em rotação = ~600 exemplos/dia. Para 1.000 exemplos, o script roda em ~2 dias com checkpoint automático.
+
+#### Execução
+
+```bash
+# Testar configuração (faz 1 request real sem gerar dataset)
+python scripts/generate_llm_v1.py --dry-run
+
+# Gerar dataset completo (retoma automaticamente se interromper)
+python scripts/generate_llm_v1.py
+
+# Gerar apenas categorias específicas
+python scripts/generate_llm_v1.py --categories compute/instances networking/vcn security/iam-basics
+
+# Ignorar checkpoint e começar do zero
+python scripts/generate_llm_v1.py --no-resume
+
+# Usar arquivo de configuração alternativo
+python scripts/generate_llm_v1.py --config config/meu_provider.yaml
+```
+
+#### Checkpoint & Resume
+
+O script salva progresso automaticamente a cada 50 exemplos em `data/.llm_gen_checkpoint.json`.
+Se a execução for interrompida (Ctrl+C, rate limit, queda de internet), basta rodar novamente — ele continua de onde parou.
+
+```bash
+# Continua automaticamente (comportamento padrão)
+python scripts/generate_llm_v1.py
+
+# Ver progresso atual
+cat data/.llm_gen_checkpoint.json | python -m json.tool
+```
+
+### Passo Final — Validar, Limpar e Gerar Splits
+
+Após gerar os exemplos (Opção A, B ou ambas), execute o pipeline de preparação:
+
+```bash
+# Validar, limpar, desduplicar e gerar splits (75/15/10%)
 bash scripts/prepare_data.sh
 ```
 
