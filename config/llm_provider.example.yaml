@@ -19,7 +19,7 @@ provider:
 # O script rotaciona entre eles automaticamente para maximizar throughput.
 # Deixe apenas 1 na lista se preferir um modelo fixo.
 models:
-  - id: "deepseek/deepseek-chat-v3-0324:free"
+  - id: "nvidia/nemotron-3-super-120b-a12b:free"
     weight: 2                               # peso relativo na rotação (mais = mais usado)
   - id: "meta-llama/llama-3.3-70b-instruct:free"
     weight: 2
