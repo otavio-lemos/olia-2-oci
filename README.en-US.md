@@ -115,6 +115,16 @@ flowchart TD
 
 Training uses the MLX-Tune framework, optimized for maximum performance on Apple Silicon M3 Pro.
 
+> [!IMPORTANT]
+> **All commands below must be executed from the project root directory.**
+
+### 0. Cloning the Repository
+
+```bash
+git clone https://github.com/otavio-lemos/olia-2-oci.git
+cd olia-2-oci
+```
+
 ### 1. Environment Setup
 
 ```bash
@@ -139,8 +149,10 @@ After training, you must merge the LoRA adapters with the base model and export 
 python scripts/merge_export.py --cycle cycle-1 --quant q4 --name oci-specialist
 ```
 
+### Optimized Configuration (`config/cycle-1.env`)
+
 <details>
-<summary><b>Click to view Optimized .env Configuration (26 parameters)</b></summary>
+<summary><b>Click to view Full .env Configuration (26 parameters)</b></summary>
 <sub>
 
 | Parameter | Value | Description |
@@ -276,17 +288,17 @@ To generate new benchmark reports, follow the instructions in the [Evaluation](#
 | clarity | 3.49 | 3.19 | -0.30 |
 | **Overall** | **3.33** | **3.46** | **+0.12** |
 
-### Top Gains by Topic
+### Top Gains by Topic (Top 5)
 1. **Troubleshooting Functions**: +0.65
 2. **Networking VCN**: +0.62
 3. **Storage File**: +0.57
 4. **Troubleshooting Compute**: +0.57
 5. **Migration Azure Storage**: +0.55
 
-### Detailed Category Results
+### Detailed Category Results (87 Topics)
 
 <details>
-<summary>Click to expand all 87 categories</summary>
+<summary>Click to expand the performance by category table</summary>
 <sub>
 
 | # | Category | Base | FT | Delta |

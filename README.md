@@ -126,6 +126,16 @@ flowchart LR
 
 O treinamento utiliza o framework MLX-Tune, focado na arquitetura do Apple Silicon.
 
+> [!IMPORTANT]
+> **Todos os comandos abaixo devem ser executados obrigatoriamente na raiz do projeto.**
+
+### 0. Clonagem do Repositório
+
+```bash
+git clone https://github.com/otavio-lemos/olia-2-oci.git
+cd olia-2-oci
+```
+
 ### 1. Setup do Ambiente de Treino
 
 ```bash
@@ -413,11 +423,11 @@ Este projeto foi desenvolvido integrando as seguintes tecnologias de ponta:
 - **Hardware**: Apple Silicon (M3 Pro) com Memória Unificada.
 - **Treinamento e Inferência**: [MLX Framework](https://mlx.ai) e [MLX-Tune](https://github.com/Aaronipher/mlx-tune).
 - **Modelo Base**: [Qwen 2.5 Coder 7B Instruct](https://huggingface.co/Qwen/Qwen2.5-Coder-7B-Instruct) (Alibaba Cloud).
-- **Orquestração de Agentes**: [LangGraph](https://python.langchain.com/docs/langgraph) e [LangChain](https://langchain.com).
+- **Orquestração de Agentes**: [LangGraph](https://python.langchain.com/docs/langgraph) e [LangChain](https://chainchain.com).
 - **Interface do Usuário**: [Chainlit](https://chainlit.io).
 - **Serviços de Backend**: [FastAPI](https://fastapi.tiangolo.com).
 - **Motores de Busca (RAG Híbrida)**: [FAISS](https://github.com/facebookresearch/faiss) (Dense) e [Rank-BM25](https://github.com/dorianbrown/rank_bm25) (Sparse).
-- **Embeddings e Re-ranking**: [Hugging Face](https://huggingface.co) e [Sentence-Transformers](https://sbert.net) (Cross-Encoder).
+- **Embeddings e Re-ranking**: [Hugging Face](https://huggingface.co) e [Sentence-Transformers](https://sbert.net).
 - **Desenvolvimento**: [Python 3.12](https://www.python.org).
 - **Dados**: Sintetizados e validados especificamente para cenários de Oracle Cloud Infrastructure (OCI).
 
