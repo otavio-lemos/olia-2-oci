@@ -136,6 +136,55 @@ pip install -r requirements-rag.txt
 
 ---
 
+## Preparação do Dataset
+
+Pipeline para validar, limpar, desduplicar e gerar splits do dataset.
+
+### Fluxo Completo
+
+```mermaid
+flowchart LR
+    A["generate_diverse_v2.py\n(87 tópicos)"] --> B["data/curated/\n(arquivos JSONL)"]
+    B --> C["prepare_data.sh"]
+    C --> D["validate_jsonl.py\n(estrutura)"]
+    D --> E["clean_dataset.py\n(conteúdo)"]
+    E --> F["dedupe_embedding.py\n(semântico)"]
+    F --> G["build_dataset_fixed.py\n(splits)"]
+    G --> H["train.jsonl\nvalid.jsonl\neval.jsonl"]
+```
+
+### Comandos
+
+```bash
+# 1. Gerar dataset (87 categorias × 250 exemplos)
+python scripts/generate_diverse_v2.py
+
+# 2. Validar, limpar, desduplicar e gerar splits (75/15/10%)
+bash scripts/prepare_data.sh
+```
+
+### Scripts do Pipeline
+
+| Script | Função | Entrada | Saída |
+|--------|--------|---------|-------|
+| `validate_jsonl.py` | Valida estrutura JSONL (schema messages) | `all_curated.jsonl` | `all_curated.jsonl` (ou falha) |
+| `clean_dataset.py` | Remove templates genéricos, CLI incorretas, ruído | `all_curated.jsonl` | `all_curated_clean.jsonl` |
+| `dedupe_embedding.py` | Desduplicação semântica por embeddings (threshold 0.97) | `all_curated_clean.jsonl` | `all_curated_semantic_dedup.jsonl` |
+| `build_dataset_fixed.py` | Gera splits (75% train, 15% valid, 10% eval) | `all_curated_semantic_dedup.jsonl` | `train.jsonl`, `valid.jsonl`, `eval.jsonl` |
+
+### Estatísticas do Pipeline
+
+| Etapa | Quantidade |
+|-------|-----------|
+| Bruto gerado | 21.750 exemplos |
+| Após limpeza | ~21.500 exemplos |
+| Após desduplicação | 21.327 exemplos |
+| Treino (75%) | 15.995 |
+| Validação (15%) | 3.199 |
+| Avaliação (10%) | 2.133 |
+
+---
+
 ## Treinamento
 
 O treinamento utiliza o framework MLX-Tune, focado na arquitetura do Apple Silicon.
