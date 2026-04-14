@@ -11,12 +11,7 @@ __pycache__/
 .ruff_cache/
 
 # Large model files (too big for Git)
-outputs/cycle-*/
-outputs/merged-model*/
-outputs/adapters/
-# But keep train/valid JSONL for reference
-!outputs/cycle-1/train.jsonl
-!outputs/cycle-1/valid.jsonl
+outputs/
 
 # Temp/diagnostic logs
 outputs/benchmarks/eval-run.log
