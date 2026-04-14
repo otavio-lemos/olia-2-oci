@@ -14,6 +14,9 @@ __pycache__/
 outputs/cycle-*/
 outputs/merged-model*/
 outputs/adapters/
+# But keep train/valid JSONL for reference
+!outputs/cycle-1/train.jsonl
+!outputs/cycle-1/valid.jsonl
 
 # Temp/diagnostic logs
 outputs/benchmarks/eval-run.log
