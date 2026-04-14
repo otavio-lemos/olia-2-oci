@@ -34,10 +34,11 @@ rate_limit:
   inter_request_delay_seconds: 4.0         # delay entre requests (batch precisa de menos requests)
 
 generation:
-  target_examples: 17750                   # total de exemplos (71 cats × 250 = 17.750)
-  examples_per_category: 250              # exemplos por categoria (alinhado com taxonomy.md)
-  batch_size: 30                           # exemplos por request — reduz requests de 17750 → ~592
-  max_tokens: 24500                        # 30 × ~800 tokens/exemplo + 500 overhead
+  target_examples: 15660                   # total de exemplos (87 cats × 180 = 15.660)
+  examples_per_category: 180               # exemplos por categoria
+  batch_size: 30                           # exemplos por request — reduz requests de 15660 → ~522
+  max_tokens: 24500                        # 30 × ~800 tokens/exemplo + 500 overhead — NÃO REDUZA
+  max_failures_per_batch: 5               # máx falhas consecutivas antes de pular categoria
   temperature: 0.85                        # criatividade (0.7-0.9 é bom para diversidade)
   checkpoint_every: 30                     # salva progresso a cada N exemplos
   output_dir: data/curated/llm_generated   # onde salvar os JSONL gerados
