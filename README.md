@@ -270,12 +270,43 @@ chainlit run rag/app_chainlit.py --port 8001
 
 A inferência local é realizada utilizando o modelo após o processo de **Merge**.
 
-### 1. Servidor de Inferência (MLX)
+### 1. Servidores de Inferência
+
+#### MLX (Recomendado - Apple Silicon)
+> [!TIP]
+> Recomendado para Apple Silicon. Inferência local via MLX com LoRA adapter.
+
 > [!NOTE]
 > Execute com o ambiente **venv** ativado: `source venv/bin/activate`
 
 ```bash
 mlx_lm.server --model mlx-community/Qwen2.5-Coder-7B-Instruct-4bit --adapter outputs/cycle-1/adapters
+```
+
+#### Ollama
+```bash
+# 1. Criar Modelfile
+cat > ./outputs/cycle-1/gguf/Modelfile << 'EOF'
+FROM ./oci-specialist-Q4_K_M.gguf
+PARAMETER temperature 0.1
+PARAMETER top_p 0.9
+PARAMETER top_k 40
+SYSTEM Você é um especialista em OCI (Oracle Cloud Infrastructure).
+EOF
+
+# 2. Criar modelo
+ollama create oci-specialist -f ./outputs/cycle-1/gguf/Modelfile
+
+# 3. Iniciar servidor em background
+ollama serve &
+
+# 4. Carregar modelo na memória
+curl http://localhost:11434/api/generate -d '{"model": "oci-specialist", "keep_alive": -1}'
+```
+
+#### llama.cpp
+```bash
+llama-server -m outputs/cycle-1/gguf/oci-specialist-Q4_K_M.gguf --port 8080
 ```
 
 ### 2. OCI Copilot UI
