@@ -19,6 +19,7 @@ import json
 import logging
 import os
 import random
+import re
 import sys
 import time
 from collections import defaultdict
@@ -41,46 +42,154 @@ logging.basicConfig(
 log = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
-# Constantes herdadas do generate_diverse_v2.py
+# Paths dos docs de referência
 # ---------------------------------------------------------------------------
 
-CATEGORIES = [
-    "compute/instances", "compute/scaling", "compute/custom-images",
-    "storage/block", "storage/object", "storage/file",
-    "networking/vcn", "networking/security", "networking/connectivity",
-    "lb/load-balancer",
-    "database/autonomous", "database/mysql", "database/postgresql",
-    "database/nosql", "database/autonomous-json", "database/exadata",
-    "container/oke", "container/instances",
-    "serverless/functions", "serverless/api-gateway",
-    "security/iam-basics", "security/policies", "security/dynamic-groups",
-    "security/federation", "security/vault-secrets", "security/vault-keys",
-    "security/encryption", "security/cloud-guard", "security/waf",
-    "security/zero-trust", "security/posture-management",
-    "migration/aws-compute", "migration/aws-storage", "migration/aws-database",
-    "migration/azure-compute", "migration/azure-storage", "migration/azure-database",
-    "migration/gcp-compute", "migration/gcp-storage", "migration/gcp-database",
-    "migration/onprem-compute", "migration/onprem-storage",
-    "migration/onprem-vmware", "migration/onprem-database", "migration/data-transfer",
-    "terraform/provider", "terraform/compute", "terraform/storage",
-    "terraform/networking", "terraform/load-balancer", "terraform/database",
-    "terraform/container", "terraform/serverless", "terraform/security",
-    "terraform/observability", "terraform/devops", "terraform/state",
-    "observability/logging", "observability/monitoring",
-    "observability/stack-monitoring", "observability/apm",
-    "troubleshooting/connectivity", "troubleshooting/performance",
-    "troubleshooting/authentication", "troubleshooting/database",
-    "troubleshooting/compute", "troubleshooting/storage",
-    "troubleshooting/oke", "troubleshooting/functions",
-    "devops/ci-cd", "devops/resource-manager", "devops/artifacts", "devops/secrets",
-    "governance/landing-zone", "governance/compartments", "governance/tagging",
-    "governance/budgets-cost", "governance/policies-guardrails",
-    "governance/compliance", "governance/audit-readiness",
-    "governance/resource-discovery",
-    "finops/cost-optimization", "finops/showback-chargeback",
-    "finops/rightsizing", "finops/storage-tiering",
-    "platform/backup-governance", "platform/sre-operations",
-]
+DOCS_DIR       = Path("docs")
+TAXONOMY_FILE  = DOCS_DIR / "taxonomy.md"
+QUALITY_FILE   = DOCS_DIR / "quality-rules.md"
+
+# ---------------------------------------------------------------------------
+# Leitura dinâmica do taxonomy.md
+# ---------------------------------------------------------------------------
+
+def load_taxonomy(path: Path = TAXONOMY_FILE) -> dict[str, dict]:
+    """Analisa o taxonomy.md e retorna um dict {category_id: {hints, docs_url}}.
+
+    Formato esperado no arquivo:
+        #### compute/instances (10)
+        - hint 1
+        - hint 2
+        - **Docs**: https://...
+    """
+    if not path.exists():
+        log.error(f"taxonomy.md não encontrado: {path}")
+        sys.exit(1)
+
+    taxonomy: dict[str, dict] = {}
+    current_cat: str | None = None
+    hints: list[str] = []
+    docs_url: str = ""
+
+    with open(path) as f:
+        for line in f:
+            line = line.rstrip()
+
+            # Nova categoria: "#### compute/instances (10)"
+            cat_match = re.match(r"^####\s+([\w/.-]+)", line)
+            if cat_match:
+                # Salva categoria anterior
+                if current_cat:
+                    taxonomy[current_cat] = {"hints": hints, "docs_url": docs_url}
+                current_cat = cat_match.group(1)
+                hints = []
+                docs_url = ""
+                continue
+
+            if current_cat is None:
+                continue
+
+            # URL de docs
+            docs_match = re.match(r"^-\s+\*\*Docs\*\*:\s+(https?://\S+)", line)
+            if docs_match:
+                docs_url = docs_match.group(1)
+                continue
+
+            # Hint de conteúdo
+            hint_match = re.match(r"^-\s+(.+)", line)
+            if hint_match:
+                hints.append(hint_match.group(1))
+
+    # Última categoria
+    if current_cat:
+        taxonomy[current_cat] = {"hints": hints, "docs_url": docs_url}
+
+    log.info(f"taxonomy.md carregado: {len(taxonomy)} categorias.")
+    return taxonomy
+
+
+# ---------------------------------------------------------------------------
+# Leitura dinâmica do quality-rules.md
+# ---------------------------------------------------------------------------
+
+PROHIBITED_MARKER = "### Prohibited Content"
+REQUIRED_MARKER   = "### Required Content"
+TEMPLATES_MARKER  = "### Response Templates"
+VALIDATION_MARKER = "### Validation Checklist"
+
+
+def load_quality_rules(path: Path = QUALITY_FILE) -> dict[str, str]:
+    """Lê o quality-rules.md e retorna as seções relevantes como texto.
+
+    Retorna:
+        {
+          "prohibited": "...",
+          "required":   "...",
+          "templates":  "...",
+        }
+    """
+    if not path.exists():
+        log.error(f"quality-rules.md não encontrado: {path}")
+        sys.exit(1)
+
+    sections: dict[str, list[str]] = {
+        "prohibited": [],
+        "required":   [],
+        "templates":  [],
+    }
+    current: str | None = None
+
+    with open(path) as f:
+        for line in f:
+            stripped = line.rstrip()
+
+            if PROHIBITED_MARKER in stripped:
+                current = "prohibited"; continue
+            if REQUIRED_MARKER in stripped:
+                current = "required"; continue
+            if TEMPLATES_MARKER in stripped:
+                current = "templates"; continue
+            if VALIDATION_MARKER in stripped:
+                current = None; continue  # para de coletar
+
+            if current is not None:
+                sections[current].append(stripped)
+
+    log.info("quality-rules.md carregado.")
+    return {k: "\n".join(v).strip() for k, v in sections.items()}
+
+
+# ---------------------------------------------------------------------------
+# Construção do system prompt a partir das quality rules
+# ---------------------------------------------------------------------------
+
+def build_system_prompt(quality: dict[str, str]) -> str:
+    """Monta o system prompt rico usando as regras do quality-rules.md."""
+    prohibited = quality.get("prohibited", "")
+    required   = quality.get("required",   "")
+    templates  = quality.get("templates",  "")
+
+    return f"""Você é um especialista sênior em Oracle Cloud Infrastructure (OCI).
+Responda SEMPRE em português brasileiro.
+Suas respostas devem incluir: comandos OCI CLI corretos, exemplos de código Python SDK ou Terraform quando relevante, boas práticas e considerações de segurança.
+Use formatação markdown com blocos de código. Seja técnico e preciso.
+
+=== REGRAS DE QUALIDADE ===
+
+--- PROIBIDO ---
+{prohibited}
+
+--- OBRIGATÓRIO ---
+{required}
+
+--- EXEMPLO DE RESPOSTA ADEQUADA ---
+{templates}
+"""
+
+
+# ---------------------------------------------------------------------------
+# Constantes de contexto (inalteradas)
+# ---------------------------------------------------------------------------
 
 COMPANIES = [
     "TechCorp Brasil", "DataFlow Solutions", "CloudNative Inc",
@@ -155,7 +264,6 @@ class ModelRotator:
     """Round-robin ponderado entre modelos configurados."""
 
     def __init__(self, models: list[dict]):
-        # Expande pela weight: [{id: A, weight: 2}, {id: B, weight: 1}] → [A, A, B]
         pool = []
         for m in models:
             pool.extend([m["id"]] * max(1, m.get("weight", 1)))
@@ -188,18 +296,18 @@ class OpenRouterClient:
             sys.exit(1)
 
         provider = cfg["provider"]
-        headers = cfg.get("http_headers", {})
+        headers  = cfg.get("http_headers", {})
 
         self.client = OpenAI(
             api_key=provider["api_key"],
             base_url=provider["base_url"],
             default_headers=headers,
         )
-        self.gen_cfg = cfg["generation"]
-        rl = cfg["rate_limit"]
-        self.inter_delay = rl.get("inter_request_delay_seconds", 3.5)
+        self.gen_cfg      = cfg["generation"]
+        rl                = cfg["rate_limit"]
+        self.inter_delay  = rl.get("inter_request_delay_seconds", 3.5)
         self.retry_attempts = rl.get("retry_attempts", 5)
-        self.retry_delay = rl.get("retry_delay_seconds", 4)
+        self.retry_delay  = rl.get("retry_delay_seconds", 4)
         self._last_request_time: float = 0.0
 
     def _wait_rate_limit(self) -> None:
@@ -225,7 +333,7 @@ class OpenRouterClient:
                 )
                 return response.choices[0].message.content
             except Exception as exc:
-                wait = self.retry_delay * (2 ** (attempt - 1))  # exponential backoff
+                wait = self.retry_delay * (2 ** (attempt - 1))
                 log.warning(
                     f"Tentativa {attempt}/{self.retry_attempts} falhou "
                     f"({model_id}): {exc}. Aguardando {wait:.0f}s..."
@@ -235,35 +343,46 @@ class OpenRouterClient:
 
 
 # ---------------------------------------------------------------------------
-# Geração de prompts
+# Geração de prompts (agora usa hints do taxonomy)
 # ---------------------------------------------------------------------------
 
-SYSTEM_PROMPT_TEMPLATE = (
-    "Você é um especialista sênior em Oracle Cloud Infrastructure (OCI). "
-    "Responda SEMPRE em português brasileiro. "
-    "Suas respostas devem incluir: comandos OCI CLI corretos, exemplos de código "
-    "Python SDK ou Terraform quando relevante, boas práticas e considerações de segurança. "
-    "Use formatação markdown com blocos de código. Seja técnico e preciso."
-)
+def build_user_prompt(
+    category: str,
+    difficulty: str,
+    taxonomy: dict[str, dict],
+) -> tuple[str, str]:
+    """Gera um par (pergunta, prompt_completo) contextualizado.
 
-
-def build_user_prompt(category: str, difficulty: str) -> tuple[str, str]:
-    """Gera um par (pergunta, prompt_completo) contextualizado."""
-    company   = random.choice(COMPANIES)
-    persona   = random.choice(PERSONAS)
+    Usa hints e docs_url do taxonomy.md quando disponíveis.
+    """
+    company    = random.choice(COMPANIES)
+    persona    = random.choice(PERSONAS)
     constraint = random.choice(CONSTRAINTS)
     lifecycle  = random.choice(LIFECYCLE_STAGES)
-    intent    = random.choice(QUESTION_INTENTS)
+    intent     = random.choice(QUESTION_INTENTS)
 
-    # Pergunta natural baseada na categoria
     service = category.split("/")[-1].replace("-", " ").replace("_", " ")
-    domain  = category.split("/")[0]
 
     question = (
-        f"Na {company}, sou {persona} responsável por {service} no ambiente de {lifecycle}. "
+        f"Na {company}, sou {persona} responsável por {service} "
+        f"no ambiente de {lifecycle}. "
         f"Restrição: {constraint}. "
         f"Pergunta ({difficulty}): {intent} {service} na OCI de forma eficiente e segura?"
     )
+
+    # Enriquece o prompt com hints e docs do taxonomy
+    cat_info = taxonomy.get(category, {})
+    hints    = cat_info.get("hints", [])
+    docs_url = cat_info.get("docs_url", "")
+
+    hints_block = ""
+    if hints:
+        hints_str  = "\n".join(f"  - {h}" for h in hints)
+        hints_block = f"\nAspectos relevantes para esta categoria:\n{hints_str}\n"
+
+    docs_block = ""
+    if docs_url:
+        docs_block = f"\nDocumentação oficial de referência: {docs_url}"
 
     prompt = (
         f"{question}\n\n"
@@ -272,7 +391,10 @@ def build_user_prompt(category: str, difficulty: str) -> tuple[str, str]:
         f"2. Comando(s) OCI CLI completos e funcionais\n"
         f"3. Trecho de código Python SDK ou bloco Terraform (se aplicável)\n"
         f"4. Pelo menos uma boa prática ou ponto de atenção\n"
+        f"5. Riscos ou trade-offs da abordagem recomendada\n"
+        f"{hints_block}"
         f"Categoria OCI: {category} | Dificuldade: {difficulty}"
+        f"{docs_block}"
     )
     return question, prompt
 
@@ -283,22 +405,20 @@ def build_example(
     answer: str,
     model_id: str,
     difficulty: str,
+    system_prompt: str,
 ) -> dict:
     """Monta o exemplo no formato JSONL do projeto."""
-    # Deriva o system prompt por categoria (mesmo padrão do generate_diverse_v2.py)
-    system_content = SYSTEM_PROMPT_TEMPLATE
-
     return {
         "messages": [
-            {"role": "system",    "content": system_content},
+            {"role": "system",    "content": system_prompt},
             {"role": "user",      "content": question},
             {"role": "assistant", "content": answer},
         ],
         "metadata": {
-            "category":   category,
-            "difficulty": difficulty,
-            "source":     "llm_generated",
-            "model":      model_id,
+            "category":     category,
+            "difficulty":   difficulty,
+            "source":       "llm_generated",
+            "model":        model_id,
             "generated_at": datetime.now(timezone.utc).isoformat(),
         },
     }
@@ -352,14 +472,23 @@ class Checkpoint:
 # ---------------------------------------------------------------------------
 
 class DatasetGenerator:
-    def __init__(self, cfg: dict, categories: list[str] | None = None):
-        self.cfg        = cfg
-        self.gen_cfg    = cfg["generation"]
-        self.client     = OpenRouterClient(cfg)
-        self.rotator    = ModelRotator(cfg["models"])
-        self.output_dir = Path(self.gen_cfg["output_dir"])
-        self.checkpoint = Checkpoint(Path(self.gen_cfg["checkpoint_file"]))
-        self.categories = categories or CATEGORIES
+    def __init__(
+        self,
+        cfg: dict,
+        taxonomy: dict[str, dict],
+        system_prompt: str,
+        categories: list[str] | None = None,
+    ):
+        self.cfg           = cfg
+        self.gen_cfg       = cfg["generation"]
+        self.client        = OpenRouterClient(cfg)
+        self.rotator       = ModelRotator(cfg["models"])
+        self.taxonomy      = taxonomy
+        self.system_prompt = system_prompt
+        self.output_dir    = Path(self.gen_cfg["output_dir"])
+        self.checkpoint    = Checkpoint(Path(self.gen_cfg["checkpoint_file"]))
+        # Usa categorias do taxonomy se não especificado na CLI
+        self.categories       = categories or list(taxonomy.keys())
         self.examples_per_cat = self.gen_cfg.get("examples_per_category", 15)
         self.checkpoint_every = self.gen_cfg.get("checkpoint_every", 50)
         self.output_dir.mkdir(parents=True, exist_ok=True)
@@ -380,11 +509,11 @@ class DatasetGenerator:
         )
 
         generated_since_save = 0
-        total_generated = 0
-        total_failed = 0
+        total_generated      = 0
+        total_failed         = 0
 
         for category in self.categories:
-            already = self.checkpoint.get_category_count(category)
+            already   = self.checkpoint.get_category_count(category)
             remaining = self.examples_per_cat - already
             if remaining <= 0:
                 log.info(f"  [{category}] já completa ({already}/{self.examples_per_cat}), pulando.")
@@ -397,27 +526,34 @@ class DatasetGenerator:
             with open(out_file, "a", encoding="utf-8") as fout:
                 for i in range(remaining):
                     difficulty = random.choice(DIFFICULTIES)
-                    question, prompt = build_user_prompt(category, difficulty)
+                    question, prompt = build_user_prompt(
+                        category, difficulty, self.taxonomy
+                    )
                     model_id = self.rotator.next()
 
                     answer = self.client.call(
                         model_id=model_id,
-                        system_prompt=SYSTEM_PROMPT_TEMPLATE,
+                        system_prompt=self.system_prompt,
                         user_prompt=prompt,
                     )
 
                     if answer is None:
                         self.rotator.mark_failure(model_id)
                         total_failed += 1
-                        log.warning(f"    Falha #{total_failed} em {category} ({model_id}), pulando exemplo.")
+                        log.warning(
+                            f"    Falha #{total_failed} em {category} ({model_id}), pulando exemplo."
+                        )
                         continue
 
-                    example = build_example(category, question, answer, model_id, difficulty)
+                    example = build_example(
+                        category, question, answer, model_id, difficulty,
+                        self.system_prompt,
+                    )
                     fout.write(json.dumps(example, ensure_ascii=False) + "\n")
                     fout.flush()
 
                     self.checkpoint.increment(category)
-                    total_generated += 1
+                    total_generated      += 1
                     generated_since_save += 1
 
                     if generated_since_save >= self.checkpoint_every:
@@ -428,7 +564,6 @@ class DatasetGenerator:
                             f"{self.checkpoint.total}/{total_target}"
                         )
 
-                    # Progress inline
                     pct = (self.checkpoint.total / total_target) * 100
                     print(
                         f"\r  Progresso: {self.checkpoint.total}/{total_target} "
@@ -438,7 +573,7 @@ class DatasetGenerator:
                     )
 
         self.checkpoint.save()
-        print()  # nova linha após progresso
+        print()
         self._print_summary(total_generated, total_failed, total_target)
 
     def _print_summary(self, generated: int, failed: int, target: int) -> None:
@@ -461,21 +596,23 @@ class DatasetGenerator:
 # Dry-run
 # ---------------------------------------------------------------------------
 
-def dry_run(cfg: dict) -> None:
+def dry_run(cfg: dict, taxonomy: dict[str, dict], system_prompt: str) -> None:
     """Valida a config e testa 1 request real."""
     log.info("=== DRY RUN ===")
-    log.info(f"  Provider  : {cfg['provider']['name']}")
-    log.info(f"  Base URL  : {cfg['provider']['base_url']}")
-    log.info(f"  Modelos   : {[m['id'] for m in cfg['models']]}")
-    log.info(f"  Output dir: {cfg['generation']['output_dir']}")
-    log.info(f"  Meta      : {cfg['generation']['target_examples']} exemplos")
+    log.info(f"  Provider      : {cfg['provider']['name']}")
+    log.info(f"  Base URL      : {cfg['provider']['base_url']}")
+    log.info(f"  Modelos       : {[m['id'] for m in cfg['models']]}")
+    log.info(f"  Output dir    : {cfg['generation']['output_dir']}")
+    log.info(f"  Meta          : {cfg['generation']['target_examples']} exemplos")
+    log.info(f"  Categorias    : {len(taxonomy)} (lidas de {TAXONOMY_FILE})")
+    log.info(f"  System prompt : {len(system_prompt)} chars (lido de {QUALITY_FILE})")
 
     log.info("\nTestando 1 request real com o primeiro modelo...")
-    client = OpenRouterClient(cfg)
+    client   = OpenRouterClient(cfg)
     model_id = cfg["models"][0]["id"]
-    result = client.call(
+    result   = client.call(
         model_id=model_id,
-        system_prompt=SYSTEM_PROMPT_TEMPLATE,
+        system_prompt=system_prompt,
         user_prompt="Explique em 2 frases o que é uma VCN na OCI.",
     )
     if result:
@@ -527,14 +664,22 @@ def parse_args() -> argparse.Namespace:
 
 def main() -> None:
     args = parse_args()
-    cfg  = load_config(args.config)
+
+    # Carrega docs de referência
+    taxonomy      = load_taxonomy()
+    quality_rules = load_quality_rules()
+    system_prompt = build_system_prompt(quality_rules)
+
+    cfg = load_config(args.config)
 
     if args.dry_run:
-        dry_run(cfg)
+        dry_run(cfg, taxonomy, system_prompt)
         return
 
     generator = DatasetGenerator(
         cfg=cfg,
+        taxonomy=taxonomy,
+        system_prompt=system_prompt,
         categories=args.categories,
     )
     generator.run(resume=args.resume)
