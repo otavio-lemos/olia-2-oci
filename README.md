@@ -139,7 +139,9 @@ Após o treino, você deve fundir os adaptadores LoRA ao modelo base e exportar 
 python scripts/merge_export.py --cycle cycle-1 --quant q4 --name oci-specialist
 ```
 
-### Configuração Otimizada (`config/cycle-1.env`)
+<details>
+<summary><b>Clique para ver a Configuração Otimizada do .env (26 parâmetros)</b></summary>
+<sub>
 
 | Parâmetro | Valor | Descrição |
 |-----------|-------|-----------|
@@ -153,7 +155,7 @@ python scripts/merge_export.py --cycle cycle-1 --quant q4 --name oci-specialist
 | **LORA_RANK** | 8 | Ranque do LoRA |
 | **LORA_ALPHA** | 16 | Alfa do LoRA |
 | **LORA_DROPOUT** | 0.05 | Dropout do LoRA |
-| **GRADIENT_ACCUMULATION** | 4 | Acúmulo de gradientes |
+| **GRAD_ACCUM** | 4 | Acúmulo de gradientes |
 | **NUM_LAYERS** | 14 | Número de camadas LoRA (50%) |
 | **TARGET_MODULES** | `"q_proj,k_proj,v_proj,o_proj,gate_proj,up_proj,down_proj"` | Módulos alvo |
 | **ITERS** | 4000 | Total de iterações |
@@ -163,12 +165,15 @@ python scripts/merge_export.py --cycle cycle-1 --quant q4 --name oci-specialist
 | **LOGGING_STEPS** | 1 | Passos entre logs |
 | **SAVE_STEPS** | 500 | Passos entre salvamentos |
 | **WARMUP_STEPS** | 320 | Passos de warmup |
-| **GRADIENT_CHECKPOINTING**| false | Checkpointing de gradiente |
+| **GRAD_CHECKPOINT**| false | Checkpointing de gradiente |
 | **LR_SCHEDULER** | `cosine` | Scheduler de LR |
 | **WEIGHT_DECAY** | 0.01 | Decaimento de peso |
 | **SEED** | 42 | Semente aleatória |
 | **GRAD_CLIP_NORM** | 1.0 | Clipping de gradiente |
 | **BF16** | true | Aceleração nativa M3 |
+
+</sub>
+</details>
 
 ---
 
@@ -282,6 +287,7 @@ Para gerar novos relatórios de benchmark, siga as instruções na seção [Aval
 
 <details>
 <summary>Clique para expandir as 87 categorias</summary>
+<sub>
 
 | # | Categoria | Base | FT | Delta |
 |---|---------|------|----|-------|
@@ -373,6 +379,7 @@ Para gerar novos relatórios de benchmark, siga as instruções na seção [Aval
 | 86 | troubleshooting/performance | 3.51 | 3.21 | -0.31 |
 | 87 | troubleshooting/storage | 3.39 | 3.27 | -0.13 |
 
+</sub>
 </details>
 
 ---

@@ -139,7 +139,9 @@ After training, you must merge the LoRA adapters with the base model and export 
 python scripts/merge_export.py --cycle cycle-1 --quant q4 --name oci-specialist
 ```
 
-### Optimized Configuration (`config/cycle-1.env`)
+<details>
+<summary><b>Click to view Optimized .env Configuration (26 parameters)</b></summary>
+<sub>
 
 | Parameter | Value | Description |
 |-----------|-------|-------------|
@@ -169,6 +171,9 @@ python scripts/merge_export.py --cycle cycle-1 --quant q4 --name oci-specialist
 | **SEED** | 42 | Random seed |
 | **GRAD_CLIP_NORM** | 1.0 | Gradient clip norm |
 | **BF16** | true | Native M3 acceleration |
+
+</sub>
+</details>
 
 ---
 
@@ -282,6 +287,7 @@ To generate new benchmark reports, follow the instructions in the [Evaluation](#
 
 <details>
 <summary>Click to expand all 87 categories</summary>
+<sub>
 
 | # | Category | Base | FT | Delta |
 |---|----------|------|----|-------|
@@ -373,6 +379,7 @@ To generate new benchmark reports, follow the instructions in the [Evaluation](#
 | 86 | troubleshooting/performance | 3.51 | 3.21 | -0.31 |
 | 87 | troubleshooting/storage | 3.39 | 3.27 | -0.13 |
 
+</sub>
 </details>
 
 ---
