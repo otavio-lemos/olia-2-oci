@@ -210,6 +210,9 @@ O pipeline de avaliação compara o modelo fine-tuned contra o modelo base.
 > Execute com o ambiente **venv** ativado: `source venv/bin/activate`
 
 ```bash
+# Avaliação Rápida (10 amostras, ~2 min)
+python scripts/unified_evaluation.py --cycle cycle-1 --mode test
+
 # Avaliação Recomendada (200 amostras, ~30 min)
 python scripts/unified_evaluation.py --cycle cycle-1 --mode medium --fresh
 
