@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""Generate OCI training examples using async parallel LLM calls via OpenRouter/Gemini.
+"""Generate OCI training examples using async parallel LLM calls via OpenRouter/Groq/Gemini.
 
 v2: Paralelismo real com asyncio — múltiplas categorias e batches simultâneos.
 Reduz tempo de ~2h para ~8-15min com max_concurrent=15.
 
 Uso:
     python scripts/generate_llm_v2.py
-    python scripts/generate_llm_v2.py --config config/llm_provider.yaml
+    python scripts/generate_llm_v2.py --config config/llm_provider_groq.yaml
     python scripts/generate_llm_v2.py --categories compute/instances networking/vcn
     python scripts/generate_llm_v2.py --resume          # continua de onde parou
     python scripts/generate_llm_v2.py --no-resume       # começa do zero
@@ -23,6 +23,7 @@ import argparse
 import asyncio
 import json
 import logging
+import math
 import os
 import random
 import re
@@ -251,7 +252,7 @@ class ModelRotator:
         return dict(self._fail_counts)
 
 # ---------------------------------------------------------------------------
-# Async OpenRouter/Gemini client
+# Async LLM client (OpenAI-compatible: OpenRouter, Groq, Gemini, etc.)
 # ---------------------------------------------------------------------------
 
 class AsyncLLMClient:
@@ -263,6 +264,7 @@ class AsyncLLMClient:
             sys.exit(1)
 
         provider = cfg["provider"]
+        # http_headers é opcional — OpenRouter usa, Groq não precisa
         headers  = cfg.get("http_headers", {})
 
         self.client = AsyncOpenAI(
@@ -275,6 +277,8 @@ class AsyncLLMClient:
         rl                  = cfg["rate_limit"]
         self.retry_attempts = rl.get("retry_attempts", 5)
         self.retry_delay    = rl.get("retry_delay_seconds", 4)
+        # inter_request_delay: respeita rate limit do Groq (30 RPM = 2s entre requests)
+        self.inter_request_delay = rl.get("inter_request_delay_seconds", 0.0)
         self._counters      = {"ok": 0, "fail": 0}
         self._lock          = asyncio.Lock()
 
@@ -285,6 +289,10 @@ class AsyncLLMClient:
         user_prompt: str,
         max_tokens: int,
     ) -> str | None:
+        # Delay entre requests para respeitar rate limit (ex: Groq 30 RPM)
+        if self.inter_request_delay > 0:
+            await asyncio.sleep(self.inter_request_delay)
+
         async with self.semaphore:
             for attempt in range(1, self.retry_attempts + 1):
                 try:
@@ -301,22 +309,45 @@ class AsyncLLMClient:
                         self._counters["ok"] += 1
                     return response.choices[0].message.content
                 except Exception as exc:
-                    wait = self.retry_delay * (2 ** (attempt - 1))
-                    log.warning(
-                        f"Tentativa {attempt}/{self.retry_attempts} falhou "
-                        f"({model_id}): {exc}. Aguardando {wait:.0f}s..."
-                    )
-                    await asyncio.sleep(wait)
+                    exc_str = str(exc)
+                    # Groq retorna 429 com retry-after — extrai o valor se disponível
+                    retry_after = self._parse_retry_after(exc_str)
+                    if retry_after:
+                        log.warning(
+                            f"Tentativa {attempt}/{self.retry_attempts} — Rate limit 429 "
+                            f"({model_id}). Aguardando {retry_after:.0f}s (retry-after)..."
+                        )
+                        await asyncio.sleep(retry_after)
+                    else:
+                        wait = self.retry_delay * (2 ** (attempt - 1))
+                        log.warning(
+                            f"Tentativa {attempt}/{self.retry_attempts} falhou "
+                            f"({model_id}): {exc_str[:120]}. Aguardando {wait:.0f}s..."
+                        )
+                        await asyncio.sleep(wait)
             async with self._lock:
                 self._counters["fail"] += 1
             return None
+
+    @staticmethod
+    def _parse_retry_after(exc_str: str) -> float | None:
+        """Extrai retry-after em segundos da mensagem de erro do Groq/OpenAI (429)."""
+        # Ex: "Please try again in 2s" ou "retry after 60.0 seconds"
+        m = re.search(r"(?:try again in|retry after)\s+([\d.]+)\s*s", exc_str, re.IGNORECASE)
+        if m:
+            return float(m.group(1)) + 1.0  # +1s de margem
+        # Ex: "Rate limit ... Retry-After: 30"
+        m = re.search(r"Retry-After:\s*([\d.]+)", exc_str, re.IGNORECASE)
+        if m:
+            return float(m.group(1)) + 1.0
+        return None
 
     @property
     def counters(self) -> dict:
         return dict(self._counters)
 
 # ---------------------------------------------------------------------------
-# Batch prompt builder (idêntico ao v1)
+# Batch prompt builder
 # ---------------------------------------------------------------------------
 
 def build_batch_prompt(
@@ -381,7 +412,7 @@ Cada resposta deve incluir:
 Gere os {batch_size} exemplos agora:"""
 
 # ---------------------------------------------------------------------------
-# JSON parser (idêntico ao v1)
+# JSON parser
 # ---------------------------------------------------------------------------
 
 def parse_batch_response(raw: str, category: str) -> list[dict]:
@@ -517,11 +548,11 @@ class Checkpoint:
 
 class Progress:
     def __init__(self, total: int):
-        self.total         = total
-        self.generated     = 0
+        self.total          = total
+        self.generated      = 0
         self.failed_batches = 0
-        self._lock         = asyncio.Lock()
-        self._start        = time.monotonic()
+        self._lock          = asyncio.Lock()
+        self._start         = time.monotonic()
 
     async def add(self, count: int, failed: int = 0) -> None:
         async with self._lock:
@@ -561,18 +592,20 @@ class AsyncDatasetGenerator:
         self.checkpoint    = Checkpoint(Path(self.gen_cfg["checkpoint_file"]))
 
         self.examples_per_cat = self.gen_cfg.get("examples_per_category", 180)
-        self.batch_size       = self.gen_cfg.get("batch_size", 60)
+        self.batch_size       = self.gen_cfg.get("batch_size", 30)
         self.checkpoint_every = self.gen_cfg.get("checkpoint_every", 60)
         self.max_failures     = self.gen_cfg.get("max_failures_per_batch", 5)
-        self.max_tokens       = self.gen_cfg.get(
-            "max_tokens", self.batch_size * 800 + 500
-        )
 
-        # concorrência: CLI arg > config > default 15
+        # CORREÇÃO GROQ: usa max_tokens direto da config — NÃO calcula dinamicamente.
+        # O cálculo batch_size * 800 + 500 explodia (24500 tokens) e causava erro 400.
+        # O Groq limita a 8192 tokens de output (llama-3.1-8b-instant = 8192).
+        self.max_tokens = self.gen_cfg.get("max_tokens", 2048)
+
+        # concorrência: CLI arg > config > default 10
         rl = cfg["rate_limit"]
         self.max_concurrent = (
             max_concurrent
-            or rl.get("max_concurrent", 15)
+            or rl.get("max_concurrent", 10)
         )
 
         self.client  = AsyncLLMClient(cfg, self.max_concurrent)
@@ -661,27 +694,23 @@ class AsyncDatasetGenerator:
             f"em batches de {self.batch_size}..."
         )
 
-        out_file              = self._output_file(category)
-        file_lock             = asyncio.Lock()
-        generated_since_save  = [0]  # mutable para compartilhar entre coroutines
-        consecutive_failures  = 0
-        total_saved           = already
+        out_file             = self._output_file(category)
+        file_lock            = asyncio.Lock()
+        generated_since_save = [0]
+        total_saved          = already
 
-        # Divide em batches e processa com retry por categoria
         batches = []
         r = remaining
         while r > 0:
             batches.append(min(self.batch_size, r))
             r -= batches[-1]
 
-        # Processa batches com controle de falhas consecutivas
-        tasks = []
-        for b in batches:
-            tasks.append(
-                self._process_batch(
-                    category, b, file_lock, out_file, progress, generated_since_save
-                )
+        tasks = [
+            self._process_batch(
+                category, b, file_lock, out_file, progress, generated_since_save
             )
+            for b in batches
+        ]
 
         results = await asyncio.gather(*tasks, return_exceptions=True)
 
@@ -698,7 +727,6 @@ class AsyncDatasetGenerator:
             self.checkpoint.reset()
 
         total_target = len(self.categories) * self.examples_per_cat
-        import math
         est_requests = math.ceil(
             max(0, total_target - self.checkpoint.total) / self.batch_size
         )
@@ -715,7 +743,6 @@ class AsyncDatasetGenerator:
 
         progress = Progress(total_target)
 
-        # Todas as categorias em paralelo (semáforo controla concorrência real)
         category_tasks = [
             self._process_category(cat, progress)
             for cat in self.categories
@@ -723,7 +750,7 @@ class AsyncDatasetGenerator:
         await asyncio.gather(*category_tasks)
 
         await self.checkpoint.save()
-        print()  # newline após progress bar
+        print()
 
         elapsed = time.monotonic() - progress._start
         log.info("=" * 60)
@@ -750,10 +777,10 @@ class AsyncDatasetGenerator:
 
 async def dry_run(cfg: dict, taxonomy: dict[str, dict], system_prompt: str, max_concurrent: int) -> None:
     gen        = cfg["generation"]
-    batch_size = gen.get("batch_size", 60)
-    max_tokens = gen.get("max_tokens", batch_size * 800 + 500)
+    batch_size = gen.get("batch_size", 30)
+    # CORREÇÃO GROQ: usa max_tokens da config, não calcula dinamicamente
+    max_tokens = gen.get("max_tokens", 2048)
     total      = len(taxonomy) * gen.get("examples_per_category", 180)
-    import math
     est = math.ceil(total / batch_size)
 
     log.info("=== DRY RUN ===")
@@ -761,6 +788,7 @@ async def dry_run(cfg: dict, taxonomy: dict[str, dict], system_prompt: str, max_
     log.info(f"  Base URL          : {cfg['provider']['base_url']}")
     log.info(f"  Modelos           : {[m['id'] for m in cfg['models']]}")
     log.info(f"  max_concurrent    : {max_concurrent}")
+    log.info(f"  inter_req_delay   : {cfg['rate_limit'].get('inter_request_delay_seconds', 0.0)}s")
     log.info(f"  Output dir        : {gen['output_dir']}")
     log.info(f"  Meta              : {total} exemplos")
     log.info(f"  Batch size        : {batch_size}")
@@ -779,7 +807,7 @@ async def dry_run(cfg: dict, taxonomy: dict[str, dict], system_prompt: str, max_
         model_id=model_id,
         system_prompt=system_prompt,
         user_prompt=prompt,
-        max_tokens=2000,
+        max_tokens=min(max_tokens, 2000),
     )
     if raw:
         items = parse_batch_response(raw, test_category)
@@ -845,7 +873,7 @@ def main() -> None:
     system_prompt = build_system_prompt(quality_rules)
     cfg           = load_config(args.config)
 
-    max_concurrent = args.concurrency or cfg["rate_limit"].get("max_concurrent", 15)
+    max_concurrent = args.concurrency or cfg["rate_limit"].get("max_concurrent", 10)
 
     if args.dry_run:
         asyncio.run(dry_run(cfg, taxonomy, system_prompt, max_concurrent))
