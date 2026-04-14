@@ -1,11 +1,15 @@
 #!/usr/bin/env python3
 """Generate OCI training examples using a real LLM via OpenRouter (or compatible).
 
+Modo batch: cada request gera N exemplos em JSON array, reduzindo requests totais
+de 1065 para ~36 (batch_size=30), tempo estimado ~7-10min vs 2-3h antes.
+
 Uso:
     python scripts/generate_llm_v1.py
     python scripts/generate_llm_v1.py --config config/llm_provider.yaml
     python scripts/generate_llm_v1.py --categories compute/instances networking/vcn
     python scripts/generate_llm_v1.py --resume          # continua de onde parou
+    python scripts/generate_llm_v1.py --no-resume       # começa do zero
     python scripts/generate_llm_v1.py --dry-run         # testa config sem gerar
 
 Pré-requisitos:
@@ -54,14 +58,7 @@ QUALITY_FILE   = DOCS_DIR / "quality-rules.md"
 # ---------------------------------------------------------------------------
 
 def load_taxonomy(path: Path = TAXONOMY_FILE) -> dict[str, dict]:
-    """Analisa o taxonomy.md e retorna um dict {category_id: {hints, docs_url}}.
-
-    Formato esperado no arquivo:
-        #### compute/instances (10)
-        - hint 1
-        - hint 2
-        - **Docs**: https://...
-    """
+    """Analisa o taxonomy.md e retorna um dict {category_id: {hints, docs_url}}."""
     if not path.exists():
         log.error(f"taxonomy.md não encontrado: {path}")
         sys.exit(1)
@@ -74,33 +71,24 @@ def load_taxonomy(path: Path = TAXONOMY_FILE) -> dict[str, dict]:
     with open(path) as f:
         for line in f:
             line = line.rstrip()
-
-            # Nova categoria: "#### compute/instances (10)"
             cat_match = re.match(r"^####\s+([\w/.-]+)", line)
             if cat_match:
-                # Salva categoria anterior
                 if current_cat:
                     taxonomy[current_cat] = {"hints": hints, "docs_url": docs_url}
                 current_cat = cat_match.group(1)
                 hints = []
                 docs_url = ""
                 continue
-
             if current_cat is None:
                 continue
-
-            # URL de docs
             docs_match = re.match(r"^-\s+\*\*Docs\*\*:\s+(https?://\S+)", line)
             if docs_match:
                 docs_url = docs_match.group(1)
                 continue
-
-            # Hint de conteúdo
             hint_match = re.match(r"^-\s+(.+)", line)
             if hint_match:
                 hints.append(hint_match.group(1))
 
-    # Última categoria
     if current_cat:
         taxonomy[current_cat] = {"hints": hints, "docs_url": docs_url}
 
@@ -119,15 +107,7 @@ VALIDATION_MARKER = "### Validation Checklist"
 
 
 def load_quality_rules(path: Path = QUALITY_FILE) -> dict[str, str]:
-    """Lê o quality-rules.md e retorna as seções relevantes como texto.
-
-    Retorna:
-        {
-          "prohibited": "...",
-          "required":   "...",
-          "templates":  "...",
-        }
-    """
+    """Lê o quality-rules.md e retorna as seções relevantes como texto."""
     if not path.exists():
         log.error(f"quality-rules.md não encontrado: {path}")
         sys.exit(1)
@@ -142,7 +122,6 @@ def load_quality_rules(path: Path = QUALITY_FILE) -> dict[str, str]:
     with open(path) as f:
         for line in f:
             stripped = line.rstrip()
-
             if PROHIBITED_MARKER in stripped:
                 current = "prohibited"; continue
             if REQUIRED_MARKER in stripped:
@@ -150,8 +129,7 @@ def load_quality_rules(path: Path = QUALITY_FILE) -> dict[str, str]:
             if TEMPLATES_MARKER in stripped:
                 current = "templates"; continue
             if VALIDATION_MARKER in stripped:
-                current = None; continue  # para de coletar
-
+                current = None; continue
             if current is not None:
                 sections[current].append(stripped)
 
@@ -160,11 +138,10 @@ def load_quality_rules(path: Path = QUALITY_FILE) -> dict[str, str]:
 
 
 # ---------------------------------------------------------------------------
-# Construção do system prompt a partir das quality rules
+# Construção do system prompt
 # ---------------------------------------------------------------------------
 
 def build_system_prompt(quality: dict[str, str]) -> str:
-    """Monta o system prompt rico usando as regras do quality-rules.md."""
     prohibited = quality.get("prohibited", "")
     required   = quality.get("required",   "")
     templates  = quality.get("templates",  "")
@@ -188,7 +165,7 @@ Use formatação markdown com blocos de código. Seja técnico e preciso.
 
 
 # ---------------------------------------------------------------------------
-# Constantes de contexto (inalteradas)
+# Constantes de contexto
 # ---------------------------------------------------------------------------
 
 COMPANIES = [
@@ -303,11 +280,11 @@ class OpenRouterClient:
             base_url=provider["base_url"],
             default_headers=headers,
         )
-        self.gen_cfg      = cfg["generation"]
-        rl                = cfg["rate_limit"]
-        self.inter_delay  = rl.get("inter_request_delay_seconds", 3.5)
-        self.retry_attempts = rl.get("retry_attempts", 5)
-        self.retry_delay  = rl.get("retry_delay_seconds", 4)
+        self.gen_cfg          = cfg["generation"]
+        rl                    = cfg["rate_limit"]
+        self.inter_delay      = rl.get("inter_request_delay_seconds", 3.5)
+        self.retry_attempts   = rl.get("retry_attempts", 5)
+        self.retry_delay      = rl.get("retry_delay_seconds", 4)
         self._last_request_time: float = 0.0
 
     def _wait_rate_limit(self) -> None:
@@ -316,7 +293,7 @@ class OpenRouterClient:
         if wait > 0:
             time.sleep(wait)
 
-    def call(self, model_id: str, system_prompt: str, user_prompt: str) -> str | None:
+    def call(self, model_id: str, system_prompt: str, user_prompt: str, max_tokens: int) -> str | None:
         """Chama o modelo e retorna o texto gerado, ou None em caso de falha."""
         self._wait_rate_limit()
         for attempt in range(1, self.retry_attempts + 1):
@@ -328,7 +305,7 @@ class OpenRouterClient:
                         {"role": "system", "content": system_prompt},
                         {"role": "user",   "content": user_prompt},
                     ],
-                    max_tokens=self.gen_cfg.get("max_tokens", 1500),
+                    max_tokens=max_tokens,
                     temperature=self.gen_cfg.get("temperature", 0.85),
                 )
                 return response.choices[0].message.content
@@ -343,61 +320,150 @@ class OpenRouterClient:
 
 
 # ---------------------------------------------------------------------------
-# Geração de prompts (agora usa hints do taxonomy)
+# Batch prompt builder
 # ---------------------------------------------------------------------------
 
-def build_user_prompt(
+def build_batch_prompt(
     category: str,
-    difficulty: str,
+    batch_size: int,
     taxonomy: dict[str, dict],
-) -> tuple[str, str]:
-    """Gera um par (pergunta, prompt_completo) contextualizado.
-
-    Usa hints e docs_url do taxonomy.md quando disponíveis.
-    """
-    company    = random.choice(COMPANIES)
-    persona    = random.choice(PERSONAS)
-    constraint = random.choice(CONSTRAINTS)
-    lifecycle  = random.choice(LIFECYCLE_STAGES)
-    intent     = random.choice(QUESTION_INTENTS)
-
-    service = category.split("/")[-1].replace("-", " ").replace("_", " ")
-
-    question = (
-        f"Na {company}, sou {persona} responsável por {service} "
-        f"no ambiente de {lifecycle}. "
-        f"Restrição: {constraint}. "
-        f"Pergunta ({difficulty}): {intent} {service} na OCI de forma eficiente e segura?"
-    )
-
-    # Enriquece o prompt com hints e docs do taxonomy
+) -> str:
+    """Gera um prompt pedindo batch_size exemplos em JSON array."""
+    service  = category.split("/")[-1].replace("-", " ").replace("_", " ")
     cat_info = taxonomy.get(category, {})
     hints    = cat_info.get("hints", [])
     docs_url = cat_info.get("docs_url", "")
 
     hints_block = ""
     if hints:
-        hints_str  = "\n".join(f"  - {h}" for h in hints)
+        hints_str   = "\n".join(f"  - {h}" for h in hints)
         hints_block = f"\nAspectos relevantes para esta categoria:\n{hints_str}\n"
 
     docs_block = ""
     if docs_url:
         docs_block = f"\nDocumentação oficial de referência: {docs_url}"
 
-    prompt = (
-        f"{question}\n\n"
-        f"Por favor, inclua na sua resposta:\n"
-        f"1. Explicação do conceito e quando usar\n"
-        f"2. Comando(s) OCI CLI completos e funcionais\n"
-        f"3. Trecho de código Python SDK ou bloco Terraform (se aplicável)\n"
-        f"4. Pelo menos uma boa prática ou ponto de atenção\n"
-        f"5. Riscos ou trade-offs da abordagem recomendada\n"
-        f"{hints_block}"
-        f"Categoria OCI: {category} | Dificuldade: {difficulty}"
-        f"{docs_block}"
-    )
-    return question, prompt
+    # Gera contextos variados para cada exemplo do batch
+    contexts = []
+    for _ in range(batch_size):
+        company    = random.choice(COMPANIES)
+        persona    = random.choice(PERSONAS)
+        constraint = random.choice(CONSTRAINTS)
+        lifecycle  = random.choice(LIFECYCLE_STAGES)
+        intent     = random.choice(QUESTION_INTENTS)
+        difficulty = random.choice(DIFFICULTIES)
+        contexts.append(
+            f"  - empresa={company}, persona={persona}, restrição={constraint}, "
+            f"lifecycle={lifecycle}, intent='{intent}', difficulty={difficulty}"
+        )
 
+    contexts_str = "\n".join(contexts)
+
+    prompt = f"""Gere exatamente {batch_size} exemplos de treinamento sobre a categoria OCI: **{category}** ({service}).
+{hints_block}{docs_block}
+
+Cada exemplo deve ter uma pergunta técnica realista e uma resposta detalhada em português brasileiro.
+Use os contextos abaixo para variar empresa, persona, restrição e dificuldade:
+{contexts_str}
+
+RETORNE SOMENTE um JSON array válido, sem texto antes ou depois, sem markdown code blocks, sem explicações.
+Formato exato:
+[
+  {{
+    "question": "pergunta completa e contextualizada aqui",
+    "answer": "resposta técnica detalhada com CLI, código e boas práticas aqui",
+    "difficulty": "beginner|intermediate|advanced"
+  }},
+  ...
+]
+
+Cada resposta deve incluir:
+1. Explicação do conceito e quando usar
+2. Comandos OCI CLI completos e funcionais
+3. Trecho de código Python SDK ou bloco Terraform (se aplicável)
+4. Pelo menos uma boa prática ou ponto de atenção
+5. Riscos ou trade-offs da abordagem recomendada
+
+Gere os {batch_size} exemplos agora:"""
+
+    return prompt
+
+
+# ---------------------------------------------------------------------------
+# Parser JSON robusto
+# ---------------------------------------------------------------------------
+
+def parse_batch_response(raw: str, category: str) -> list[dict]:
+    """Extrai a lista de exemplos do JSON retornado pelo LLM.
+
+    Estratégias em ordem:
+    1. json.loads direto
+    2. Extrai bloco entre [ ] ignorando markdown
+    3. Regex para objetos individuais como fallback parcial
+    """
+    if not raw:
+        return []
+
+    # Remove blocos de markdown se o modelo desobedeceu
+    cleaned = re.sub(r"```(?:json)?\s*", "", raw).strip()
+    cleaned = re.sub(r"```\s*$", "", cleaned).strip()
+
+    # Tentativa 1: parse direto
+    try:
+        data = json.loads(cleaned)
+        if isinstance(data, list):
+            return _validate_items(data, category)
+    except json.JSONDecodeError:
+        pass
+
+    # Tentativa 2: encontra o array JSON dentro do texto
+    bracket_match = re.search(r"(\[.*\])", cleaned, re.DOTALL)
+    if bracket_match:
+        try:
+            data = json.loads(bracket_match.group(1))
+            if isinstance(data, list):
+                return _validate_items(data, category)
+        except json.JSONDecodeError:
+            pass
+
+    # Tentativa 3: extrai objetos individuais via regex (JSON parcial/truncado)
+    items = []
+    for obj_match in re.finditer(r"\{[^{}]*\"question\"[^{}]*\"answer\"[^{}]*\}", cleaned, re.DOTALL):
+        try:
+            obj = json.loads(obj_match.group(0))
+            validated = _validate_items([obj], category)
+            items.extend(validated)
+        except json.JSONDecodeError:
+            continue
+
+    if items:
+        log.warning(f"  [{category}] JSON malformado — recuperados {len(items)} exemplos via regex fallback.")
+        return items
+
+    log.warning(f"  [{category}] Falha total no parse do JSON. Raw (200 chars): {raw[:200]}")
+    return []
+
+
+def _validate_items(items: list, category: str) -> list[dict]:
+    """Filtra itens que têm question e answer não-vazios."""
+    valid = []
+    for item in items:
+        if not isinstance(item, dict):
+            continue
+        q = str(item.get("question", "")).strip()
+        a = str(item.get("answer",   "")).strip()
+        if len(q) >= 20 and len(a) >= 50:
+            valid.append({
+                "question":   q,
+                "answer":     a,
+                "difficulty": str(item.get("difficulty", "intermediate")).strip(),
+            })
+    return valid
+
+
+# ---------------------------------------------------------------------------
+# Montagem do exemplo final
+# ---------------------------------------------------------------------------
 
 def build_example(
     category: str,
@@ -407,7 +473,6 @@ def build_example(
     difficulty: str,
     system_prompt: str,
 ) -> dict:
-    """Monta o exemplo no formato JSONL do projeto."""
     return {
         "messages": [
             {"role": "system",    "content": system_prompt},
@@ -452,8 +517,8 @@ class Checkpoint:
     def get_category_count(self, category: str) -> int:
         return self._data["per_category"].get(category, 0)
 
-    def increment(self, category: str) -> None:
-        self._data["per_category"][category] = self.get_category_count(category) + 1
+    def increment(self, category: str, count: int = 1) -> None:
+        self._data["per_category"][category] = self.get_category_count(category) + count
         self._data["total_generated"] = sum(self._data["per_category"].values())
 
     @property
@@ -487,10 +552,15 @@ class DatasetGenerator:
         self.system_prompt = system_prompt
         self.output_dir    = Path(self.gen_cfg["output_dir"])
         self.checkpoint    = Checkpoint(Path(self.gen_cfg["checkpoint_file"]))
-        # Usa categorias do taxonomy se não especificado na CLI
         self.categories       = categories or list(taxonomy.keys())
         self.examples_per_cat = self.gen_cfg.get("examples_per_category", 15)
-        self.checkpoint_every = self.gen_cfg.get("checkpoint_every", 50)
+        self.batch_size       = self.gen_cfg.get("batch_size", 30)
+        self.checkpoint_every = self.gen_cfg.get("checkpoint_every", 10)
+        # max_tokens para batch: tokens por exemplo × batch_size + margem
+        self.max_tokens = self.gen_cfg.get(
+            "max_tokens",
+            self.batch_size * 800 + 500,  # ~800 tokens/exemplo + 500 de overhead
+        )
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
     def _output_file(self, category: str) -> Path:
@@ -503,14 +573,17 @@ class DatasetGenerator:
 
         total_target = len(self.categories) * self.examples_per_cat
         log.info(
-            f"Iniciando geração: {len(self.categories)} categorias × "
-            f"{self.examples_per_cat} exemplos = {total_target} total.\n"
+            f"Iniciando geração BATCH (batch_size={self.batch_size}): "
+            f"{len(self.categories)} categorias × {self.examples_per_cat} exemplos = {total_target} total.\n"
+            f"  Requests estimados : ~{self._estimate_requests()} "
+            f"(vs {total_target} no modo 1x1)\n"
+            f"  max_tokens/request : {self.max_tokens}\n"
             f"  Já gerados (checkpoint): {self.checkpoint.total}"
         )
 
-        generated_since_save = 0
         total_generated      = 0
-        total_failed         = 0
+        total_failed_batches = 0
+        generated_since_save = 0
 
         for category in self.categories:
             already   = self.checkpoint.get_category_count(category)
@@ -520,76 +593,105 @@ class DatasetGenerator:
                 total_generated += already
                 continue
 
-            log.info(f"  [{category}] gerando {remaining} exemplos (já tem {already})...")
+            log.info(f"  [{category}] gerando {remaining} exemplos em batches de {self.batch_size}...")
             out_file = self._output_file(category)
 
             with open(out_file, "a", encoding="utf-8") as fout:
-                for i in range(remaining):
-                    difficulty = random.choice(DIFFICULTIES)
-                    question, prompt = build_user_prompt(
-                        category, difficulty, self.taxonomy
-                    )
-                    model_id = self.rotator.next()
+                while remaining > 0:
+                    current_batch = min(self.batch_size, remaining)
+                    model_id      = self.rotator.next()
+                    prompt        = build_batch_prompt(category, current_batch, self.taxonomy)
 
-                    answer = self.client.call(
+                    raw = self.client.call(
                         model_id=model_id,
                         system_prompt=self.system_prompt,
                         user_prompt=prompt,
+                        max_tokens=self.max_tokens,
                     )
 
-                    if answer is None:
+                    if raw is None:
                         self.rotator.mark_failure(model_id)
-                        total_failed += 1
+                        total_failed_batches += 1
                         log.warning(
-                            f"    Falha #{total_failed} em {category} ({model_id}), pulando exemplo."
+                            f"    Batch falhou para [{category}] ({model_id}), "
+                            f"tentará novamente na próxima iteração."
+                        )
+                        # Não decrementa remaining — vai tentar de novo
+                        continue
+
+                    items = parse_batch_response(raw, category)
+                    extracted = len(items)
+
+                    if extracted == 0:
+                        self.rotator.mark_failure(model_id)
+                        total_failed_batches += 1
+                        log.warning(
+                            f"    Nenhum exemplo extraído do batch [{category}] ({model_id})."
                         )
                         continue
 
-                    example = build_example(
-                        category, question, answer, model_id, difficulty,
-                        self.system_prompt,
-                    )
-                    fout.write(json.dumps(example, ensure_ascii=False) + "\n")
-                    fout.flush()
+                    # Salva apenas os que precisamos (não supera examples_per_cat)
+                    to_save = items[:remaining]
+                    for item in to_save:
+                        example = build_example(
+                            category,
+                            item["question"],
+                            item["answer"],
+                            model_id,
+                            item["difficulty"],
+                            self.system_prompt,
+                        )
+                        fout.write(json.dumps(example, ensure_ascii=False) + "\n")
+                        fout.flush()
 
-                    self.checkpoint.increment(category)
-                    total_generated      += 1
-                    generated_since_save += 1
+                    saved = len(to_save)
+                    self.checkpoint.increment(category, saved)
+                    total_generated      += saved
+                    generated_since_save += saved
+                    remaining            -= saved
+
+                    log.info(
+                        f"    Batch [{category}]: {extracted}/{current_batch} extraídos, "
+                        f"{saved} salvos | restam {remaining} | modelo: {model_id.split('/')[-1]}"
+                    )
 
                     if generated_since_save >= self.checkpoint_every:
                         self.checkpoint.save()
                         generated_since_save = 0
-                        log.info(
-                            f"    Checkpoint salvo — total gerado até agora: "
-                            f"{self.checkpoint.total}/{total_target}"
-                        )
 
                     pct = (self.checkpoint.total / total_target) * 100
                     print(
                         f"\r  Progresso: {self.checkpoint.total}/{total_target} "
-                        f"({pct:.1f}%) | Falhas: {total_failed} | Modelo: {model_id[-30:]}   ",
+                        f"({pct:.1f}%) | Batches falhos: {total_failed_batches}   ",
                         end="",
                         flush=True,
                     )
 
         self.checkpoint.save()
         print()
-        self._print_summary(total_generated, total_failed, total_target)
+        self._print_summary(total_generated, total_failed_batches, total_target)
 
-    def _print_summary(self, generated: int, failed: int, target: int) -> None:
+    def _estimate_requests(self) -> int:
+        total = len(self.categories) * self.examples_per_cat
+        already = self.checkpoint.total
+        remaining = max(0, total - already)
+        import math
+        return math.ceil(remaining / self.batch_size)
+
+    def _print_summary(self, generated: int, failed_batches: int, target: int) -> None:
         log.info("=" * 60)
         log.info("GERAÇÃO CONCLUÍDA")
         log.info("=" * 60)
-        log.info(f"  Exemplos gerados : {generated}")
-        log.info(f"  Falhas           : {failed}")
-        log.info(f"  Meta             : {target}")
-        log.info(f"  Taxa de sucesso  : {generated / max(generated + failed, 1) * 100:.1f}%")
-        log.info(f"  Saída            : {self.output_dir}/")
+        log.info(f"  Exemplos gerados  : {generated}")
+        log.info(f"  Batches falhos    : {failed_batches}")
+        log.info(f"  Meta              : {target}")
+        log.info(f"  Taxa de sucesso   : {generated / max(generated + 1, 1) * 100:.1f}%")
+        log.info(f"  Saída             : {self.output_dir}/")
         log.info("")
         log.info("Próximos passos:")
         log.info("  bash scripts/prepare_data.sh   # valida, limpa, deduplica e gera splits")
         if self.rotator.stats():
-            log.info(f"  Falhas por modelo: {self.rotator.stats()}")
+            log.info(f"  Falhas por modelo : {self.rotator.stats()}")
 
 
 # ---------------------------------------------------------------------------
@@ -597,26 +699,42 @@ class DatasetGenerator:
 # ---------------------------------------------------------------------------
 
 def dry_run(cfg: dict, taxonomy: dict[str, dict], system_prompt: str) -> None:
-    """Valida a config e testa 1 request real."""
-    log.info("=== DRY RUN ===")
-    log.info(f"  Provider      : {cfg['provider']['name']}")
-    log.info(f"  Base URL      : {cfg['provider']['base_url']}")
-    log.info(f"  Modelos       : {[m['id'] for m in cfg['models']]}")
-    log.info(f"  Output dir    : {cfg['generation']['output_dir']}")
-    log.info(f"  Meta          : {cfg['generation']['target_examples']} exemplos")
-    log.info(f"  Categorias    : {len(taxonomy)} (lidas de {TAXONOMY_FILE})")
-    log.info(f"  System prompt : {len(system_prompt)} chars (lido de {QUALITY_FILE})")
+    gen = cfg["generation"]
+    batch_size = gen.get("batch_size", 30)
+    max_tokens = gen.get("max_tokens", batch_size * 800 + 500)
+    total      = len(taxonomy) * gen.get("examples_per_category", 15)
+    import math
+    estimated_requests = math.ceil(total / batch_size)
 
-    log.info("\nTestando 1 request real com o primeiro modelo...")
+    log.info("=== DRY RUN ===")
+    log.info(f"  Provider          : {cfg['provider']['name']}")
+    log.info(f"  Base URL          : {cfg['provider']['base_url']}")
+    log.info(f"  Modelos           : {[m['id'] for m in cfg['models']]}")
+    log.info(f"  Output dir        : {gen['output_dir']}")
+    log.info(f"  Meta              : {total} exemplos")
+    log.info(f"  Batch size        : {batch_size}")
+    log.info(f"  max_tokens        : {max_tokens}")
+    log.info(f"  Requests estimados: ~{estimated_requests} (vs {total} no modo 1x1)")
+    log.info(f"  Categorias        : {len(taxonomy)} (lidas de {TAXONOMY_FILE})")
+    log.info(f"  System prompt     : {len(system_prompt)} chars (lido de {QUALITY_FILE})")
+
+    log.info("\nTestando 1 request real (batch de 2) com o primeiro modelo...")
     client   = OpenRouterClient(cfg)
     model_id = cfg["models"][0]["id"]
-    result   = client.call(
+
+    test_category = list(taxonomy.keys())[0]
+    prompt = build_batch_prompt(test_category, 2, taxonomy)
+    raw    = client.call(
         model_id=model_id,
         system_prompt=system_prompt,
-        user_prompt="Explique em 2 frases o que é uma VCN na OCI.",
+        user_prompt=prompt,
+        max_tokens=2000,
     )
-    if result:
-        log.info(f"  ✅ Request OK! Resposta ({len(result)} chars):\n{result[:300]}...")
+    if raw:
+        items = parse_batch_response(raw, test_category)
+        log.info(f"  ✅ Request OK! {len(items)} exemplos extraídos do batch de teste.")
+        if items:
+            log.info(f"  Exemplo #1 question: {items[0]['question'][:120]}...")
     else:
         log.error("  ❌ Request falhou. Verifique sua API key e conexão.")
         sys.exit(1)
@@ -628,7 +746,7 @@ def dry_run(cfg: dict, taxonomy: dict[str, dict], system_prompt: str) -> None:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Gera dataset OCI via LLM (OpenRouter ou compatível)"
+        description="Gera dataset OCI via LLM em modo batch (OpenRouter ou compatível)"
     )
     parser.add_argument(
         "--config", "-c",
@@ -657,7 +775,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--dry-run",
         action="store_true",
-        help="Valida config e testa 1 request sem gerar dataset",
+        help="Valida config e testa 1 batch de 2 exemplos sem gerar dataset",
     )
     return parser.parse_args()
 
@@ -665,7 +783,6 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
 
-    # Carrega docs de referência
     taxonomy      = load_taxonomy()
     quality_rules = load_quality_rules()
     system_prompt = build_system_prompt(quality_rules)

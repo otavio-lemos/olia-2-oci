@@ -17,28 +17,29 @@ provider:
 
 # Modelos gratuitos no OpenRouter (abril 2026).
 # O script rotaciona entre eles automaticamente para maximizar throughput.
-# Deixe apenas 1 na lista se preferir um modelo fixo.
+# Context window suficiente para batch de 30 exemplos (~24k tokens output).
 models:
-  - id: "nvidia/nemotron-3-super-120b-a12b:free"
-    weight: 2                               # peso relativo na rotação (mais = mais usado)
-  - id: "meta-llama/llama-3.3-70b-instruct:free"
-    weight: 2
-  - id: "qwen/qwen3-coder:free"
-    weight: 1
+  - id: "z-ai/glm-4.5-air:free"
+    weight: 2                               # max_output: 96k tokens
+  - id: "nvidia/nemotron-3-nano-30b-a3b:free"
+    weight: 2                               # max_output: 256k tokens
+  - id: "openai/gpt-oss-120b:free"
+    weight: 1                               # max_output: 131k tokens
 
 rate_limit:
   requests_per_minute: 20                  # limite por modelo (OpenRouter free tier)
   requests_per_day: 200                    # limite diário por modelo
   retry_attempts: 5                        # tentativas antes de trocar de modelo
   retry_delay_seconds: 4                   # espera base entre tentativas (exponential backoff)
-  inter_request_delay_seconds: 3.5         # delay entre requests para não throttlar
+  inter_request_delay_seconds: 4.0         # delay entre requests (batch precisa de menos requests)
 
 generation:
   target_examples: 1000                    # total de exemplos a gerar
   examples_per_category: 15               # exemplos por categoria (71 cats × 15 = 1065)
-  max_tokens: 1500                         # max tokens por resposta
+  batch_size: 30                           # exemplos por request — reduz requests de 1065 → ~36
+  max_tokens: 24500                        # 30 × ~800 tokens/exemplo + 500 overhead
   temperature: 0.85                        # criatividade (0.7-0.9 é bom para diversidade)
-  checkpoint_every: 50                     # salva progresso a cada N exemplos
+  checkpoint_every: 10                     # salva progresso a cada N exemplos
   output_dir: data/curated/llm_generated   # onde salvar os JSONL gerados
   checkpoint_file: data/.llm_gen_checkpoint.json  # arquivo de checkpoint para resume
 
