@@ -109,6 +109,7 @@ flowchart TD
 
 > [!IMPORTANT]
 > **Todos os comandos deste projeto devem ser executados obrigatoriamente na raiz do repositório.**
+> **Lembre-se de ativar o ambiente virtual correto com `source venv/bin/activate` ou `source venv-rag/bin/activate` antes de executar qualquer comando.**
 
 ### 1. Clonagem do Repositório
 
@@ -141,12 +142,18 @@ O treinamento utiliza o framework MLX-Tune, focado na arquitetura do Apple Silic
 
 ### 1. Execução do Treino (Fine-Tuning)
 
+> [!NOTE]
+> Execute com o ambiente **venv** ativado: `source venv/bin/activate`
+
 ```bash
 # Execute o ciclo consolidado de treinamento
 bash training/run_all_cycles.sh --fresh
 ```
 
 ### 2. Fusão de Pesos (Merge) & Exportação
+
+> [!NOTE]
+> Execute com o ambiente **venv** ativado: `source venv/bin/activate`
 
 Após gerar os adaptadores LoRA, fundir com o modelo base para uso em inferência.
 
@@ -199,6 +206,9 @@ python scripts/merge_export.py --cycle cycle-1 --quant q4 --name oci-specialist
 
 O pipeline de avaliação compara o modelo fine-tuned contra o modelo base.
 
+> [!NOTE]
+> Execute com o ambiente **venv** ativado: `source venv/bin/activate`
+
 ```bash
 # Avaliação Recomendada (200 amostras, ~30 min)
 python scripts/unified_evaluation.py --cycle cycle-1 --mode medium --fresh
@@ -227,6 +237,9 @@ Resultados: [benchmark](#benchmark)
 O OCI Copilot utiliza uma camada de RAG persistente para acessar fatos da documentação Oracle.
 
 ### 1. Ingestão Offline (Obrigatória)
+> [!NOTE]
+> Execute com o ambiente **venv-rag** ativado: `source venv-rag/bin/activate`
+
 Para economizar RAM durante o chat, os índices devem ser gerados offline:
 ```bash
 python scripts/update_rag.py
@@ -236,11 +249,17 @@ python scripts/update_rag.py
 O ecossistema é orquestrado via **LangGraph** e servido via **FastAPI**.
 
 **Subir API Backend (RAG Indices):**
+> [!NOTE]
+> Execute com o ambiente **venv-rag** ativado: `source venv-rag/bin/activate`
+
 ```bash
 uvicorn rag.api:app --host 0.0.0.0 --port 8000
 ```
 
 **Subir Orquestrador e UI (Interface Copilot):**
+> [!NOTE]
+> Execute com o ambiente **venv-rag** ativado: `source venv-rag/bin/activate`
+
 ```bash
 chainlit run rag/app_chainlit.py -w
 ```
@@ -252,11 +271,17 @@ chainlit run rag/app_chainlit.py -w
 A inferência local é realizada utilizando o modelo após o processo de **Merge**.
 
 ### 1. Servidor de Inferência (MLX)
+> [!NOTE]
+> Execute com o ambiente **venv** ativado: `source venv/bin/activate`
+
 ```bash
 mlx_lm.server --model mlx-community/Qwen2.5-Coder-7B-Instruct-4bit --adapter outputs/cycle-1/adapters
 ```
 
 ### 2. OCI Copilot UI
+> [!NOTE]
+> Execute com o ambiente **venv-rag** ativado: `source venv-rag/bin/activate`
+
 Com o backend RAG rodando, inicie a interface visual:
 ```bash
 chainlit run rag/app_chainlit.py --port 8001
