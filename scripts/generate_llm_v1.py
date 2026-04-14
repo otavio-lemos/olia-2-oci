@@ -2,7 +2,7 @@
 """Generate OCI training examples using a real LLM via OpenRouter (or compatible).
 
 Modo batch: cada request gera N exemplos em JSON array, reduzindo requests totais
-de 1065 para ~36 (batch_size=30), tempo estimado ~7-10min vs 2-3h antes.
+de 15660 para ~522 (batch_size=30), tempo estimado ~15-20min vs 2-3h antes.
 
 Uso:
     python scripts/generate_llm_v1.py
@@ -343,7 +343,6 @@ def build_batch_prompt(
     if docs_url:
         docs_block = f"\nDocumentação oficial de referência: {docs_url}"
 
-    # Gera contextos variados para cada exemplo do batch
     contexts = []
     for _ in range(batch_size):
         company    = random.choice(COMPANIES)
@@ -404,11 +403,9 @@ def parse_batch_response(raw: str, category: str) -> list[dict]:
     if not raw:
         return []
 
-    # Remove blocos de markdown se o modelo desobedeceu
     cleaned = re.sub(r"```(?:json)?\s*", "", raw).strip()
     cleaned = re.sub(r"```\s*$", "", cleaned).strip()
 
-    # Tentativa 1: parse direto
     try:
         data = json.loads(cleaned)
         if isinstance(data, list):
@@ -416,7 +413,6 @@ def parse_batch_response(raw: str, category: str) -> list[dict]:
     except json.JSONDecodeError:
         pass
 
-    # Tentativa 2: encontra o array JSON dentro do texto
     bracket_match = re.search(r"(\[.*\])", cleaned, re.DOTALL)
     if bracket_match:
         try:
@@ -426,7 +422,6 @@ def parse_batch_response(raw: str, category: str) -> list[dict]:
         except json.JSONDecodeError:
             pass
 
-    # Tentativa 3: extrai objetos individuais via regex (JSON parcial/truncado)
     items = []
     for obj_match in re.finditer(r"\{[^{}]*\"question\"[^{}]*\"answer\"[^{}]*\}", cleaned, re.DOTALL):
         try:
@@ -544,22 +539,23 @@ class DatasetGenerator:
         system_prompt: str,
         categories: list[str] | None = None,
     ):
-        self.cfg           = cfg
-        self.gen_cfg       = cfg["generation"]
-        self.client        = OpenRouterClient(cfg)
-        self.rotator       = ModelRotator(cfg["models"])
-        self.taxonomy      = taxonomy
-        self.system_prompt = system_prompt
-        self.output_dir    = Path(self.gen_cfg["output_dir"])
-        self.checkpoint    = Checkpoint(Path(self.gen_cfg["checkpoint_file"]))
+        self.cfg              = cfg
+        self.gen_cfg          = cfg["generation"]
+        self.client           = OpenRouterClient(cfg)
+        self.rotator          = ModelRotator(cfg["models"])
+        self.taxonomy         = taxonomy
+        self.system_prompt    = system_prompt
+        self.output_dir       = Path(self.gen_cfg["output_dir"])
+        self.checkpoint       = Checkpoint(Path(self.gen_cfg["checkpoint_file"]))
         self.categories       = categories or list(taxonomy.keys())
-        self.examples_per_cat = self.gen_cfg.get("examples_per_category", 15)
+        self.examples_per_cat = self.gen_cfg.get("examples_per_category", 180)
         self.batch_size       = self.gen_cfg.get("batch_size", 30)
-        self.checkpoint_every = self.gen_cfg.get("checkpoint_every", 10)
+        self.checkpoint_every = self.gen_cfg.get("checkpoint_every", 30)
+        self.max_failures     = self.gen_cfg.get("max_failures_per_batch", 5)
         # max_tokens para batch: tokens por exemplo × batch_size + margem
         self.max_tokens = self.gen_cfg.get(
             "max_tokens",
-            self.batch_size * 800 + 500,  # ~800 tokens/exemplo + 500 de overhead
+            self.batch_size * 800 + 500,
         )
         self.output_dir.mkdir(parents=True, exist_ok=True)
 
@@ -578,11 +574,13 @@ class DatasetGenerator:
             f"  Requests estimados : ~{self._estimate_requests()} "
             f"(vs {total_target} no modo 1x1)\n"
             f"  max_tokens/request : {self.max_tokens}\n"
+            f"  max falhas/batch   : {self.max_failures}\n"
             f"  Já gerados (checkpoint): {self.checkpoint.total}"
         )
 
         total_generated      = 0
         total_failed_batches = 0
+        skipped_categories   = []
         generated_since_save = 0
 
         for category in self.categories:
@@ -596,8 +594,19 @@ class DatasetGenerator:
             log.info(f"  [{category}] gerando {remaining} exemplos em batches de {self.batch_size}...")
             out_file = self._output_file(category)
 
+            consecutive_failures = 0  # reset por categoria
+
             with open(out_file, "a", encoding="utf-8") as fout:
                 while remaining > 0:
+                    # Aborta a categoria se atingir o limite de falhas consecutivas
+                    if consecutive_failures >= self.max_failures:
+                        log.error(
+                            f"  [{category}] {self.max_failures} falhas consecutivas sem extrair "
+                            f"exemplos válidos. Pulando categoria para não travar o pipeline."
+                        )
+                        skipped_categories.append(category)
+                        break
+
                     current_batch = min(self.batch_size, remaining)
                     model_id      = self.rotator.next()
                     prompt        = build_batch_prompt(category, current_batch, self.taxonomy)
@@ -612,25 +621,29 @@ class DatasetGenerator:
                     if raw is None:
                         self.rotator.mark_failure(model_id)
                         total_failed_batches += 1
+                        consecutive_failures += 1
                         log.warning(
                             f"    Batch falhou para [{category}] ({model_id}), "
-                            f"tentará novamente na próxima iteração."
+                            f"tentativa {consecutive_failures}/{self.max_failures}."
                         )
-                        # Não decrementa remaining — vai tentar de novo
                         continue
 
-                    items = parse_batch_response(raw, category)
+                    items     = parse_batch_response(raw, category)
                     extracted = len(items)
 
                     if extracted == 0:
                         self.rotator.mark_failure(model_id)
                         total_failed_batches += 1
+                        consecutive_failures += 1
                         log.warning(
-                            f"    Nenhum exemplo extraído do batch [{category}] ({model_id})."
+                            f"    Nenhum exemplo extraído do batch [{category}] ({model_id}), "
+                            f"tentativa {consecutive_failures}/{self.max_failures}."
                         )
                         continue
 
-                    # Salva apenas os que precisamos (não supera examples_per_cat)
+                    # Sucesso — reseta contador de falhas consecutivas
+                    consecutive_failures = 0
+
                     to_save = items[:remaining]
                     for item in to_save:
                         example = build_example(
@@ -669,29 +682,38 @@ class DatasetGenerator:
 
         self.checkpoint.save()
         print()
-        self._print_summary(total_generated, total_failed_batches, total_target)
+        self._print_summary(total_generated, total_failed_batches, total_target, skipped_categories)
 
     def _estimate_requests(self) -> int:
-        total = len(self.categories) * self.examples_per_cat
-        already = self.checkpoint.total
-        remaining = max(0, total - already)
         import math
+        total     = len(self.categories) * self.examples_per_cat
+        already   = self.checkpoint.total
+        remaining = max(0, total - already)
         return math.ceil(remaining / self.batch_size)
 
-    def _print_summary(self, generated: int, failed_batches: int, target: int) -> None:
+    def _print_summary(
+        self,
+        generated: int,
+        failed_batches: int,
+        target: int,
+        skipped: list[str],
+    ) -> None:
         log.info("=" * 60)
         log.info("GERAÇÃO CONCLUÍDA")
         log.info("=" * 60)
         log.info(f"  Exemplos gerados  : {generated}")
         log.info(f"  Batches falhos    : {failed_batches}")
         log.info(f"  Meta              : {target}")
-        log.info(f"  Taxa de sucesso   : {generated / max(generated + 1, 1) * 100:.1f}%")
+        log.info(f"  Taxa de sucesso   : {generated / max(target, 1) * 100:.1f}%")
         log.info(f"  Saída             : {self.output_dir}/")
+        if skipped:
+            log.warning(f"  Categorias puladas ({len(skipped)}): {skipped}")
+            log.warning("  Execute com --categories para reprocessar as categorias puladas.")
+        if self.rotator.stats():
+            log.info(f"  Falhas por modelo : {self.rotator.stats()}")
         log.info("")
         log.info("Próximos passos:")
         log.info("  bash scripts/prepare_data.sh   # valida, limpa, deduplica e gera splits")
-        if self.rotator.stats():
-            log.info(f"  Falhas por modelo : {self.rotator.stats()}")
 
 
 # ---------------------------------------------------------------------------
@@ -699,10 +721,10 @@ class DatasetGenerator:
 # ---------------------------------------------------------------------------
 
 def dry_run(cfg: dict, taxonomy: dict[str, dict], system_prompt: str) -> None:
-    gen = cfg["generation"]
+    gen        = cfg["generation"]
     batch_size = gen.get("batch_size", 30)
     max_tokens = gen.get("max_tokens", batch_size * 800 + 500)
-    total      = len(taxonomy) * gen.get("examples_per_category", 15)
+    total      = len(taxonomy) * gen.get("examples_per_category", 180)
     import math
     estimated_requests = math.ceil(total / batch_size)
 
@@ -714,6 +736,7 @@ def dry_run(cfg: dict, taxonomy: dict[str, dict], system_prompt: str) -> None:
     log.info(f"  Meta              : {total} exemplos")
     log.info(f"  Batch size        : {batch_size}")
     log.info(f"  max_tokens        : {max_tokens}")
+    log.info(f"  max_failures      : {gen.get('max_failures_per_batch', 5)}")
     log.info(f"  Requests estimados: ~{estimated_requests} (vs {total} no modo 1x1)")
     log.info(f"  Categorias        : {len(taxonomy)} (lidas de {TAXONOMY_FILE})")
     log.info(f"  System prompt     : {len(system_prompt)} chars (lido de {QUALITY_FILE})")
