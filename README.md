@@ -261,7 +261,7 @@ uvicorn rag.api:app --host 0.0.0.0 --port 8000
 > Execute com o ambiente **venv-rag** ativado: `source venv-rag/bin/activate`
 
 ```bash
-chainlit run rag/app_chainlit.py -w
+chainlit run rag/app_chainlit.py --port 8001
 ```
 
 ---
