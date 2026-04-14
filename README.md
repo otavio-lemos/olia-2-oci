@@ -211,7 +211,7 @@ O pipeline de avaliação compara o modelo fine-tuned contra o modelo base.
 
 ```bash
 # Avaliação Rápida (10 amostras, ~2 min)
-python scripts/unified_evaluation.py --cycle cycle-1 --mode test
+python scripts/unified_evaluation.py --cycle cycle-1 --mode small --fresh
 
 # Avaliação Recomendada (200 amostras, ~30 min)
 python scripts/unified_evaluation.py --cycle cycle-1 --mode medium --fresh
