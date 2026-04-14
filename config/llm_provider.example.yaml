@@ -7,7 +7,9 @@
 # Uso:
 #   cp config/llm_provider.example.yaml config/llm_provider.yaml
 #   # edite llm_provider.yaml com sua API key
-#   python scripts/generate_llm_v1.py
+#   python scripts/generate_llm_v2.py          # versão async (recomendada)
+#   python scripts/generate_llm_v2.py --concurrency 20  # ajusta concorrência
+#   python scripts/generate_llm_v1.py          # versão sequencial (legado)
 # =============================================================================
 
 # =============================================================================
@@ -33,9 +35,11 @@ models:
 rate_limit:
   requests_per_minute: 15                  # AI Studio free: 15 RPM (flash) / 5 RPM (pro)
   requests_per_day: 1500                   # limite diário generous no free tier
+  max_concurrent: 10                       # [v2] requests simultâneos — ajuste conforme RPM do seu plano
+                                           # free tier: 10-15 | pago: 20-30
   retry_attempts: 5
   retry_delay_seconds: 4
-  inter_request_delay_seconds: 4.0
+  inter_request_delay_seconds: 4.0         # usado apenas pelo v1 (legado)
 
 generation:
   target_examples: 15120                   # total de exemplos (84 cats × 180 = 15.120)
@@ -51,9 +55,10 @@ generation:
 http_headers: {}
 
 # =============================================================================
-# OPÇÃO 2: OpenRouter (modelos free tier — mais lento e com limitações)
+# OPÇÃO 2: OpenRouter (modelos free tier)
 # Obtenha sua key em https://openrouter.ai/keys
 # Atenção: modelos free têm output real de ~4k tokens, truncando JSON no meio.
+# Com v2 async e max_concurrent=20, mesmo o free tier fica bem mais rápido.
 # =============================================================================
 
 # provider:
@@ -72,9 +77,10 @@ http_headers: {}
 # rate_limit:
 #   requests_per_minute: 20
 #   requests_per_day: 200
+#   max_concurrent: 20                     # [v2] OpenRouter suporta mais concorrência
 #   retry_attempts: 5
 #   retry_delay_seconds: 4
-#   inter_request_delay_seconds: 4.0
+#   inter_request_delay_seconds: 4.0       # legado v1
 #
 # generation:
 #   target_examples: 15120
