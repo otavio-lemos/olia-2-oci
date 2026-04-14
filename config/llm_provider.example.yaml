@@ -1,0 +1,48 @@
+# =============================================================================
+# LLM Provider Configuration — Dataset Generation
+# =============================================================================
+# Copie este arquivo para config/llm_provider.yaml e preencha com suas chaves.
+# O arquivo llm_provider.yaml está no .gitignore e NUNCA deve ser commitado.
+#
+# Uso:
+#   cp config/llm_provider.example.yaml config/llm_provider.yaml
+#   # edite llm_provider.yaml com sua API key
+#   python scripts/generate_llm_v1.py
+# =============================================================================
+
+provider:
+  name: openrouter                          # openrouter | ollama | openai
+  base_url: https://openrouter.ai/api/v1
+  api_key: "sk-or-v1-COLOQUE_SUA_KEY_AQUI"  # Obtenha em https://openrouter.ai/keys
+
+# Modelos gratuitos no OpenRouter (abril 2026).
+# O script rotaciona entre eles automaticamente para maximizar throughput.
+# Deixe apenas 1 na lista se preferir um modelo fixo.
+models:
+  - id: "deepseek/deepseek-chat-v3-0324:free"
+    weight: 2                               # peso relativo na rotação (mais = mais usado)
+  - id: "meta-llama/llama-3.3-70b-instruct:free"
+    weight: 2
+  - id: "qwen/qwen3-coder:free"
+    weight: 1
+
+rate_limit:
+  requests_per_minute: 20                  # limite por modelo (OpenRouter free tier)
+  requests_per_day: 200                    # limite diário por modelo
+  retry_attempts: 5                        # tentativas antes de trocar de modelo
+  retry_delay_seconds: 4                   # espera base entre tentativas (exponential backoff)
+  inter_request_delay_seconds: 3.5         # delay entre requests para não throttlar
+
+generation:
+  target_examples: 1000                    # total de exemplos a gerar
+  examples_per_category: 15               # exemplos por categoria (71 cats × 15 = 1065)
+  max_tokens: 1500                         # max tokens por resposta
+  temperature: 0.85                        # criatividade (0.7-0.9 é bom para diversidade)
+  checkpoint_every: 50                     # salva progresso a cada N exemplos
+  output_dir: data/curated/llm_generated   # onde salvar os JSONL gerados
+  checkpoint_file: data/.llm_gen_checkpoint.json  # arquivo de checkpoint para resume
+
+# Headers extras enviados para o OpenRouter (para identificação na dashboard)
+http_headers:
+  HTTP-Referer: "https://github.com/otavio-lemos/olia-2-oci"
+  X-Title: "olia-2-oci dataset generation"
