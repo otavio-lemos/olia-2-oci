@@ -54,54 +54,63 @@ except ImportError:
 class ScoringEngine:
     """Engine for evaluating OCI Specialist LLM responses (Optimized)."""
 
-    REAL_CLI_PATTERNS = [re.compile(p, re.IGNORECASE) for p in [
-        r"oci\s+(compute|network|db|bv|os|ce|fn|kms|vault|iam|logging|monitoring|resource-manager|devops|container-instance|nosql|mysql|cloud-guard|waas|apm|stack-monitoring|file-storage|load-balancer|api-gateway)",
-        r"oci_core_instance",
-        r"oci_objectstorage_bucket",
-        r"oci_database_autonomous_database",
-        r"oci_containerengine_cluster",
-        r"oci\.core\.ComputeClient",
-        r"oci\.object_storage\.ObjectStorageClient",
-        r"oci\.database\.DatabaseClient",
-    ]]
-    
-    FAKE_CLI_PATTERNS = [re.compile(p, re.IGNORECASE) for p in [
-        r"oci\s+instances\s+",
-        r"oci\s+storage\s+",
-        r"oci\s+connectivity\s+",
-        r"oci\s+block\s+",
-        r"oci\s+autonomous-json\s+",
-        r"oci\s+azure-storage\s+",
-        r"oci\s+onprem-storage\s+",
-        r"oci\s+observability\s+",
-        r"oci\s+authentication\s+",
-        r"oci\.Compute\.InstancesClient",
-        r"oci\.Storage\.BlockClient",
-        r"oci\.ConnectivityClient",
-        r"oci_compute_instances",
-        r"oci_storage_block",
-        r"oci_connectivity",
-    ]]
+    REAL_CLI_PATTERNS = [
+        re.compile(p, re.IGNORECASE)
+        for p in [
+            r"oci\s+(compute|network|db|bv|os|ce|fn|kms|vault|iam|logging|monitoring|resource-manager|devops|container-instance|nosql|mysql|cloud-guard|waas|apm|stack-monitoring|file-storage|load-balancer|api-gateway)",
+            r"oci_core_instance",
+            r"oci_objectstorage_bucket",
+            r"oci_database_autonomous_database",
+            r"oci_containerengine_cluster",
+            r"oci\.core\.ComputeClient",
+            r"oci\.object_storage\.ObjectStorageClient",
+            r"oci\.database\.DatabaseClient",
+        ]
+    ]
 
-    CROSS_CLOUD_PATTERNS = [re.compile(p, re.IGNORECASE) for p in [
-        r"provider\s+[\"']?aws[\"']?",
-        r"resource\s+[\"']?aws_",
-        r"resource\s+[\"']?azurerm_",
-        r"aws_instance",
-        r"aws_lb",
-        r"aws_vpc",
-        r"aws_security_group",
-        r"aws_s3",
-        r"aws_iam",
-        r"azurerm_network_security_group",
-        r"azurerm_virtual_network",
-        r"azurerm_subnet",
-        r"azurerm_public_ip",
-        r"\bEC2\b",
-        r"\bCloudWatch\b",
-        r"AWS Management Console",
-        r"Azure Portal",
-    ]]
+    FAKE_CLI_PATTERNS = [
+        re.compile(p, re.IGNORECASE)
+        for p in [
+            r"oci\s+instances\s+",
+            r"oci\s+storage\s+",
+            r"oci\s+connectivity\s+",
+            r"oci\s+block\s+",
+            r"oci\s+autonomous-json\s+",
+            r"oci\s+azure-storage\s+",
+            r"oci\s+onprem-storage\s+",
+            r"oci\s+observability\s+",
+            r"oci\s+authentication\s+",
+            r"oci\.Compute\.InstancesClient",
+            r"oci\.Storage\.BlockClient",
+            r"oci\.ConnectivityClient",
+            r"oci_compute_instances",
+            r"oci_storage_block",
+            r"oci_connectivity",
+        ]
+    ]
+
+    CROSS_CLOUD_PATTERNS = [
+        re.compile(p, re.IGNORECASE)
+        for p in [
+            r"provider\s+[\"']?aws[\"']?",
+            r"resource\s+[\"']?aws_",
+            r"resource\s+[\"']?azurerm_",
+            r"aws_instance",
+            r"aws_lb",
+            r"aws_vpc",
+            r"aws_security_group",
+            r"aws_s3",
+            r"aws_iam",
+            r"azurerm_network_security_group",
+            r"azurerm_virtual_network",
+            r"azurerm_subnet",
+            r"azurerm_public_ip",
+            r"\bEC2\b",
+            r"\bCloudWatch\b",
+            r"AWS Management Console",
+            r"Azure Portal",
+        ]
+    ]
 
     DEPTH_INDICATORS = [
         (re.compile(r"\d+\.\s+"), 0.3),
@@ -173,8 +182,12 @@ class ScoringEngine:
         re.compile(r"/Content/\w+/-\w+\.htm"),
     ]
 
-    CLARITY_CONJUNCTIONS = re.compile(r"\b(portanto|assim|consequentemente|dessa forma|em resumo)\b", re.IGNORECASE)
-    CLARITY_EXAMPLES = re.compile(r"\b(exemplo|por exemplo|como segue|veja que)\b", re.IGNORECASE)
+    CLARITY_CONJUNCTIONS = re.compile(
+        r"\b(portanto|assim|consequentemente|dessa forma|em resumo)\b", re.IGNORECASE
+    )
+    CLARITY_EXAMPLES = re.compile(
+        r"\b(exemplo|por exemplo|como segue|veja que)\b", re.IGNORECASE
+    )
 
     @classmethod
     def score_technical_correctness(cls, response: str, category: str) -> float:
@@ -183,18 +196,18 @@ class ScoringEngine:
             return 1.0
         if len(response) < 100:
             score -= 1.0
-            
+
         has_real = any(p.search(response) for p in cls.REAL_CLI_PATTERNS)
         has_fake = any(p.search(response) for p in cls.FAKE_CLI_PATTERNS)
         has_cross_cloud = any(p.search(response) for p in cls.CROSS_CLOUD_PATTERNS)
-        
+
         if has_fake:
             score -= 2.0
         if has_cross_cloud:
             score -= 2.5
         if has_real:
             score += 1.0
-            
+
         terraform_cats = [
             "terraform/provider",
             "terraform/compute",
@@ -208,7 +221,7 @@ class ScoringEngine:
             "terraform/devops",
             "terraform/state",
         ]
-        
+
         lower_resp = response.lower()
         if category in terraform_cats:
             if "terraform" in lower_resp and (
@@ -217,12 +230,16 @@ class ScoringEngine:
                 score += 0.5
             if "oci_" in response:
                 score += 0.5
-                
-        if "Allow group" in response and "to" in response and "in compartment" in response:
+
+        if (
+            "Allow group" in response
+            and "to" in response
+            and "in compartment" in response
+        ):
             score += 0.5
         if "Doc:" in response or "docs.oracle.com" in response:
             score += 0.3
-            
+
         return max(1.0, min(5.0, score))
 
     @classmethod
@@ -230,11 +247,11 @@ class ScoringEngine:
         score = 3.0
         if not response or response.startswith("Error:"):
             return 1.0
-            
+
         for pattern, points in cls.DEPTH_INDICATORS:
             if pattern.search(response):
                 score += points
-                
+
         word_count = len(response.split())
         if word_count > 200:
             score += 0.5
@@ -242,7 +259,7 @@ class ScoringEngine:
             score += 0.5
         if word_count < 50:
             score -= 1.0
-            
+
         return max(1.0, min(5.0, score))
 
     @classmethod
@@ -250,31 +267,33 @@ class ScoringEngine:
         score = 3.0
         if not response or response.startswith("Error:"):
             return 1.0
-            
+
         has_numbered_list = bool(cls.STRUCTURE_NUMBERED.search(response))
         has_bullet_list = bool(cls.STRUCTURE_BULLET.search(response))
         has_code_block = "```" in response
         has_sections = bool(cls.STRUCTURE_SECTIONS.search(response))
         has_table = "|" in response and "---" in response
-        
-        structural_elements = sum([
-            has_numbered_list,
-            has_bullet_list,
-            has_code_block,
-            has_sections,
-            has_table,
-        ])
-        
+
+        structural_elements = sum(
+            [
+                has_numbered_list,
+                has_bullet_list,
+                has_code_block,
+                has_sections,
+                has_table,
+            ]
+        )
+
         if structural_elements >= 3:
             score += 1.5
         elif structural_elements >= 2:
             score += 1.0
         elif structural_elements >= 1:
             score += 0.5
-            
+
         if len(response.split("\n")) > 10:
             score += 0.3
-            
+
         return max(1.0, min(5.0, score))
 
     @classmethod
@@ -282,7 +301,7 @@ class ScoringEngine:
         score = 5.0
         if not response or response.startswith("Error:"):
             return 1.0
-            
+
         for pattern, penalty in cls.HALLUCINATION_PATTERNS:
             if pattern.search(response):
                 score -= penalty
@@ -292,7 +311,7 @@ class ScoringEngine:
         for pattern in cls.FAKE_URLS:
             if pattern.search(response):
                 score -= 1.0
-                
+
         return max(1.0, min(5.0, score))
 
     @classmethod
@@ -300,7 +319,7 @@ class ScoringEngine:
         score = 3.0
         if not response or response.startswith("Error:"):
             return 1.0
-            
+
         length = len(response)
         if length < 50:
             score -= 1.5
@@ -308,17 +327,17 @@ class ScoringEngine:
             score -= 0.5
         if length > 2000:
             score -= 0.3
-            
+
         sentences = re.split(r"[.!?]+", response)
         avg_sentence_length = len(response.split()) / max(len(sentences), 1)
         if 10 <= avg_sentence_length <= 25:
             score += 0.5
-            
+
         if cls.CLARITY_CONJUNCTIONS.search(response):
             score += 0.3
         if cls.CLARITY_EXAMPLES.search(response):
             score += 0.3
-            
+
         return max(1.0, min(5.0, score))
 
     @classmethod
@@ -326,6 +345,7 @@ class ScoringEngine:
         cls, response: str, reference: str, category: str, similarity: float
     ) -> Dict[str, Any]:
         """Fast scoring that directly accepts precomputed semantic similarity."""
+
         # Scale from 0.0-1.0 to 1.0-5.0
         def scale_to_5(score_0_to_1):
             return 1.0 + (score_0_to_1 * 4.0)
@@ -407,12 +427,14 @@ class SemanticScorer:
             return 0.0
 
         return float(np.dot(emb1, emb2) / (norm1 * norm2))
-        
-    def compute_similarity_batch(self, texts1: List[str], texts2: List[str]) -> List[float]:
+
+    def compute_similarity_batch(
+        self, texts1: List[str], texts2: List[str]
+    ) -> List[float]:
         """Compute cosine similarity between two lists of texts efficiently."""
         if not texts1 or not texts2:
             return []
-            
+
         if self.model is None:
             # Fallback to sequential if missing library
             return [self.compute_similarity(t1, t2) for t1, t2 in zip(texts1, texts2)]
@@ -423,15 +445,25 @@ class SemanticScorer:
         unique_texts1 = list(set(texts1))
         texts1_to_encode = [t for t in unique_texts1 if t not in self.embedding_cache]
         if texts1_to_encode:
-            embs = self.model.encode(texts1_to_encode, batch_size=64, convert_to_numpy=True, show_progress_bar=False)
+            embs = self.model.encode(
+                texts1_to_encode,
+                batch_size=64,
+                convert_to_numpy=True,
+                show_progress_bar=False,
+            )
             for t, e in zip(texts1_to_encode, embs):
                 self.embedding_cache[t] = e
-        
+
         # Encode responses missing in cache
         unique_texts2 = list(set(texts2))
         texts2_to_encode = [t for t in unique_texts2 if t not in self.embedding_cache]
         if texts2_to_encode:
-            embs = self.model.encode(texts2_to_encode, batch_size=64, convert_to_numpy=True, show_progress_bar=False)
+            embs = self.model.encode(
+                texts2_to_encode,
+                batch_size=64,
+                convert_to_numpy=True,
+                show_progress_bar=False,
+            )
             for t, e in zip(texts2_to_encode, embs):
                 self.embedding_cache[t] = e
 
@@ -440,7 +472,7 @@ class SemanticScorer:
 
         norm1 = np.linalg.norm(emb1, axis=1)
         norm2 = np.linalg.norm(emb2, axis=1)
-        
+
         # Prevent division by zero
         norm1[norm1 == 0] = 1e-10
         norm2[norm2 == 0] = 1e-10
@@ -742,7 +774,7 @@ class UnifiedEvaluator:
         print("  [Warmup] Done.", flush=True)
 
         for i, (user_prompt, system_prompt) in enumerate(prompts):
-            print(f"    [{i+1:3d}/{total}] Generating tokens...", end=" ", flush=True)
+            print(f"    [{i + 1:3d}/{total}] Generating tokens...", end=" ", flush=True)
             resp, t = self.generate_response(user_prompt, system_prompt, max_tokens)
             results.append((resp, t))
             print(f"Done in {t:.1f}s", flush=True)
@@ -752,7 +784,9 @@ class UnifiedEvaluator:
                 print(f"    --- Avg time so far: {avg_t:.2f}s per prompt ---")
 
         total_time = time.time() - start_all
-        print(f"\n  Total: {total} prompts in {total_time:.1f}s ({total / total_time:.1f} prompts/sec)")
+        print(
+            f"\n  Total: {total} prompts in {total_time:.1f}s ({total / total_time:.1f} prompts/sec)"
+        )
         return results
 
 
@@ -906,7 +940,9 @@ def evaluate_model(
         category = categories[i]
         sim = sem_sims[i]
 
-        scores = ScoringEngine.evaluate_response_fast(response, reference, category, sim)
+        scores = ScoringEngine.evaluate_response_fast(
+            response, reference, category, sim
+        )
 
         result = {
             "category": category,
@@ -923,7 +959,9 @@ def evaluate_model(
         # Save checkpoint periodically
         if checkpoint_file and (i + 1) % 50 == 0:
             save_results(results + results_eval, checkpoint_file)
-            print(f"  [{mode}] Checkpoint saved at {start_idx + i + 1}/{total + start_idx}")
+            print(
+                f"  [{mode}] Checkpoint saved at {start_idx + i + 1}/{total + start_idx}"
+            )
 
     return results + results_eval
 
@@ -937,7 +975,9 @@ def save_results(results: List[Dict], output_path: Path):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Unified OCI Specialist Evaluation (Optimized)")
+    parser = argparse.ArgumentParser(
+        description="Unified OCI Specialist Evaluation (Optimized)"
+    )
     parser.add_argument("--cycle", required=True, help="Cycle name (e.g., cycle-1)")
     parser.add_argument(
         "--mode",
@@ -967,7 +1007,11 @@ def main():
         "--compare", action="store_true", help="Also evaluate base model for comparison"
     )
     parser.add_argument("--eval-file", default="data/eval.jsonl", help="Eval JSONL")
-    parser.add_argument("--output-dir", default="outputs/benchmarks", help="Output dir")
+    parser.add_argument(
+        "--output-dir",
+        default=None,
+        help="Output dir (default: outputs/{cycle}/benchmarks)",
+    )
     parser.add_argument("--seed", type=int, default=42, help="Random seed")
     parser.add_argument(
         "--merged", default="", help="Merged model path (optional override)"
@@ -996,7 +1040,10 @@ def main():
         ft_mode = "adapter"
 
     eval_file = args.eval_file
-    output_dir = Path(args.output_dir)
+    if args.output_dir is None:
+        output_dir = project_root / output_dir_config / "benchmarks"
+    else:
+        output_dir = Path(args.output_dir)
     random.seed(args.seed)
 
     print("=" * 60)
@@ -1141,19 +1188,47 @@ def main():
         # Update base results
         for r in base_results:
             if "reference" in r and "response" in r:
-                sem_sim = semantic_scorer.compute_similarity(r["reference"], r["response"])
+                sem_sim = semantic_scorer.compute_similarity(
+                    r["reference"], r["response"]
+                )
                 r["semantic_similarity"] = sem_sim
                 # Re-calculate overall score properly based on new semantic
                 r["scores"]["hallucination"] = 1.0 + (sem_sim * 4.0)
-                r["scores"]["overall"] = sum(r["scores"][k] for k in ["technical_correctness", "depth", "structure", "hallucination", "clarity"]) / 5
+                r["scores"]["overall"] = (
+                    sum(
+                        r["scores"][k]
+                        for k in [
+                            "technical_correctness",
+                            "depth",
+                            "structure",
+                            "hallucination",
+                            "clarity",
+                        ]
+                    )
+                    / 5
+                )
 
         # Update ft results
         for r in ft_results:
             if "reference" in r and "response" in r:
-                sem_sim = semantic_scorer.compute_similarity(r["reference"], r["response"])
+                sem_sim = semantic_scorer.compute_similarity(
+                    r["reference"], r["response"]
+                )
                 r["semantic_similarity"] = sem_sim
                 r["scores"]["hallucination"] = 1.0 + (sem_sim * 4.0)
-                r["scores"]["overall"] = sum(r["scores"][k] for k in ["technical_correctness", "depth", "structure", "hallucination", "clarity"]) / 5
+                r["scores"]["overall"] = (
+                    sum(
+                        r["scores"][k]
+                        for k in [
+                            "technical_correctness",
+                            "depth",
+                            "structure",
+                            "hallucination",
+                            "clarity",
+                        ]
+                    )
+                    / 5
+                )
 
         # Save the updated final results
         save_results(base_results, base_path)
