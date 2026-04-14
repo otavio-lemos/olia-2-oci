@@ -166,8 +166,9 @@ python scripts/generate_diverse_v2.py
 
 ### Opção B — Geração via LLM (OpenRouter) ✨
 
-Gera exemplos usando LLMs reais (DeepSeek, Llama 3.3 70B, Qwen3) via [OpenRouter](https://openrouter.ai).
-Produz respostas mais naturais e variadas, complementando a Opção A.
+> [!TIP]
+> **Recomendado.** Gera respostas mais naturais e variadas usando LLMs reais via [OpenRouter](https://openrouter.ai).
+> É uma alternativa à Opção A — escolha uma das duas para gerar o dataset.
 
 > [!NOTE]
 > Execute com o ambiente **venv** ativado: `source venv/bin/activate`
@@ -197,7 +198,7 @@ cp config/llm_provider.example.yaml config/llm_provider.yaml
 #### Modelos Gratuitos Configurados (abril 2026)
 
 | Modelo | ID no OpenRouter | Qualidade |
-|--------|-----------------|-----------|
+|--------|-----------------|-----------| 
 | DeepSeek Chat V3 | `deepseek/deepseek-chat-v3-0324:free` | ⭐⭐⭐⭐⭐ |
 | Llama 3.3 70B Instruct | `meta-llama/llama-3.3-70b-instruct:free` | ⭐⭐⭐⭐⭐ |
 | Qwen3 Coder | `qwen/qwen3-coder:free` | ⭐⭐⭐⭐⭐ |
@@ -240,7 +241,7 @@ cat data/.llm_gen_checkpoint.json | python -m json.tool
 
 ### Passo Final — Validar, Limpar e Gerar Splits
 
-Após gerar os exemplos (Opção A, B ou ambas), execute o pipeline de preparação:
+Após gerar os exemplos (Opção A ou B), execute o pipeline de preparação:
 
 ```bash
 # Validar, limpar, desduplicar e gerar splits (75/15/10%)
