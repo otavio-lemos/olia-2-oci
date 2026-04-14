@@ -12,6 +12,8 @@ __pycache__/
 
 # Large model files (too big for Git)
 outputs/
+# But keep OUTPUT.md
+!outputs/OUTPUT.md
 
 # Temp/diagnostic logs
 outputs/benchmarks/eval-run.log
