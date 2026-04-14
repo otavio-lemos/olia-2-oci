@@ -42,37 +42,48 @@ Large Language Model (LLM) fine-tuned para Oracle Cloud Infrastructure (OCI) usa
 
 ## Visão Geral
 
-Este projeto treina um LLM especializado para Oracle Cloud Infrastructure utilizando o framework MLX da Apple em Apple Silicon. O pipeline abrange a geração do dataset, validação, fine-tuning via MLX LoRA, fusão de pesos (Merge) e integração com uma camada de RAG (OCI Copilot).
+O processo de desenvolvimento do OCI Specialist LLM segue uma ordem rigorosa de pipeline para garantir a precisão técnica e a performance no Apple Silicon.
 
 ```mermaid
-flowchart TD
-    subgraph GENERATION["1. Geração & Preparação"]
-        A1["generate_diverse_v2.py"] --> A2["prepare_data.sh"]
-        A2 --> A3["train.jsonl / valid.jsonl"]
+flowchart LR
+    subgraph DS["1. DATASET"]
+        A1["Geração<br/>(generate_diverse_v2.py)"] --> A2["Preparação<br/>(prepare_data.sh)"]
     end
 
-    subgraph TRAINING["2. Treinamento & Merge"]
-        B1["train_mlx_tune.py"] --> B2["LoRA Adapters"]
-        B2 --> B3["Merge & Export (GGUF)"]
+    subgraph TR["2. TREINAMENTO"]
+        B1["MLX LoRA Fine-tune<br/>(run_all_cycles.sh)"] --> B2["LoRA Adapters"]
     end
 
-    subgraph RAG["3. OCI Copilot (RAG)"]
-        C1["update_rag.py (Offline)"] --> C2["FAISS / BM25 Indices"]
-        C2 --> C3["FastAPI Backend"]
+    subgraph ME["3. MERGE & EXPORT"]
+        B2 --> C1["Merge Weights<br/>(merge_export.py)"] --> C2["Quantização GGUF"]
     end
 
-    subgraph UI["4. Interface & Agentes"]
-        D1["orchestrator.py (LangGraph)"] --> D2["app_chainlit.py (UI)"]
+    subgraph EV["4. AVALIAÇÃO"]
+        C2 --> D1["Benchmark<br/>(unified_evaluation.py)"]
     end
 
-    GENERATION --> TRAINING
-    TRAINING --> UI
-    RAG --> UI
+    subgraph RG["5. RAG (OCI COPILOT)"]
+        E1["Ingestão Offline<br/>(update_rag.py)"] --> E2["Indices FAISS/BM25"]
+    end
 
-    style GENERATION fill:#e1f5fe
-    style TRAINING fill:#e8f5e9
-    style RAG fill:#fff3e0
-    style UI fill:#f3e5f5
+    subgraph UI["6. INFERÊNCIA & UI"]
+        C2 --> F1["LangGraph Orchestrator"]
+        E2 --> F1
+        F1 --> F2["Chainlit Interface"]
+    end
+
+    DS --> TR
+    TR --> ME
+    ME --> EV
+    EV --> RG
+    RG --> UI
+
+    style DS fill:#e1f5fe
+    style TR fill:#e8f5e9
+    style ME fill:#fff3e0
+    style EV fill:#ffebee
+    style RG fill:#f3e5f5
+    style UI fill:#e0f2f1
 ```
 
 ---
@@ -81,11 +92,11 @@ flowchart TD
 
 - **LoRA Fine-tuning**: Adaptação de baixo ranque com modelo base **Qwen 2.5 Coder 7B Instruct** (4-bit).
 - **Otimizado para M3 Pro**: Configurações hiper-otimizadas para 18GB de RAM, usando **BF16 nativo** e sem Swap em disco.
+- **Merge & Export Nativo**: Sistema de fusão de adaptadores para gerar modelos GGUF prontos para produção local.
 - **RAG Híbrido Avançado**: Busca semântica (FAISS) + lexical (BM25) com persistência local e **Ingestão Offline**.
 - **Re-ranking Semântico**: Uso de **Cross-Encoders** para validar a relevância dos documentos recuperados.
 - **Sistema Multi-Agentes**: Orquestração via **LangGraph** (Router, Descoberta, Arquitetura, Execução).
 - **Interface OCI Copilot**: UI construída com **Chainlit**, suportando anexos de arquivos, streaming de tokens e **Human-in-the-loop** para segurança em comandos CLI.
-- **Merge & Export**: Pipeline para fundir adaptadores LoRA ao modelo base e exportar para GGUF (quantização local).
 - **Avaliação Automatizada**: Pipeline de benchmark para medir precisão técnica, alucinação e profundidade.
 
 ---
@@ -113,9 +124,9 @@ flowchart TD
 
 ## Treinamento
 
-O treinamento utiliza o framework MLX-Tune, otimizado para extrair o máximo de performance do Apple Silicon M3 Pro.
+O treinamento utiliza o framework MLX-Tune, focado na arquitetura do Apple Silicon.
 
-### 1. Setup do Ambiente
+### 1. Setup do Ambiente de Treino
 
 ```bash
 python3.12 -m venv venv
@@ -123,24 +134,26 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 2. Execução do Treino
+### 2. Execução do Treino (Fine-Tuning)
 
 ```bash
-# Executa o ciclo consolidado de treinamento
+# Executa o ciclo consolidado de treinamento (Ciclo 1)
 bash training/run_all_cycles.sh --fresh
 ```
 
 ### 3. Fusão de Pesos (Merge) & Exportação
 
-Após o treino, você deve fundir os adaptadores LoRA ao modelo base e exportar para o formato GGUF (compatível com llama.cpp/Ollama).
+Após gerar os adaptadores LoRA, é obrigatório realizar a fusão com o modelo base para uso em inferência.
 
 ```bash
-# Merge e export para GGUF Q4
+# Fundir adaptadores e exportar para GGUF (Q4_K_M)
 python scripts/merge_export.py --cycle cycle-1 --quant q4 --name oci-specialist
 ```
 
+### Configuração Otimizada (`config/cycle-1.env`)
+
 <details>
-<summary><b>Clique para ver a Configuração Otimizada do .env (26 parâmetros)</b></summary>
+<summary><b>Clique para ver a Configuração Completa do .env (26 parâmetros)</b></summary>
 <sub>
 
 | Parâmetro | Valor | Descrição |
@@ -155,7 +168,7 @@ python scripts/merge_export.py --cycle cycle-1 --quant q4 --name oci-specialist
 | **LORA_RANK** | 8 | Ranque do LoRA |
 | **LORA_ALPHA** | 16 | Alfa do LoRA |
 | **LORA_DROPOUT** | 0.05 | Dropout do LoRA |
-| **GRAD_ACCUM** | 4 | Acúmulo de gradientes |
+| **GRADIENT_ACCUMULATION** | 4 | Acúmulo de gradientes |
 | **NUM_LAYERS** | 14 | Número de camadas LoRA (50%) |
 | **TARGET_MODULES** | `"q_proj,k_proj,v_proj,o_proj,gate_proj,up_proj,down_proj"` | Módulos alvo |
 | **ITERS** | 4000 | Total de iterações |
@@ -165,7 +178,7 @@ python scripts/merge_export.py --cycle cycle-1 --quant q4 --name oci-specialist
 | **LOGGING_STEPS** | 1 | Passos entre logs |
 | **SAVE_STEPS** | 500 | Passos entre salvamentos |
 | **WARMUP_STEPS** | 320 | Passos de warmup |
-| **GRAD_CHECKPOINT**| false | Checkpointing de gradiente |
+| **GRADIENT_CHECKPOINTING**| false | Checkpointing de gradiente |
 | **LR_SCHEDULER** | `cosine` | Scheduler de LR |
 | **WEIGHT_DECAY** | 0.01 | Decaimento de peso |
 | **SEED** | 42 | Semente aleatória |
@@ -179,7 +192,7 @@ python scripts/merge_export.py --cycle cycle-1 --quant q4 --name oci-specialist
 
 ## Avaliação
 
-O pipeline de avaliação compara o modelo fine-tuned contra o modelo base usando métricas semânticas e técnicas.
+O pipeline de avaliação compara o modelo fine-tuned contra o modelo base para validar a evolução do aprendizado.
 
 ```bash
 # Avaliação Recomendada (200 amostras estratificadas, ~30 min)
@@ -206,9 +219,9 @@ Resultados: [benchmark](#benchmark)
 
 ## RAG (Retrieval-Augmented Generation)
 
-O OCI Copilot utiliza uma camada de RAG persistente para acessar fatos em tempo real da documentação Oracle.
+O OCI Copilot utiliza uma camada de RAG Híbrida persistente para acessar a documentação Oracle em tempo real.
 
-### 1. Setup do RAG
+### 1. Setup do Ambiente RAG
 
 ```bash
 python3.12 -m venv venv-rag
@@ -217,13 +230,13 @@ pip install -r requirements-rag.txt
 ```
 
 ### 2. Ingestão Offline (Obrigatória)
-Para economizar RAM durante o chat, os índices devem ser gerados offline:
+Para economizar RAM durante o chat, os índices devem ser gerados offline antes do uso:
 ```bash
 python scripts/update_rag.py
 ```
 
 ### 3. Orquestração e Agentes
-O ecossistema de agentes é orquestrado via **LangGraph** e servido via **FastAPI** e **Chainlit**.
+O ecossistema é orquestrado via **LangGraph** e servido via **FastAPI**.
 
 **Subir API Backend (RAG Indices):**
 ```bash
@@ -239,25 +252,25 @@ chainlit run rag/app_chainlit.py -w
 
 ## Inferência e UI
 
-Após o treinamento e merge, utilize a interface oficial **Chainlit** para interagir com o Copilot.
+A inferência local é realizada utilizando o modelo após o processo de **Merge**.
 
-### 1. Iniciar Backend RAG
+### 1. Servidor de Inferência (MLX)
 ```bash
-uvicorn rag.api:app --port 8000
+mlx_lm.server --model mlx-community/Qwen2.5-Coder-7B-Instruct-4bit --adapter outputs/cycle-1/adapters
 ```
 
-### 2. Iniciar Interface Visual
+### 2. OCI Copilot UI
+Com o backend RAG rodando, inicie a interface visual:
 ```bash
-chainlit run rag/app_chainlit.py -w
+chainlit run rag/app_chainlit.py --port 8001
 ```
-Acesse em: `http://localhost:8000` (ou porta configurada).
 
 ---
 
 ## Benchmark
 
 ### Como avaliar
-Para gerar novos relatórios de benchmark, siga as instruções na seção [Avaliação](#avaliação).
+Para gerar novos relatórios, utilize os comandos detalhados na seção [Avaliação](#avaliação).
 
 ### Comparação de Métricas
 ![Gráfico de Comparação](outputs/benchmarks/comparison_chart_20260411_063001.png)
@@ -265,7 +278,7 @@ Para gerar novos relatórios de benchmark, siga as instruções na seção [Aval
 ### Performance por Categoria
 ![Gráfico de Categorias](outputs/benchmarks/category_chart_20260411_063001.png)
 
-### Resumo dos Resultados
+### Resumo Geral
 
 | Métrica | Modelo Base | Fine-Tuned | Delta |
 |--------|-------------|------------|-------|
@@ -276,17 +289,17 @@ Para gerar novos relatórios de benchmark, siga as instruções na seção [Aval
 | clarity | 3.49 | 3.19 | -0.30 |
 | **Overall** | **3.33** | **3.46** | **+0.12** |
 
-### Principais Ganhos por Tópico
+### Principais Ganhos por Tópico (Top 5)
 1. **Troubleshooting Functions**: +0.65
 2. **Networking VCN**: +0.62
 3. **Storage File**: +0.57
 4. **Troubleshooting Compute**: +0.57
 5. **Migration Azure Storage**: +0.55
 
-### Resultados Detalhados por Categoria
+### Resultados Detalhados por Categoria (87 Tópicos)
 
 <details>
-<summary>Clique para expandir as 87 categorias</summary>
+<summary>Clique para expandir a tabela de performance por categoria</summary>
 <sub>
 
 | # | Categoria | Base | FT | Delta |
@@ -403,8 +416,8 @@ Este projeto foi desenvolvido integrando as seguintes tecnologias de ponta:
 - **Orquestração de Agentes**: [LangGraph](https://python.langchain.com/docs/langgraph) e [LangChain](https://langchain.com).
 - **Interface do Usuário**: [Chainlit](https://chainlit.io).
 - **Serviços de Backend**: [FastAPI](https://fastapi.tiangolo.com).
-- **Motores de Busca (RAG Híbrido)**: [FAISS](https://github.com/facebookresearch/faiss) (Dense), [Rank-BM25](https://github.com/dorianbrown/rank_bm25) (Sparse) e [Sentence-Transformers](https://sbert.net) (Cross-Encoder Re-ranking).
-- **Embeddings**: [Hugging Face](https://huggingface.co) e [Sentence-Transformers](https://sbert.net).
+- **Motores de Busca (RAG Híbrida)**: [FAISS](https://github.com/facebookresearch/faiss) (Dense) e [Rank-BM25](https://github.com/dorianbrown/rank_bm25) (Sparse).
+- **Embeddings e Re-ranking**: [Hugging Face](https://huggingface.co) e [Sentence-Transformers](https://sbert.net) (Cross-Encoder).
 - **Desenvolvimento**: [Python 3.12](https://www.python.org).
 - **Dados**: Sintetizados e validados especificamente para cenários de Oracle Cloud Infrastructure (OCI).
 
