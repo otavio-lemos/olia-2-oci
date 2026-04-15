@@ -1,0 +1,98 @@
+# =============================================================================
+# LLM Provider Configuration — Dataset Generation
+# =============================================================================
+# Copie este arquivo para config/llm_provider.yaml e preencha com suas chaves.
+# O arquivo llm_provider.yaml está no .gitignore e NUNCA deve ser commitado.
+#
+# Uso:
+#   cp config/llm_provider.example.yaml config/llm_provider.yaml
+#   # edite llm_provider.yaml com sua API key
+#   python scripts/generate_llm_v2.py          # versão async (recomendada)
+#   python scripts/generate_llm_v2.py --concurrency 20  # ajusta concorrência
+#   python scripts/generate_llm_v1.py          # versão sequencial (legado)
+# =============================================================================
+
+# =============================================================================
+# OPÇÃO 1 (RECOMENDADA): Google Gemini via AI Studio
+# Obtenha sua key GRATUITA em https://aistudio.google.com/apikey
+# Vantagens: output enorme (65k tokens), batch de 60 exemplos sem truncar,
+#            mais rápido e confiável que OpenRouter free tier.
+# =============================================================================
+
+provider:
+  name: google-gemini
+  base_url: https://generativelanguage.googleapis.com/v1beta/openai/
+  api_key: "AIzaSyDVSqrrU6aq8r7YsrjpfvDJ-q4og_91F7U"   # https://aistudio.google.com/apikey
+
+# gemini-2.5-flash: mais rápido, free, ideal para geração em volume
+# gemini-2.5-pro:   mais capaz, free tier com limites menores
+models:
+  - id: "gemini-2.5-flash"
+    weight: 3                               # rápido, free, output até 65k tokens
+  - id: "gemini-2.5-pro"
+    weight: 1                               # mais capaz, usa quando flash falhar
+
+rate_limit:
+  requests_per_minute: 15                  # AI Studio free: 15 RPM (flash) / 5 RPM (pro)
+  requests_per_day: 1500                   # limite diário generous no free tier
+  max_concurrent: 10                       # [v2] requests simultâneos — ajuste conforme RPM do seu plano
+                                           # free tier: 10-15 | pago: 20-30
+  retry_attempts: 5
+  retry_delay_seconds: 4
+  inter_request_delay_seconds: 4.0         # usado apenas pelo v1 (legado)
+
+generation:
+  target_examples: 15120                   # total de exemplos (84 cats × 180 = 15.120)
+  examples_per_category: 180
+  batch_size: 60                           # Gemini aguenta 60 exemplos por request
+  max_tokens: 65000                        # Gemini suporta output grande sem truncar
+  max_failures_per_batch: 5
+  temperature: 0.85
+  checkpoint_every: 60
+  output_dir: data/curated/llm_generated
+  checkpoint_file: data/.llm_gen_checkpoint.json
+
+http_headers: {}
+
+# =============================================================================
+# OPÇÃO 2: OpenRouter (modelos free tier)
+# Obtenha sua key em https://openrouter.ai/keys
+# Atenção: modelos free têm output real de ~4k tokens, truncando JSON no meio.
+# Com v2 async e max_concurrent=20, mesmo o free tier fica bem mais rápido.
+# =============================================================================
+
+# provider:
+#   name: openrouter
+#   base_url: https://openrouter.ai/api/v1
+#   api_key: "sk-or-v1-COLOQUE_SUA_KEY_AQUI"
+#
+# models:
+#   - id: "z-ai/glm-4.5-air:free"
+#     weight: 2
+#   - id: "nvidia/nemotron-3-nano-30b-a3b:free"
+#     weight: 2
+#   - id: "openai/gpt-oss-120b:free"
+#     weight: 1
+#
+# rate_limit:
+#   requests_per_minute: 20
+#   requests_per_day: 200
+#   max_concurrent: 20                     # [v2] OpenRouter suporta mais concorrência
+#   retry_attempts: 5
+#   retry_delay_seconds: 4
+#   inter_request_delay_seconds: 4.0       # legado v1
+#
+# generation:
+#   target_examples: 15120
+#   examples_per_category: 180
+#   batch_size: 30
+#   max_tokens: 24500
+#   max_failures_per_batch: 5
+#   temperature: 0.85
+#   checkpoint_every: 30
+#   output_dir: data/curated/llm_generated
+#   checkpoint_file: data/.llm_gen_checkpoint.json
+#
+# http_headers:
+#   HTTP-Referer: "https://github.com/otavio-lemos/olia-2-oci"
+#   X-Title: "olia-2-oci dataset generation"

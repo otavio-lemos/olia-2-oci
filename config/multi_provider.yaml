@@ -1,0 +1,42 @@
+# =============================================================================
+# Multi-Provider Configuration — Dataset Generation
+# Combines multiple LLM providers with automatic failover on rate limits (429)
+# Copie para config/multi_provider.yaml e preencha com suas chaves
+# NUNCA commit este arquivo (já está no .gitignore)
+# =============================================================================
+
+providers:
+  # 1. Google Gemini (generous free tier, large output)
+  - name: google-gemini
+    base_url: https://generativelanguage.googleapis.com/v1beta/openai/
+    api_key: "AIzaSy-COLOQUE_SUA_KEY_AQUI"
+    models:
+      - gemini-2.5-flash
+      - gemini-2.5-pro
+
+#  2. Groq (fast inference)
+  - name: groq
+    base_url: https://api.groq.com/openai/v1
+    api_key: "gsk-COLOQUE_SUA_KEY_AQUI"
+    models:
+      - llama-3.1-8b-instant
+      - llama-3.3-70b-versatile
+
+rate_limit:
+  requests_per_minute: 15
+  requests_per_day: 1500
+  max_concurrent: 10
+  retry_attempts: 5
+  retry_delay_seconds: 4
+  inter_request_delay_seconds: 0.0
+
+generation:
+  target_examples: 15120
+  examples_per_category: 180
+  batch_size: 60
+  max_tokens: 65000
+  max_failures_per_batch: 5
+  temperature: 0.85
+  checkpoint_every: 60
+  output_dir: data/curated/llm_generated
+  checkpoint_file: data/.llm_gen_checkpoint.json

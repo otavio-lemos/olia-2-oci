@@ -9,7 +9,7 @@ Large Language Model (LLM) fine-tuned for Oracle Cloud Infrastructure (OCI) usin
 [![MLX](https://img.shields.io/badge/MLX-Apple%20Silicon-orange?style=flat-square)](https://mlx.ai)
 [![MLX-Tune](https://img.shields.io/badge/Finetune-MLX--Tune-blue?style=flat-square)](https://github.com/Aaronipher/mlx-tune)
 [![Model](https://img.shields.io/badge/Base%20Model-Qwen2.5--Coder--7B--Instruct--4bit-purple?style=flat-square)](https://huggingface.co/mlx-community/Qwen2.5-Coder-7B-Instruct-4bit)
-[![Dataset](https://img.shields.io/badge/Dataset-21327_examples-green?style=flat-square)](docs/taxonomy.md)
+[![Dataset](https://img.shields.io/badge/Dataset-10299_examples-green?style=flat-square)](docs/taxonomy.md)
 [![LangGraph](https://img.shields.io/badge/Orchestration-LangGraph-black?style=flat-square&logo=langchain)](https://python.langchain.com/docs/langgraph)
 [![Chainlit](https://img.shields.io/badge/UI-Chainlit-orange?style=flat-square)](https://chainlit.io)
 [![FastAPI](https://img.shields.io/badge/API-FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
@@ -47,7 +47,7 @@ This project trains a specialized LLM for Oracle Cloud Infrastructure using Appl
 ```mermaid
 flowchart TD
     subgraph GENERATION["1. Generation & Preparation"]
-        A1["generate_diverse_v2.py"] --> A2["prepare_data.sh"]
+        A1["generate_e2e_diverse.py\n(CLI real, 87 cats)"] --> A2["prepare_data.sh"]
         A2 --> A3["train.jsonl / valid.jsonl"]
     end
 
@@ -94,19 +94,20 @@ flowchart TD
 
 | Metric | Value |
 |--------|-------|
-| **Total Generated** | 21,750 examples (87 categories × 250) |
-| **After Clean/Dedup** | 21,327 examples |
-| **Train** | 15,995 examples (75%) |
-| **Valid** | 3,199 examples (15%) |
-| **Eval** | 2,133 examples (10%) |
+| **Total Generated** | 15,660 examples (87 categories × 180) |
+| **After Clean/Dedup** | 10,299 examples |
+| **Train** | 7,724 examples (75%) |
+| **Valid** | 1,544 examples (15%) |
+| **Eval** | 1,031 examples (10%) |
 | **Categories** | 87 OCI topics |
 
 ### Split
 
 | Split | Examples | % |
 |-------|----------|---|
-| Train | 15,995 | 75% |
-| Valid | 3,199 | 15% |
+| Train | 7,724 | 75% |
+| Valid | 1,544 | 15% |
+| Eval | 1,031 | 10% |
 | Eval | 2,133 | 10% |
 
 ---

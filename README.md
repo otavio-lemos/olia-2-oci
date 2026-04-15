@@ -9,7 +9,7 @@ Large Language Model (LLM) fine-tuned para Oracle Cloud Infrastructure (OCI) usa
 [![MLX](https://img.shields.io/badge/MLX-Apple%20Silicon-orange?style=flat-square)](https://mlx.ai)
 [![MLX-Tune](https://img.shields.io/badge/Finetune-MLX--Tune-blue?style=flat-square)](https://github.com/Aaronipher/mlx-tune)
 [![Model](https://img.shields.io/badge/Base%20Model-Qwen2.5--Coder--7B--Instruct--4bit-purple?style=flat-square)](https://huggingface.co/mlx-community/Qwen2.5-Coder-7B-Instruct-4bit)
-[![Dataset](https://img.shields.io/badge/Dataset-21118_examples-green?style=flat-square)](docs/taxonomy.md)
+[![Dataset](https://img.shields.io/badge/Dataset-10299_examples-green?style=flat-square)](docs/taxonomy.md)
 [![LangGraph](https://img.shields.io/badge/Orquestração-LangGraph-black?style=flat-square&logo=langchain)](https://python.langchain.com/docs/langgraph)
 [![Chainlit](https://img.shields.io/badge/UI-Chainlit-orange?style=flat-square)](https://chainlit.io)
 [![FastAPI](https://img.shields.io/badge/API-FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
@@ -42,8 +42,7 @@ O processo de desenvolvimento do OCI Specialist LLM segue uma ordem rigorosa de 
 ```mermaid
 flowchart TD
     subgraph GENERATION["1. Geração & Preparação"]
-        A1["generate_diverse_v2.py"] --> A2["prepare_data.sh"]
-        A1b["generate_llm_v1.py\n(OpenRouter)"] --> A2
+        A1["generate_e2e_diverse.py\n(CLI real, 87 cats)"] --> A2["prepare_data.sh"]
         A2 --> A3["train.jsonl / valid.jsonl"]
     end
 
@@ -89,20 +88,20 @@ flowchart TD
 
 | Métrica | Valor |
 |--------|-------|
-| **Total Gerado** | 21.750 exemplos (87 categorias × 250) |
-| **Após Limpeza/Desduplicação** | 21.118 exemplos |
-| **Treino (Train)** | 15.838 exemplos (75%) |
-| **Validação (Valid)** | 3.167 exemplos (15%) |
-| **Avaliação (Eval)** | 2.113 exemplos (10%) |
+| **Total Gerado** | 15.660 exemplos (87 categorias × 180) |
+| **Após Limpeza/Desduplicação** | 10.299 exemplos |
+| **Treino (Train)** | 7.724 exemplos (75%) |
+| **Validação (Valid)** | 1.544 exemplos (15%) |
+| **Avaliação (Eval)** | 1.031 exemplos (10%) |
 | **Categorias** | 87 tópicos do OCI |
 
 ### Divisão (Split)
 
 | Split | Exemplos | % |
 |-------|----------|---|
-| Treino (Train) | 15.838 | 75% |
-| Validação (Valid) | 3.167 | 15% |
-| Avaliação (Eval) | 2.113 | 10% |
+| Treino (Train) | 7.724 | 75% |
+| Validação (Valid) | 1.544 | 15% |
+| Avaliação (Eval) | 1.031 | 10% |
 
 ---
 
@@ -145,7 +144,7 @@ Pipeline para validar, limpar, desduplicar e gerar splits do dataset.
 
 ```mermaid
 flowchart LR
-    A1["generate_diverse_v2.py\n(templates locais)"] --> C
+    A1["generate_e2e_diverse.py\n(CLI real, 87 cats)"] --> C
     A2["generate_llm_v1.py\n(OpenRouter API)"] --> C
     C["data/curated/\n(arquivos JSONL)"] --> D["prepare_data.sh"]
     D --> E["validate_jsonl.py\n(estrutura)"]
@@ -155,13 +154,16 @@ flowchart LR
     H --> I["train.jsonl\nvalid.jsonl\neval.jsonl"]
 ```
 
-### Opção A — Geração Local (templates)
+### Opção A — Geração Local (CLI real)
 
-Gera exemplos usando templates locais determinísticos. Rápido, sem custo, sem dependência de internet.
+Gera exemplos usando OCI CLI commands reais com intents alinhados. Rápido, sem custo, sem dependência de internet.
 
 ```bash
-# Gerar dataset (87 categorias × 250 exemplos)
-python scripts/generate_diverse_v2.py
+# Gerar dataset (87 categorias × 180 exemplos)
+python scripts/generate_e2e_diverse.py
+
+# Versão core (12 categorias principais)
+python scripts/generate_e2e_v1.py
 ```
 
 ### Opção B — Geração via LLM (Multi-Provider) ✨
@@ -247,12 +249,12 @@ bash scripts/prepare_data.sh
 
 | Etapa | Quantidade |
 |-------|-----------|
- | Bruto gerado | 21.750 exemplos |
- | Após limpeza | ~21.118 exemplos |
- | Após desduplicação | 21.118 exemplos |
- | Treino (75%) | 15.838 |
- | Validação (15%) | 3.167 |
- | Avaliação (10%) | 2.113 |
+ | Bruto gerado | 15.660 exemplos |
+ | Após limpeza | ~15.660 exemplos |
+ | Após desduplicação | 10.299 exemplos |
+ | Treino (75%) | 7.724 |
+ | Validação (15%) | 1.544 |
+ | Avaliação (10%) | 1.031 |
 
 ---
 

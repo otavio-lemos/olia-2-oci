@@ -10,6 +10,10 @@ __pycache__/
 .qwen/
 .ruff_cache/
 
+# keys
+config/llm_provider_*.yaml
+
+
 # Large model files (too big for Git)
 outputs/
 # But keep OUTPUT.md
@@ -31,3 +35,13 @@ backup_*/
 # Worktrees (isolated workspaces)
 /.worktrees/
 worktrees/
+
+# Temp files
+"5.0\"*
+"5.0"*n
+=
+*.tmp
+
+# LLM generation checkpoint
+data/.llm_gen_checkpoint.json
+

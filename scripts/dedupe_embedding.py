@@ -25,9 +25,9 @@ class EmbeddingDeduplicator:
     def __init__(
         self,
         model_name: str = "sentence-transformers/paraphrase-MiniLM-L6-v2",
-        threshold: float = 0.97,
-        question_threshold: float = 0.97,
-        answer_threshold: float = 0.97,
+        threshold: float = 0.96,
+        question_threshold: float = 0.96,
+        answer_threshold: float = 0.96,
     ):
         self.model_name = model_name
         self.threshold = threshold
