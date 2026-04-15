@@ -9,7 +9,7 @@ Large Language Model (LLM) fine-tuned para Oracle Cloud Infrastructure (OCI) usa
 [![MLX](https://img.shields.io/badge/MLX-Apple%20Silicon-orange?style=flat-square)](https://mlx.ai)
 [![MLX-Tune](https://img.shields.io/badge/Finetune-MLX--Tune-blue?style=flat-square)](https://github.com/Aaronipher/mlx-tune)
 [![Model](https://img.shields.io/badge/Base%20Model-Qwen2.5--Coder--7B--Instruct--4bit-purple?style=flat-square)](https://huggingface.co/mlx-community/Qwen2.5-Coder-7B-Instruct-4bit)
-[![Dataset](https://img.shields.io/badge/Dataset-21327_examples-green?style=flat-square)](docs/taxonomy.md)
+[![Dataset](https://img.shields.io/badge/Dataset-21118_examples-green?style=flat-square)](docs/taxonomy.md)
 [![LangGraph](https://img.shields.io/badge/Orquestração-LangGraph-black?style=flat-square&logo=langchain)](https://python.langchain.com/docs/langgraph)
 [![Chainlit](https://img.shields.io/badge/UI-Chainlit-orange?style=flat-square)](https://chainlit.io)
 [![FastAPI](https://img.shields.io/badge/API-FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
@@ -90,19 +90,19 @@ flowchart TD
 | Métrica | Valor |
 |--------|-------|
 | **Total Gerado** | 21.750 exemplos (87 categorias × 250) |
-| **Após Limpeza/Desduplicação** | 21.327 exemplos |
-| **Treino (Train)** | 15.995 exemplos (75%) |
-| **Validação (Valid)** | 3.199 exemplos (15%) |
-| **Avaliação (Eval)** | 2.133 exemplos (10%) |
+| **Após Limpeza/Desduplicação** | 21.118 exemplos |
+| **Treino (Train)** | 15.838 exemplos (75%) |
+| **Validação (Valid)** | 3.167 exemplos (15%) |
+| **Avaliação (Eval)** | 2.113 exemplos (10%) |
 | **Categorias** | 87 tópicos do OCI |
 
 ### Divisão (Split)
 
 | Split | Exemplos | % |
 |-------|----------|---|
-| Treino (Train) | 15.995 | 75% |
-| Validação (Valid) | 3.199 | 15% |
-| Avaliação (Eval) | 2.133 | 10% |
+| Treino (Train) | 15.838 | 75% |
+| Validação (Valid) | 3.167 | 15% |
+| Avaliação (Eval) | 2.113 | 10% |
 
 ---
 
@@ -248,11 +248,11 @@ bash scripts/prepare_data.sh
 | Etapa | Quantidade |
 |-------|-----------|
  | Bruto gerado | 21.750 exemplos |
- | Após limpeza | ~21.500 exemplos |
- | Após desduplicação | 21.327 exemplos |
- | Treino (75%) | 15.995 |
- | Validação (15%) | 3.199 |
- | Avaliação (10%) | 2.133 |
+ | Após limpeza | ~21.118 exemplos |
+ | Após desduplicação | 21.118 exemplos |
+ | Treino (75%) | 15.838 |
+ | Validação (15%) | 3.167 |
+ | Avaliação (10%) | 2.113 |
 
 ---
 
