@@ -164,11 +164,11 @@ Gera exemplos usando templates locais determinísticos. Rápido, sem custo, sem 
 python scripts/generate_diverse_v2.py
 ```
 
-### Opção B — Geração via LLM (OpenRouter) ✨
+### Opção B — Geração via LLM (Multi-Provider) ✨
 
 > [!TIP]
-> **Recomendado.** Gera respostas mais naturais e variadas usando LLMs reais via [OpenRouter](https://openrouter.ai).
-> É uma alternativa à Opção A — escolha uma das duas para gerar o dataset.
+> **Recomendado.** Gera respostas mais naturais e variadas usando múltiplos LLMs com failover automático.
+> Suporta Google Gemini, Groq, OpenRouter. Escolha uma das duas opções para gerar o dataset.
 
 > [!NOTE]
 > Execute com o ambiente **venv** ativado: `source venv/bin/activate`
@@ -180,47 +180,33 @@ python scripts/generate_diverse_v2.py
 pip install openai pyyaml
 ```
 
-#### Configuração
+#### Configuração (Multi-Provider)
 
 ```bash
 # 1. Copiar o template de configuração
-cp config/llm_provider.example.yaml config/llm_provider.yaml
+cp config/multi_provider.example.yaml config/multi_provider.yaml
 
-# 2. Editar o arquivo com sua API key do OpenRouter
-#    Obtenha gratuitamente em: https://openrouter.ai/keys
-#    Edite o campo: provider.api_key
+# 2. Editar o arquivo com suas API keys
+#    Google Gemini: https://aistudio.google.com/apikey
+#    Groq: https://console.groq.com/keys
+#    Edite os campos api_key em cada provider
 ```
 
 > [!WARNING]
-> O arquivo `config/llm_provider.yaml` contém sua API key e **nunca deve ser commitado**.
-> Ele já está no `.gitignore`. Apenas o `config/llm_provider.example.yaml` (sem secrets) é versionado.
-
-#### Modelos Gratuitos Configurados (abril 2026)
-
-| Modelo | ID no OpenRouter | Qualidade |
-|--------|-----------------|-----------| 
-| DeepSeek Chat V3 | `deepseek/deepseek-chat-v3-0324:free` | ⭐⭐⭐⭐⭐ |
-| Llama 3.3 70B Instruct | `meta-llama/llama-3.3-70b-instruct:free` | ⭐⭐⭐⭐⭐ |
-| Qwen3 Coder | `qwen/qwen3-coder:free` | ⭐⭐⭐⭐⭐ |
-
-> [!NOTE]
-> O tier gratuito do OpenRouter tem limite de **~200 req/dia por modelo**.
-> Com 3 modelos em rotação = ~600 exemplos/dia. Para 1.000 exemplos, o script roda em ~2 dias com checkpoint automático.
+> O arquivo `config/multi_provider.yaml` contém suas API keys e **nunca deve ser commitado**.
+> Ele já está no `.gitignore`. Apenas o `config/multi_provider.example.yaml` (sem secrets) é versionado.
 
 #### Execução
 
 ```bash
-# Testar configuração (faz 1 request real sem gerar dataset)
-python scripts/generate_llm_v1.py --dry-run
-
 # Gerar dataset completo (retoma automaticamente se interromper)
-python scripts/generate_llm_v1.py
+python scripts/generate_llm_v2.py --config config/multi_provider.yaml
 
 # Gerar apenas categorias específicas
-python scripts/generate_llm_v1.py --categories compute/instances networking/vcn security/iam-basics
+python scripts/generate_llm_v2.py --config config/multi_provider.yaml --categories compute/instances networking/vcn
 
 # Ignorar checkpoint e começar do zero
-python scripts/generate_llm_v1.py --no-resume
+python scripts/generate_llm_v2.py --config config/multi_provider.yaml --no-resume
 
 # Usar arquivo de configuração alternativo
 python scripts/generate_llm_v1.py --config config/meu_provider.yaml
@@ -261,12 +247,12 @@ bash scripts/prepare_data.sh
 
 | Etapa | Quantidade |
 |-------|-----------|
-| Bruto gerado | 21.750 exemplos |
-| Após limpeza | ~21.500 exemplos |
-| Após desduplicação | 21.327 exemplos |
-| Treino (75%) | 15.995 |
-| Validação (15%) | 3.199 |
-| Avaliação (10%) | 2.133 |
+ | Bruto gerado | 21.750 exemplos |
+ | Após limpeza | ~21.500 exemplos |
+ | Após desduplicação | 21.327 exemplos |
+ | Treino (75%) | 15.995 |
+ | Validação (15%) | 3.199 |
+ | Avaliação (10%) | 2.133 |
 
 ---
 
