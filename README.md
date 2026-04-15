@@ -161,9 +161,6 @@ Gera exemplos usando OCI CLI commands reais com intents alinhados. Rápido, sem 
 ```bash
 # Gerar dataset (87 categorias × 180 exemplos)
 python scripts/generate_e2e_diverse.py
-
-# Versão core (12 categorias principais)
-python scripts/generate_e2e_v1.py
 ```
 
 ### Opção B — Geração via LLM (Multi-Provider) ✨
