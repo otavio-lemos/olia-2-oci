@@ -165,11 +165,9 @@ python scripts/merge_export.py --cycle cycle-1 --quant q4 --name oci-specialist
 | **PREV_ADAPTER** | `""` | Previous adapter (if any) |
 | **BATCH_SIZE** | 1 | Batch size per iteration |
 | **LEARNING_RATE** | 2e-4 | Learning rate |
-| **LORA_RANK** | 8 | LoRA Rank |
-| **LORA_ALPHA** | 16 | LoRA Alpha |
-| **LORA_DROPOUT** | 0.05 | LoRA Dropout |
-| **GRADIENT_ACCUMULATION** | 4 | Gradient accumulation steps |
-| **NUM_LAYERS** | 14 | Number of LoRA layers (50%) |
+| **LORA_RANK** | 16 | LoRA Rank |
+| **LORA_ALPHA** | 32 | LoRA Alpha |
+| **NUM_LAYERS** | 28 | Number of LoRA layers (100%) |
 | **TARGET_MODULES** | `"q_proj,k_proj,v_proj,o_proj,gate_proj,up_proj,down_proj"` | Target modules |
 | **ITERS** | 4000 | Total iterations |
 | **MAX_SEQ_LENGTH** | 768 | Maximum sequence length |
