@@ -94,21 +94,20 @@ flowchart TD
 
 | Metric | Value |
 |--------|-------|
-| **Total Generated** | 15,660 examples (87 categories × 180) |
-| **After Clean/Dedup** | 10,299 examples |
-| **Train** | 7,724 examples (75%) |
-| **Valid** | 1,544 examples (15%) |
-| **Eval** | 1,031 examples (10%) |
-| **Categories** | 87 OCI topics |
+| **Total Generated** | 15,840 examples (88 categories × 180) |
+| **After Clean/Dedup** | 14,869 examples |
+| **Train** | 11,151 examples (75%) |
+| **Valid** | 2,230 examples (15%) |
+| **Eval** | 1,488 examples (10%) |
+| **Categories** | 88 OCI topics |
 
 ### Split
 
 | Split | Examples | % |
 |-------|----------|---|
-| Train | 7,724 | 75% |
-| Valid | 1,544 | 15% |
-| Eval | 1,031 | 10% |
-| Eval | 2,133 | 10% |
+| Train | 11,151 | 75% |
+| Validation | 2,230 | 15% |
+| Evaluation | 1,488 | 10% |
 
 ---
 

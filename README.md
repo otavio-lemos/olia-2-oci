@@ -89,10 +89,10 @@ flowchart TD
 | Métrica | Valor |
 |--------|-------|
 | **Total Gerado** | 15.840 exemplos (88 categorias × 180) |
-| **Após Limpeza/Desduplicação** | 14.817 exemplos |
-| **Treino (Train)** | 11.112 exemplos (75%) |
-| **Validação (Valid)** | 2.222 exemplos (15%) |
-| **Avaliação (Eval)** | 1.483 exemplos (10%) |
+| **Após Limpeza/Desduplicação** | 14.869 exemplos |
+| **Treino (Train)** | 11.151 exemplos (75%) |
+| **Validação (Valid)** | 2.230 exemplos (15%) |
+| **Avaliação (Eval)** | 1.488 exemplos (10%) |
 | **Categorias** | 88 tópicos do OCI |
 
 ### Divisão (Split)
@@ -549,3 +549,4 @@ Este projeto foi desenvolvido integrando as seguintes tecnologias de ponta:
 ## Licença
 
 Este projeto está licenciado sob a Licença MIT. Veja o arquivo [LICENSE](LICENSE) para detalhes.
+
