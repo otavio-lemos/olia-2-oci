@@ -190,15 +190,37 @@ python scripts/merge_export.py --cycle cycle-1 --quant q4 --name oci-specialist
 
 ## Evaluation
 
-The evaluation pipeline compares the fine-tuned model against the base model using technical and semantic metrics.
+The evaluation pipeline compares the fine-tuned model against the base model using:
+- **Automatic scoring**: Correctness, Depth, Structure, Hallucination, Clarity
+- **Semantic similarity**: Sentence Transformers (MiniLM-L6-v2)
+- **Self-Judge (optional)**: LLM-as-Judge using the model itself for self-evaluation
 
 ```bash
+# Quick Test (10 samples, ~2 min)
+python scripts/unified_evaluation.py --cycle cycle-1 --mode small --fresh
+
 # Recommended Evaluation (200 stratified samples, ~30 min)
 python scripts/unified_evaluation.py --cycle cycle-1 --mode medium --fresh
 
 # Full Evaluation (2133 samples, ~4-6 hours)
 python scripts/unified_evaluation.py --cycle cycle-1 --mode full --fresh
+
+# Evaluation with Self-Judge (LLM-as-Judge using the model itself)
+python scripts/unified_evaluation.py --cycle cycle-1 --mode medium --self-judge --judge-lang en
 ```
+
+### Evaluation Parameters
+
+| Parameter | Description |
+|-----------|-------------|
+| `--mode small/test` | 10 samples (1 per category) |
+| `--mode medium` | 200 samples (stratified) |
+| `--mode full` | All samples (~2100) |
+| `--self-judge` | Enable LLM-as-Judge (doubles execution time) |
+| `--judge-lang pt\|en` | Judge rubric language (default: en) |
+| `--judge-tokens` | Max tokens for judge response (default: 256) |
+| `--max-tokens` | Max tokens for model response (default: 256) |
+| `--fresh` | Clear output directory before running |
 
 ### Summary of Results (200 Samples Evaluation)
 

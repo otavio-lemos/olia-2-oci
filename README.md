@@ -261,7 +261,10 @@ python scripts/merge_export.py --cycle cycle-1 --quant q4 --name oci-specialist
 
 ## Avaliação
 
-O pipeline de avaliação compara o modelo fine-tuned contra o modelo base.
+O pipeline de avaliação compara o modelo fine-tuned contra o modelo base usando:
+- **Scoring automático**: Correctness, Depth, Structure, Hallucination, Clarity
+- **Similaridade semântica**: Sentence Transformers (MiniLM-L6-v2)
+- **Self-Judge (opcional)**: LLM-as-Judge usando o próprio modelo para auto-avaliação
 
 > [!NOTE]
 > Execute com o ambiente **venv** ativado: `source venv/bin/activate`
@@ -275,7 +278,26 @@ python scripts/unified_evaluation.py --cycle cycle-1 --mode medium --fresh
 
 # Avaliação Completa (2133 amostras, ~4-6 horas)
 python scripts/unified_evaluation.py --cycle cycle-1 --mode full --fresh
+
+# Avaliação com Self-Judge (LLM-as-Judge usando o próprio modelo)
+python scripts/unified_evaluation.py --cycle cycle-1 --mode medium --self-judge --judge-lang pt
+
+# Self-Judge em inglês
+python scripts/unified_evaluation.py --cycle cycle-1 --mode medium --self-judge --judge-lang en
 ```
+
+### Parâmetros de Avaliação
+
+| Parâmetro | Descrição |
+|-----------|-----------|
+| `--mode small/test` | 10 amostras (1 por categoria) |
+| `--mode medium` | 200 amostras (estratificado) |
+| `--mode full` | Todas as amostras (~2100) |
+| `--self-judge` | Ativar LLM-as-Judge (dobra tempo de execução) |
+| `--judge-lang pt\|en` | Idioma do rubric de avaliação (default: pt) |
+| `--judge-tokens` | Max tokens para resposta do judge (default: 256) |
+| `--max-tokens` | Max tokens para resposta do modelo (default: 256) |
+| `--fresh` | Limpar diretório de saída antes de executar |
 
 ### Resumo dos Resultados (Avaliação 200 amostras)
 

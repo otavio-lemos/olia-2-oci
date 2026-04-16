@@ -481,6 +481,154 @@ class SemanticScorer:
         return sims.tolist()
 
 
+class SelfJudge:
+    """Self-evaluation using the fine-tuned model itself as judge.
+
+    Uses the model's own generation capability to evaluate its responses
+    based on criteria defined in a rubric. No additional model needed.
+    """
+
+    RUBRIC_PT = """Você é um avaliador expert de respostas técnicas de OCI (Oracle Cloud Infrastructure).
+Avalie a resposta do modelo OCI Specialist para a pergunta do usuário.
+
+## Critérios de Avaliação (escala 1-5):
+
+### 1. Correctness (Corretude Técnica)
+- 5: Resposta tecnicamente correta, comandos OCI válidos, sem erros
+- 4: Resposta mostly correta, pequenos detalhes ausentes
+- 3: Resposta parcialmente correta, alguns comandos incorretos
+- 2: Resposta com erros significativos de comandos OCI
+- 1: Resposta completamente incorreta ou hallucinated
+
+### 2. Helpfulness (Utilidade)
+- 5: Resposta completa, prática, inclui código/exemplos funcionais
+- 4: Resposta útil mas poderia ter mais detalhespráticos
+- 3: Resposta básica, genérica
+- 2: Resposta pouco útil
+- 1: Resposta inútil ou misleading
+
+### 3. Depth (Profundidade)
+- 5: Explicação detalhada com contexto, trade-offs, best practices
+- 4: Explicação boa com alguns detalhes
+- 3: Explicação superficial
+- 2: Explicação mínima
+- 1: Sem explicação ou apenas repeat da pergunta
+
+### 4. Safety (Segurança/Hallucination)
+- 5: Sem Commands fake, sem referências AWS/Azure, informações verificadas
+- 4: Pequenos problemas de accuracy
+- 3: Alguns comandos ou conceitos invented
+- 2: Vários elementos fake/hallucinated
+- 1: Conteúdo completamente hallucinated ou references a outros clouds
+
+## Tarefa:
+Analise a pergunta do usuário e a resposta gerada, então forneça sua avaliação em JSON:
+```json
+{{
+  "correctness": <1-5>,
+  "helpfulness": <1-5>,
+  "depth": <1-5>,
+  "safety": <1-5>,
+  "reasoning": "<breve justificativa>"
+}}
+```
+Não inclua outro texto além do JSON."""
+
+    RUBRIC_EN = """You are an expert evaluator of OCI (Oracle Cloud Infrastructure) technical responses.
+Evaluate the OCI Specialist model response to the user's question.
+
+## Evaluation Criteria (1-5 scale):
+
+### 1. Correctness
+- 5: Technically correct, valid OCI commands, no errors
+- 4: Mostly correct, minor details missing
+- 3: Partially correct, some incorrect commands
+- 2: Significant technical errors
+- 1: Completely incorrect or hallucinated
+
+### 2. Helpfulness
+- 5: Complete, practical, working code/examples
+- 4: Useful but could use more practical details
+- 3: Basic, generic response
+- 2: Not very helpful
+- 1: Useless or misleading
+
+### 3. Depth
+- 5: Detailed explanation with context, trade-offs, best practices
+- 4: Good explanation with some details
+- 3: Surface-level explanation
+- 2: Minimal explanation
+- 1: No explanation or just repeats the question
+
+### 4. Safety
+- 5: No fake commands, no AWS/Azure references, verified info
+- 4: Minor accuracy issues
+- 3: Some invented commands/concepts
+- 2: Several fake/hallucinated elements
+- 1: Completely hallucinated or cross-cloud references
+
+## Task:
+Evaluate and provide your assessment in JSON:
+```json
+{{
+  "correctness": <1-5>,
+  "helpfulness": <1-5>,
+  "depth": <1-5>,
+  "safety": <1-5>,
+  "reasoning": "<brief justification>"
+}}
+```
+Output ONLY the JSON, nothing else."""
+
+    def __init__(self, use_portuguese: bool = True):
+        self.use_portuguese = use_portuguese
+        self.rubric = self.RUBRIC_PT if use_portuguese else self.RUBRIC_EN
+
+    def build_judge_prompt(self, prompt: str, response: str) -> str:
+        """Build the prompt for the model to evaluate itself."""
+        return f"""{self.rubric}
+
+## Pergunta do Usuário:
+{prompt}
+
+## Resposta Gerada:
+{response}
+
+## Avaliação JSON:"""
+
+    def parse_judge_response(self, response: str) -> Dict[str, Any]:
+        """Parse the judge's JSON response."""
+        import re
+
+        json_match = re.search(r"\{[^}]+\}", response, re.DOTALL)
+        if not json_match:
+            return {
+                "correctness": 3,
+                "helpfulness": 3,
+                "depth": 3,
+                "safety": 3,
+                "reasoning": "Parse failed",
+            }
+
+        try:
+            result = json.loads(json_match.group())
+            return {
+                "correctness": min(5, max(1, int(result.get("correctness", 3)))),
+                "helpfulness": min(5, max(1, int(result.get("helpfulness", 3)))),
+                "depth": min(5, max(1, int(result.get("depth", 3)))),
+                "safety": min(5, max(1, int(result.get("safety", 3)))),
+                "reasoning": result.get("reasoning", "")[:200],
+            }
+        except (json.JSONDecodeError, ValueError, KeyError):
+            return {
+                "correctness": 3,
+                "helpfulness": 3,
+                "depth": 3,
+                "safety": 3,
+                "reasoning": "Parse error",
+            }
+
+
 class ReportGenerator:
     """Generates markdown reports and charts for evaluation results."""
 
@@ -526,6 +674,33 @@ class ReportGenerator:
             delta = ft_val - base_val
             delta_str = f"+{delta:.2f}" if delta >= 0 else f"{delta:.2f}"
             lines.append(f"| {metric} | {base_val:.2f} | {ft_val:.2f} | {delta_str} |")
+
+        # Self-judge comparison (if available)
+        base_sj = base_avg.get("self_judge")
+        ft_sj = ft_avg.get("self_judge")
+        if base_sj and ft_sj:
+            lines.extend(
+                [
+                    "",
+                    "## Self-Judge Evaluation (LLM-as-Judge)",
+                    "",
+                    "| Metric | Base Model | Fine-Tuned | Delta |",
+                    "|--------|-------------|------------|-------|",
+                ]
+            )
+            sj_metrics = ["correctness", "helpfulness", "depth", "safety"]
+            for metric in sj_metrics:
+                base_val = base_sj.get(metric, 0)
+                ft_val = ft_sj.get(metric, 0)
+                delta = ft_val - base_val
+                delta_str = f"+{delta:.2f}" if delta >= 0 else f"{delta:.2f}"
+                lines.append(
+                    f"| {metric} | {base_val:.2f} | {ft_val:.2f} | {delta_str} |"
+                )
+
+            base_count = base_avg.get("self_judge_count", 0)
+            ft_count = ft_avg.get("self_judge_count", 0)
+            lines.append(f"| **Evaluated** | {base_count} | {ft_count} | - |")
 
         if base_results and ft_results:
             lines.extend(
@@ -689,7 +864,29 @@ class ReportGenerator:
             count += 1
         if count == 0:
             return {}
-        return {k: v / count for k, v in totals.items()}
+
+        base_avg = {k: v / count for k, v in totals.items()}
+
+        # Compute self-judge averages if available
+        self_judge_keys = ["correctness", "helpfulness", "depth", "safety"]
+        self_judge_totals = {k: 0.0 for k in self_judge_keys}
+        self_judge_count = 0
+
+        for r in results:
+            sj = r.get("self_judge")
+            if sj:
+                for key in self_judge_keys:
+                    if key in sj and isinstance(sj[key], (int, float)):
+                        self_judge_totals[key] += sj[key]
+                self_judge_count += 1
+
+        if self_judge_count > 0:
+            base_avg["self_judge"] = {
+                k: v / self_judge_count for k, v in self_judge_totals.items()
+            }
+            base_avg["self_judge_count"] = self_judge_count
+
+        return base_avg
 
 
 class UnifiedEvaluator:
@@ -847,10 +1044,12 @@ def evaluate_model(
     evaluator: UnifiedEvaluator,
     eval_data: List[Dict],
     semantic_scorer: Optional[SemanticScorer] = None,
+    self_judge: Optional[SelfJudge] = None,
     mode: str = "base",
     resume_results: List[Dict] = None,
     checkpoint_file: Path = None,
     max_tokens: int = 512,
+    judge_max_tokens: int = 256,
 ) -> List[Dict]:
     """Run evaluation loop for a model using batch processing."""
     total = len(eval_data)
@@ -944,6 +1143,19 @@ def evaluate_model(
             response, reference, category, sim
         )
 
+        # Self-judge evaluation (LLM-as-Judge using the model itself)
+        self_judge_scores = None
+        if self_judge:
+            try:
+                judge_prompt = self_judge.build_judge_prompt(prompts[i][0], response)
+                judge_response, judge_time = evaluator.generate_response(
+                    judge_prompt, system_prompt="", max_tokens=judge_max_tokens
+                )
+                self_judge_scores = self_judge.parse_judge_response(judge_response)
+                self_judge_scores["judge_time"] = judge_time
+            except Exception as e:
+                print(f"  [Self-judge] Failed for sample {i}: {e}")
+
         result = {
             "category": category,
             "prompt": prompts[i][0],
@@ -951,6 +1163,7 @@ def evaluate_model(
             "reference": reference,
             "scores": scores,
             "semantic_similarity": float(sim),
+            "self_judge": self_judge_scores,
             "elapsed_seconds": response_time,
             "model": mode,
         }
@@ -1015,6 +1228,23 @@ def main():
     parser.add_argument("--seed", type=int, default=42, help="Random seed")
     parser.add_argument(
         "--merged", default="", help="Merged model path (optional override)"
+    )
+    parser.add_argument(
+        "--self-judge",
+        action="store_true",
+        help="Enable self-judge evaluation using the model itself (LLM-as-Judge)",
+    )
+    parser.add_argument(
+        "--judge-lang",
+        choices=["pt", "en"],
+        default="pt",
+        help="Language for self-judge rubric (pt=en Portuguese, en=English)",
+    )
+    parser.add_argument(
+        "--judge-tokens",
+        type=int,
+        default=256,
+        help="Max tokens for self-judge response",
     )
     args = parser.parse_args()
 
@@ -1105,8 +1335,12 @@ def main():
     )
     print(f"Categories: {len(categories)}")
 
-    print("\n[2/5] Initializing base scoring mechanisms (without PyTorch)...")
-    semantic_scorer = None
+    # Initialize self-judge if enabled
+    self_judge = None
+    if args.self_judge:
+        print(f"\n[2.5/5] Initializing Self-Judge (language: {args.judge_lang})...")
+        self_judge = SelfJudge(use_portuguese=(args.judge_lang == "pt"))
+        print("Self-Judge enabled - will evaluate FT model responses")
 
     print("\n[3/5] Evaluating base model...")
     base_evaluator = UnifiedEvaluator(
@@ -1120,10 +1354,12 @@ def main():
         base_evaluator,
         eval_data,
         semantic_scorer,
+        self_judge=self_judge,  # Self-judge enabled for base too
         mode="base",
         resume_results=resume_base if resume_base else None,
         checkpoint_file=base_checkpoint,
         max_tokens=args.max_tokens,
+        judge_max_tokens=args.judge_tokens,
     )
 
     base_path = output_dir / "base_results.json"
@@ -1160,10 +1396,12 @@ def main():
         ft_evaluator,
         eval_data,
         semantic_scorer,
+        self_judge=self_judge,
         mode="ft",
         resume_results=resume_ft if resume_ft else None,
         checkpoint_file=ft_checkpoint,
         max_tokens=args.max_tokens,
+        judge_max_tokens=args.judge_tokens,
     )
 
     ft_path = output_dir / "ft_results.json"
