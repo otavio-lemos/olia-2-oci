@@ -25,10 +25,10 @@ This project builds a fine-tuned LLM specialist in Oracle Cloud Infrastructure (
 | Parameter | Value |
 |-----------|-------|
 | MODEL | mlx-community/Qwen2.5-Coder-7B-Instruct-4bit |
-| Iters | 4000 |
+| Iters | 5556 |
 | Batch | 1 |
 | Grad Accum | 4 |
-| Num Layers | 14 |
+| Num Layers | 28 |
 | Max Seq | 768 |
 | BF16 | true |
 | Grad Checkpointing | false |
@@ -43,10 +43,10 @@ This project builds a fine-tuned LLM specialist in Oracle Cloud Infrastructure (
 ```
 data/curated/        → Generated topic-specific JSONL files
 data/all_curated.jsonl → Concatenated and sanitized dataset
-data/train.jsonl     → 15,995 examples (75%)
-data/valid.jsonl     → 3,199 examples (15%)
-data/eval.jsonl      → 2,133 examples (10%)
-Total: 21,327 examples
+data/train.jsonl     → 11,112 examples (75%)
+data/valid.jsonl     → 2,222 examples (15%)
+data/eval.jsonl      → 1,483 examples (10%)
+Total: 14,817 examples
 ```
 
 ## RAG Layer & Orchestration (OCI Copilot)

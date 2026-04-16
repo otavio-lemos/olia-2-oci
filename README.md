@@ -9,7 +9,7 @@ Large Language Model (LLM) fine-tuned para Oracle Cloud Infrastructure (OCI) usa
 [![MLX](https://img.shields.io/badge/MLX-Apple%20Silicon-orange?style=flat-square)](https://mlx.ai)
 [![MLX-Tune](https://img.shields.io/badge/Finetune-MLX--Tune-blue?style=flat-square)](https://github.com/Aaronipher/mlx-tune)
 [![Model](https://img.shields.io/badge/Base%20Model-Qwen2.5--Coder--7B--Instruct--4bit-purple?style=flat-square)](https://huggingface.co/mlx-community/Qwen2.5-Coder-7B-Instruct-4bit)
-[![Dataset](https://img.shields.io/badge/Dataset-10299_examples-green?style=flat-square)](docs/taxonomy.md)
+[![Dataset](https://img.shields.io/badge/Dataset-14817_examples-green?style=flat-square)](docs/taxonomy.md)
 [![LangGraph](https://img.shields.io/badge/Orquestração-LangGraph-black?style=flat-square&logo=langchain)](https://python.langchain.com/docs/langgraph)
 [![Chainlit](https://img.shields.io/badge/UI-Chainlit-orange?style=flat-square)](https://chainlit.io)
 [![FastAPI](https://img.shields.io/badge/API-FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
@@ -42,7 +42,7 @@ O processo de desenvolvimento do OCI Specialist LLM segue uma ordem rigorosa de 
 ```mermaid
 flowchart TD
     subgraph GENERATION["1. Geração & Preparação"]
-        A1["generate_e2e_diverse.py\n(CLI real, 87 cats)"] --> A2["prepare_data.sh"]
+        A1["generate_v5_combined.py\n(88 cats, 100% diversity)"] --> A2["prepare_data.sh"]
         A2 --> A3["train.jsonl / valid.jsonl"]
     end
 
@@ -88,12 +88,12 @@ flowchart TD
 
 | Métrica | Valor |
 |--------|-------|
-| **Total Gerado** | 15.660 exemplos (87 categorias × 180) |
-| **Após Limpeza/Desduplicação** | 10.299 exemplos |
-| **Treino (Train)** | 7.724 exemplos (75%) |
-| **Validação (Valid)** | 1.544 exemplos (15%) |
-| **Avaliação (Eval)** | 1.031 exemplos (10%) |
-| **Categorias** | 87 tópicos do OCI |
+| **Total Gerado** | 15.840 exemplos (88 categorias × 180) |
+| **Após Limpeza/Desduplicação** | 14.817 exemplos |
+| **Treino (Train)** | 11.112 exemplos (75%) |
+| **Validação (Valid)** | 2.222 exemplos (15%) |
+| **Avaliação (Eval)** | 1.483 exemplos (10%) |
+| **Categorias** | 88 tópicos do OCI |
 
 ### Divisão (Split)
 
@@ -144,9 +144,7 @@ Pipeline para validar, limpar, desduplicar e gerar splits do dataset.
 
 ```mermaid
 flowchart LR
-    A1["generate_e2e_diverse.py\n(CLI real, 87 cats)"] --> C
-    A2["generate_llm_v1.py\n(OpenRouter API)"] --> C
-    C["data/curated/\n(arquivos JSONL)"] --> D["prepare_data.sh"]
+    A1["generate_v5_combined.py\n(88 cats, 100% diversity)"] --> D["prepare_data.sh"]
     D --> E["validate_jsonl.py\n(estrutura)"]
     E --> F["clean_dataset.py\n(conteúdo)"]
     F --> G["dedupe_embedding.py\n(semântico)"]
@@ -154,79 +152,21 @@ flowchart LR
     H --> I["train.jsonl\nvalid.jsonl\neval.jsonl"]
 ```
 
-### Opção A — Geração Local (CLI real)
+### Geração do Dataset
 
-Gera exemplos usando OCI CLI commands reais com intents alinhados. Rápido, sem custo, sem dependência de internet.
-
-```bash
-# Gerar dataset (87 categorias × 180 exemplos)
-python scripts/generate_e2e_diverse.py
-```
-
-### Opção B — Geração via LLM (Multi-Provider) ✨
-
-> [!TIP]
-> **Recomendado.** Gera respostas mais naturais e variadas usando múltiplos LLMs com failover automático.
-> Suporta Google Gemini, Groq, OpenRouter. Escolha uma das duas opções para gerar o dataset.
-
-> [!NOTE]
-> Execute com o ambiente **venv** ativado: `source venv/bin/activate`
-
-#### Pré-requisitos
+Gera exemplos usando templates com OCI CLI commands reais e intents variados. Rápido, sem custo, sem dependência de internet.
 
 ```bash
-# Dependência adicional necessária
-pip install openai pyyaml
-```
+# Gerar dataset (88 categorias × 180 exemplos = 15,840)
+python scripts/generate_v5_combined.py
 
-#### Configuração (Multi-Provider)
-
-```bash
-# 1. Copiar o template de configuração
-cp config/multi_provider.example.yaml config/multi_provider.yaml
-
-# 2. Editar o arquivo com suas API keys
-#    Google Gemini: https://aistudio.google.com/apikey
-#    Groq: https://console.groq.com/keys
-#    Edite os campos api_key em cada provider
-```
-
-> [!WARNING]
-> O arquivo `config/multi_provider.yaml` contém suas API keys e **nunca deve ser commitado**.
-> Ele já está no `.gitignore`. Apenas o `config/multi_provider.example.yaml` (sem secrets) é versionado.
-
-#### Execução
-
-```bash
-# Gerar dataset completo (retoma automaticamente se interromper)
-python scripts/generate_llm_v2.py --config config/multi_provider.yaml
-
-# Gerar apenas categorias específicas
-python scripts/generate_llm_v2.py --config config/multi_provider.yaml --categories compute/instances networking/vcn
-
-# Ignorar checkpoint e começar do zero
-python scripts/generate_llm_v2.py --config config/multi_provider.yaml --no-resume
-
-# Usar arquivo de configuração alternativo
-python scripts/generate_llm_v1.py --config config/meu_provider.yaml
-```
-
-#### Checkpoint & Resume
-
-O script salva progresso automaticamente a cada 50 exemplos em `data/.llm_gen_checkpoint.json`.
-Se a execução for interrompida (Ctrl+C, rate limit, queda de internet), basta rodar novamente — ele continua de onde parou.
-
-```bash
-# Continua automaticamente (comportamento padrão)
-python scripts/generate_llm_v1.py
-
-# Ver progresso atual
-cat data/.llm_gen_checkpoint.json | python -m json.tool
+# Após gerar, executar o pipeline de preparação
+bash scripts/prepare_data.sh
 ```
 
 ### Passo Final — Validar, Limpar e Gerar Splits
 
-Após gerar os exemplos (Opção A ou B), execute o pipeline de preparação:
+Após gerar os exemplos, execute o pipeline de preparação:
 
 ```bash
 # Validar, limpar, desduplicar e gerar splits (75/15/10%)
@@ -300,16 +240,16 @@ python scripts/merge_export.py --cycle cycle-1 --quant q4 --name oci-specialist
 | **LORA_ALPHA** | 32 | Alfa do LoRA |
 | **NUM_LAYERS** | 28 | Número de camadas LoRA (100%) |
 | **TARGET_MODULES** | `"q_proj,k_proj,v_proj,o_proj,gate_proj,up_proj,down_proj"` | Módulos alvo |
-| **ITERS** | 4000 | Total de iterações |
+| **ITERS** | 5556 | Total de iterações |
 | **MAX_SEQ_LENGTH** | 768 | Comprimento máximo de sequência |
 | **VAL_BATCHES** | 5 | Batches de validação |
 | **EVAL_STEPS** | 250 | Passos entre avaliações |
 | **LOGGING_STEPS** | 1 | Passos entre logs |
 | **SAVE_STEPS** | 500 | Passos entre salvamentos |
-| **WARMUP_STEPS** | 320 | Passos de warmup |
+| **WARMUP_STEPS** | 555 | Passos de warmup |
 | **GRADIENT_CHECKPOINTING**| false | Checkpointing de gradiente |
 | **LR_SCHEDULER** | `cosine` | Scheduler de LR |
-| **WEIGHT_DECAY** | 0.01 | Decaimento de peso |
+| **WEIGHT_DECAY** | 0.001 | Decaimento de peso |
 | **SEED** | 42 | Semente aleatória |
 | **GRAD_CLIP_NORM** | 1.0 | Clipping de gradiente |
 | **BF16** | true | Aceleração nativa M3 |
