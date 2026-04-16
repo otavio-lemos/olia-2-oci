@@ -9,7 +9,7 @@ Large Language Model (LLM) fine-tuned para Oracle Cloud Infrastructure (OCI) usa
 [![MLX](https://img.shields.io/badge/MLX-Apple%20Silicon-orange?style=flat-square)](https://mlx.ai)
 [![MLX-Tune](https://img.shields.io/badge/Finetune-MLX--Tune-blue?style=flat-square)](https://github.com/Aaronipher/mlx-tune)
 [![Model](https://img.shields.io/badge/Base%20Model-Qwen2.5--Coder--7B--Instruct--4bit-purple?style=flat-square)](https://huggingface.co/mlx-community/Qwen2.5-Coder-7B-Instruct-4bit)
-[![Dataset](https://img.shields.io/badge/Dataset-14817_examples-green?style=flat-square)](docs/taxonomy.md)
+[![Dataset](https://img.shields.io/badge/Dataset-14869_examples-green?style=flat-square)](docs/taxonomy.md)
 [![LangGraph](https://img.shields.io/badge/Orquestração-LangGraph-black?style=flat-square&logo=langchain)](https://python.langchain.com/docs/langgraph)
 [![Chainlit](https://img.shields.io/badge/UI-Chainlit-orange?style=flat-square)](https://chainlit.io)
 [![FastAPI](https://img.shields.io/badge/API-FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
@@ -95,14 +95,6 @@ flowchart TD
 | **Avaliação (Eval)** | 1.488 exemplos (10%) |
 | **Categorias** | 88 tópicos do OCI |
 
-### Divisão (Split)
-
-| Split | Exemplos | % |
-|-------|----------|---|
-| Treino (Train) | 7.724 | 75% |
-| Validação (Valid) | 1.544 | 15% |
-| Avaliação (Eval) | 1.031 | 10% |
-
 ---
 
 ## Instalação e Começando
@@ -181,17 +173,6 @@ bash scripts/prepare_data.sh
 | `clean_dataset.py` | Remove templates genéricos, CLI incorretas, ruído | `all_curated.jsonl` | `all_curated_clean.jsonl` |
 | `dedupe_embedding.py` | Desduplicação semântica por embeddings (threshold 0.97) | `all_curated_clean.jsonl` | `all_curated_semantic_dedup.jsonl` |
 | `build_dataset_fixed.py` | Gera splits (75% train, 15% valid, 10% eval) | `all_curated_semantic_dedup.jsonl` | `train.jsonl`, `valid.jsonl`, `eval.jsonl` |
-
-### Estatísticas do Pipeline
-
-| Etapa | Quantidade |
-|-------|-----------|
- | Bruto gerado | 15.660 exemplos |
- | Após limpeza | ~15.660 exemplos |
- | Após desduplicação | 10.299 exemplos |
- | Treino (75%) | 7.724 |
- | Validação (15%) | 1.544 |
- | Avaliação (10%) | 1.031 |
 
 ---
 
