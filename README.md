@@ -240,8 +240,8 @@ python scripts/unified_evaluation.py --cycle cycle-1 --mode medium --self-judge 
 | `--mode full` | Todas as amostras (~2100) |
 | `--self-judge` | Ativar LLM-as-Judge (dobra tempo de execução) |
 | `--judge-lang pt\|en` | Idioma do rubric de avaliação (default: pt) |
-| `--judge-tokens` | Max tokens para resposta do judge (default: 256) |
-| `--max-tokens` | Max tokens para resposta do modelo (default: 256) |
+| `--judge-tokens` | Max tokens para resposta do judge (default: 512) |
+| `--max-tokens` | Max tokens para resposta do modelo (default: 1248) |
 | `--fresh` | Limpar diretório de saída antes de executar |
 
 ### Resumo dos Resultados (Avaliação 200 amostras)
