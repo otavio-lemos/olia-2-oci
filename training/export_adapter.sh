@@ -10,8 +10,16 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 
-CYCLE=${CYCLE:-"cycle-1"}  # Padrão: cycle-1
-source "${PROJECT_DIR}/config/${CYCLE}.env"
+CYCLE=${CYCLE:-"cycle-1"}
+
+# Load config from outputs dir first (reproducibility), fallback to config/
+if [ -f "${PROJECT_DIR}/outputs/${CYCLE}/config/${CYCLE}.env" ]; then
+    source "${PROJECT_DIR}/outputs/${CYCLE}/config/${CYCLE}.env"
+    echo "[config] Loaded from: outputs/${CYCLE}/config/${CYCLE}.env"
+else
+    source "${PROJECT_DIR}/config/${CYCLE}.env"
+    echo "[config] Loaded from: config/${CYCLE}.env"
+fi
 
 BASE_MODEL=${BASE_MODEL:-${MODEL:-"mlx-community/Meta-Llama-3.1-8B-Instruct-4bit"}}
 ADAPTER_DIR=${ADAPTER_DIR:-${OUTPUT_DIR:-"outputs/${CYCLE}"}}
