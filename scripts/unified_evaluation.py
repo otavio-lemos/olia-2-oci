@@ -638,9 +638,10 @@ Output ONLY the JSON, nothing else."""
 class ReportGenerator:
     """Generates markdown reports and charts for evaluation results."""
 
-    def __init__(self, output_dir: Path):
+    def __init__(self, output_dir: Path, timestamp: str = None):
         self.output_dir = output_dir
         self.output_dir.mkdir(parents=True, exist_ok=True)
+        self.timestamp = timestamp or datetime.now().strftime("%Y%m%d_%H%M%S")
 
     def generate_comparison_report(
         self,
@@ -648,8 +649,7 @@ class ReportGenerator:
         ft_results: List[Dict],
         total_eval: int,
     ) -> Path:
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        report_path = self.output_dir / f"comparison_report_{timestamp}.md"
+        report_path = self.output_dir / f"comparison_report_{self.timestamp}.md"
 
         base_avg = self._compute_average(base_results) if base_results else {}
         ft_avg = self._compute_average(ft_results) if ft_results else {}
@@ -764,8 +764,6 @@ class ReportGenerator:
         import seaborn as sns
 
         chart_paths = []
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-
         base_avg = self._compute_average(base_results) if base_results else {}
         ft_avg = self._compute_average(ft_results) if ft_results else {}
 
@@ -793,7 +791,7 @@ class ReportGenerator:
         ax.set_ylim(1, 5.5)
         plt.tight_layout()
 
-        chart_path = self.output_dir / f"comparison_chart_{timestamp}.png"
+        chart_path = self.output_dir / f"comparison_chart_{self.timestamp}.png"
         plt.savefig(chart_path, dpi=150)
         plt.close()
         chart_paths.append(chart_path)
@@ -839,7 +837,7 @@ class ReportGenerator:
             ax.set_ylim(1, 5.5)
             plt.tight_layout()
 
-            cat_chart_path = self.output_dir / f"category_chart_{timestamp}.png"
+            cat_chart_path = self.output_dir / f"category_chart_{self.timestamp}.png"
             plt.savefig(cat_chart_path, dpi=150)
             plt.close()
             chart_paths.append(cat_chart_path)
@@ -1254,6 +1252,9 @@ def main():
     )
     args = parser.parse_args()
 
+    # Generate timestamp for consistent file naming
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
     project_root = Path(__file__).parent.parent
     config = load_cycle_config(args.cycle)
 
@@ -1376,7 +1377,7 @@ def main():
         judge_max_tokens=args.judge_tokens,
     )
 
-    base_path = output_dir / "base_results.json"
+    base_path = output_dir / f"base_results_{timestamp}.json"
     save_results(base_results, base_path)
 
     # Explicit memory cleanup to fit within RAM constraints
@@ -1418,7 +1419,7 @@ def main():
         judge_max_tokens=args.judge_tokens,
     )
 
-    ft_path = output_dir / "ft_results.json"
+    ft_path = output_dir / f"ft_results_{timestamp}.json"
     save_results(ft_results, ft_path)
 
     # Explicit memory cleanup to fit within RAM constraints
@@ -1493,7 +1494,7 @@ def main():
     gc.collect()
 
     print("\n[5/5] Generating reports...")
-    reporter = ReportGenerator(output_dir)
+    reporter = ReportGenerator(output_dir, timestamp)
 
     report_path = reporter.generate_comparison_report(
         base_results, ft_results, len(eval_data)
