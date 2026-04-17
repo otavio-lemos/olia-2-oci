@@ -7,8 +7,8 @@ Uses mlx-tune library with SFTTrainer API (Unsloth-compatible).
 Supports: warmup, weight_decay, grad_clip, lr_scheduler.
 
 Usage:
-    bash training/run_all_cycles.sh                 # treina 1 ciclo
-    bash training/run_all_cycles.sh --fresh       # limpa e treina 1 ciclo
+    bash training/run_cycles.sh --all                 # treina todos os ciclos
+    bash training/run_cycles.sh --all --fresh       # limpa e treina todos os ciclos
 """
 
 import argparse
@@ -68,7 +68,7 @@ def load_and_prepare_dataset(path, tokenizer):
 class MetricsLogger:
     def __init__(self, cycle_name):
         self.cycle_name = cycle_name
-        self.logs_dir = Path("outputs/logs") / cycle_name
+        self.logs_dir = Path("outputs") / cycle_name / "logs"
         self.logs_dir.mkdir(parents=True, exist_ok=True)
         self.log_file = self.logs_dir / "training.log"
         self.metrics_file = self.logs_dir / "metrics.csv"
@@ -128,15 +128,19 @@ class TrainingCallback:
     def on_step_end(self, args, control, logs=None):
         if logs:
             step = logs.get("step", 0)
-            loss = logs.get("loss", 0)
-            self.logger.log(f"Step {step}: loss={loss:.4f}")
+            train_loss = logs.get("loss", logs.get("train_loss", 0))
+            val_loss = logs.get("eval_loss")
+            self.logger.log(
+                f"Step {step}: loss={train_loss:.4f}"
+                + (f", val_loss={val_loss:.4f}" if val_loss is not None else "")
+            )
             self.logger.record_metric(
                 step=step,
-                train_loss=loss,
+                train_loss=train_loss,
+                val_loss=val_loss,
                 elapsed=time.time() - self.train_start if self.train_start else None,
             )
-            if step % self.save_steps == 0:
-                self.logger.save_metrics()
+            self.logger.save_metrics()
 
 
 def main():
@@ -344,7 +348,7 @@ def main():
     logger.log("=" * 60)
     logger.log("Training complete!")
     logger.log(f"Adapters: {adapter_path}")
-    logger.log(f"Logs: outputs/logs/{cycle}/")
+    logger.log(f"Logs: outputs/{cycle}/logs/")
     logger.log("=" * 60)
 
     logger.save()

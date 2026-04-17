@@ -10,7 +10,7 @@ CYCLE=${1:-""}
 if [ -z "$CYCLE" ]; then
     # Find the cycle with the most recent metrics
     for c in cycle-3 cycle-2 cycle-1; do
-        if [ -f "outputs/logs/$c/metrics.csv" ]; then
+        if [ -f "outputs/$c/logs/metrics.csv" ]; then
             CYCLE="$c"
             break
         fi
@@ -22,7 +22,7 @@ if [ -z "$CYCLE" ]; then
     exit 1
 fi
 
-METRICS_FILE="outputs/logs/$CYCLE/metrics.csv"
+METRICS_FILE="outputs/$CYCLE/logs/metrics.csv"
 
 if [ ! -f "$METRICS_FILE" ]; then
     echo "No metrics file for $CYCLE"
@@ -63,7 +63,7 @@ echo "Total metric points: $TOTAL_ROWS"
 echo ""
 
 # Generate a quick progress report
-REPORT="outputs/logs/$CYCLE/training-progress.md"
+REPORT="outputs/$CYCLE/logs/training-progress.md"
 cat > "$REPORT" << EOF
 # Training Progress: $CYCLE
 
@@ -95,4 +95,4 @@ git push origin main
 
 echo ""
 echo "Training progress pushed to GitHub!"
-echo "View at: https://github.com/otavio-lemos/olia-2-oci/tree/main/outputs/logs/$CYCLE"
+echo "View at: https://github.com/otavio-lemos/olia-2-oci/tree/main/outputs/$CYCLE/logs"

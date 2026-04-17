@@ -26,7 +26,7 @@ outputs/benchmarks/quick/
 outputs/test/
 outputs/test-quick/
 outputs/benchmark/
-outputs/logs/cycle-*/
+outputs/*/logs/
 backup_*/
 
 /* Firecrawl cache */

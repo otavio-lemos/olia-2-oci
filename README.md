@@ -187,7 +187,7 @@ O treinamento utiliza o framework MLX-Tune, focado na arquitetura do Apple Silic
 
 ```bash
 # Execute o ciclo consolidado de treinamento
-bash training/run_all_cycles.sh --fresh
+bash training/run_cycles.sh --all --fresh
 ```
 
 ### 2. Fusão de Pesos (Merge) & Exportação

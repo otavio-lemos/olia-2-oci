@@ -129,7 +129,7 @@ pip install -r requirements.txt
 
 ```bash
 # Run the consolidated training cycle
-bash training/run_all_cycles.sh --fresh
+bash training/run_cycles.sh --all --fresh
 ```
 
 ### 3. Weight Fusion (Merge) & Export
