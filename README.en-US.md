@@ -24,30 +24,25 @@ Large Language Model (LLM) fine-tuned for Oracle Cloud Infrastructure (OCI) usin
 
 ### 🚀 Core Stack & Components
 - **Base LLM**: [Qwen 2.5 Coder 7B Instruct](https://huggingface.co/Qwen/Qwen2.5-Coder-7B-Instruct) (4-bit).
-- **Agent Orchestration**: [LangGraph](https://python.langchain.com/docs/langgraph) (Multi-Agent State Machine).
-- **Agents Framework**: [LangChain](https://langchain.com) (Chain of Thought).
+- **Agent Orchestration**: [LangGraph](https://python.langchain.com/docs/langgraph) & [LangChain](https://langchain.com).
 - **OCI Copilot Interface**: [Chainlit](https://chainlit.io) (Interactive UI with HITL).
-- **Training**: [MLX-Tune](https://github.com/Aaronipher/mlx-tune) (SFTTrainer API).
-- **Inference**: [MLX Framework](https://mlx.ai) (Apple Silicon Native).
-- **RAG Dense**: [FAISS](https://github.com/facebookresearch/faiss) (Semantic Search).
-- **RAG Sparse**: [Rank-BM25](https://github.com/dorianbrown/rank_bm25) (Lexical Search).
-- **RAG Re-ranking**: [Sentence-Transformers](https://sbert.net) (Cross-Encoder).
-- **RAG Fusion**: Reciprocal Rank Fusion (RRF).
-- **Backend API**: [FastAPI](https://fastapi.tiangolo.com).
-- **Embeddings**: [Hugging Face](https://huggingface.co) (all-MiniLM-L6-v2).
+- **Training & Inference**: [MLX Framework](https://mlx.ai) & [MLX-Tune](https://github.com/Aaronipher/mlx-tune).
+- **RAG (Hybrid Search)**: [FAISS](https://github.com/facebookresearch/faiss) (Dense) + [Rank-BM25](https://github.com/dorianbrown/rank_bm25) (Sparse).
+- **Backend Service**: [FastAPI](https://fastapi.tiangolo.com) (RAG API).
+- **Embeddings & Rerank**: [Hugging Face](https://huggingface.co) & [Sentence-Transformers](https://sbert.net).
 - **Hardware**: Optimized for Apple Silicon (M3 Pro 18GB).
-- **Development**: Python 3.12.
+- **Language**: Python 3.12.
 
 ---
 
 ## Overview
 
-This project trains a specialized LLM for Oracle Cloud Infrastructure using Apple's MLX framework on Apple Silicon. The pipeline covers dataset generation, validation, fine-tuning via MLX LoRA, weight fusion (Merge), and integration with a RAG layer (OCI Copilot).
+The OCI Specialist LLM development process follows a strict pipeline order to ensure technical accuracy and performance on Apple Silicon.
 
 ```mermaid
 flowchart TD
     subgraph GENERATION["1. Generation & Preparation"]
-        A1["generate_e2e_diverse.py\n(CLI real, 87 cats)"] --> A2["prepare_data.sh"]
+        A1["generate_v5_combined.py\n(88 cats, 100% diversity)"] --> A2["prepare_data.sh"]
         A2 --> A3["train.jsonl / valid.jsonl"]
     end
 
@@ -82,7 +77,6 @@ flowchart TD
 - **LoRA Fine-tuning**: Low-rank adaptation with **Qwen 2.5 Coder 7B Instruct** (4-bit) base model.
 - **M3 Pro Optimized**: Hyper-optimized configurations for 18GB RAM, using **native BF16** and zero disk Swap.
 - **Advanced Hybrid RAG**: Semantic (FAISS) + Lexical (BM25) search with local persistence and **Offline Ingestion**.
-- **Semantic Re-ranking**: Use of **Cross-Encoders** to validate the relevance of retrieved documents.
 - **Multi-Agent System**: Orchestration via **LangGraph** (Router, Discovery, Architecture, Execution).
 - **OCI Copilot Interface**: UI built with **Chainlit**, supporting file attachments, token streaming, and **Human-in-the-loop** for safe CLI commands.
 - **Merge & Export**: Pipeline to fuse LoRA adapters into the base model and export to GGUF format (local quantization).
@@ -103,21 +97,20 @@ flowchart TD
 
 ---
 
-## Training
-
-Training uses the MLX-Tune framework, optimized for maximum performance on Apple Silicon M3 Pro.
+## Installation and Getting Started
 
 > [!IMPORTANT]
-> **All commands below must be executed from the project root directory.**
+> **All commands in this project must be executed from the project root directory.**
+> **Remember to activate the correct virtual environment with `source venv/bin/activate` or `source venv-rag/bin/activate` before running any command.**
 
-### 0. Cloning the Repository
+### 1. Clone the Repository
 
 ```bash
 git clone https://github.com/otavio-lemos/olia-2-oci.git
 cd olia-2-oci
 ```
 
-### 1. Environment Setup
+### 2. Training Environment (LLM)
 
 ```bash
 python3.12 -m venv venv
@@ -125,16 +118,84 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
-### 2. Execution
+### 3. OCI Copilot Environment (RAG)
+
+```bash
+python3.12 -m venv venv-rag
+source venv-rag/bin/activate
+pip install -r requirements-rag.txt
+```
+
+---
+
+## Dataset Preparation
+
+Pipeline to validate, clean, deduplicate, and generate dataset splits.
+
+### Full Flow
+
+```mermaid
+flowchart LR
+    A1["generate_v5_combined.py\n(88 cats, 100% diversity)"] --> D["prepare_data.sh"]
+    D --> E["validate_jsonl.py\n(estrutura)"]
+    E --> F["clean_dataset.py\n(conteúdo)"]
+    F --> G["dedupe_embedding.py\n(semântico)"]
+    G --> H["build_dataset_fixed.py\n(splits)"]
+    H --> I["train.jsonl\nvalid.jsonl\neval.jsonl"]
+```
+
+### Dataset Generation
+
+Generates examples using templates with real OCI CLI commands and varied intents. Fast, free, no internet dependency.
+
+```bash
+# Generate dataset (88 categories × 180 examples = 15,840)
+python scripts/generate_v5_combined.py
+
+# After generating, run the preparation pipeline
+bash scripts/prepare_data.sh
+```
+
+### Final Step — Validate, Clean and Generate Splits
+
+After generating examples, run the preparation pipeline:
+
+```bash
+# Validate, clean, deduplicate and generate splits (75/15/10%)
+bash scripts/prepare_data.sh
+```
+
+### Pipeline Scripts
+
+| Script | Function | Input | Output |
+|--------|---------|-------|--------|
+| `validate_jsonl.py` | Validates JSONL structure (messages schema) | `all_curated.jsonl` | `all_curated.jsonl` (or fails) |
+| `clean_dataset.py` | Removes generic templates, incorrect CLI, noise | `all_curated.jsonl` | `all_curated_clean.jsonl` |
+| `dedupe_embedding.py` | Semantic deduplication by embeddings (threshold 0.97) | `all_curated_clean.jsonl` | `all_curated_semantic_dedup.jsonl` |
+| `build_dataset_fixed.py` | Generates splits (75% train, 15% valid, 10% eval) | `all_curated_semantic_dedup.jsonl` | `train.jsonl`, `valid.jsonl`, `eval.jsonl` |
+
+---
+
+## Training
+
+Training uses the MLX-Tune framework, focused on Apple Silicon architecture.
+
+### 1. Run Training (Fine-Tuning)
+
+> [!NOTE]
+> Run with **venv** environment activated: `source venv/bin/activate`
 
 ```bash
 # Run the consolidated training cycle
 bash training/run_cycles.sh --all --fresh
 ```
 
-### 3. Weight Fusion (Merge) & Export
+### 2. Weight Fusion (Merge) & Export
 
-After training, you must merge the LoRA adapters with the base model and export to GGUF format (compatible with llama.cpp/Ollama).
+> [!NOTE]
+> Run with **venv** environment activated: `source venv/bin/activate`
+
+After generating LoRA adapters, merge with the base model for inference use.
 
 ```bash
 # Merge and export to GGUF Q4
@@ -150,17 +211,23 @@ The evaluation pipeline compares the fine-tuned model against the base model usi
 - **Semantic similarity**: Sentence Transformers (MiniLM-L6-v2)
 - **Self-Judge (optional)**: LLM-as-Judge using the model itself for self-evaluation
 
+> [!NOTE]
+> Run with **venv** environment activated: `source venv/bin/activate`
+
 ```bash
-# Quick Test (10 samples, ~2 min)
+# Quick Evaluation (10 samples, ~2 min)
 python scripts/unified_evaluation.py --cycle cycle-1 --mode small --fresh
 
-# Recommended Evaluation (200 stratified samples, ~30 min)
+# Recommended Evaluation (200 samples, ~30 min)
 python scripts/unified_evaluation.py --cycle cycle-1 --mode medium --fresh
 
 # Full Evaluation (2133 samples, ~4-6 hours)
 python scripts/unified_evaluation.py --cycle cycle-1 --mode full --fresh
 
 # Evaluation with Self-Judge (LLM-as-Judge using the model itself)
+python scripts/unified_evaluation.py --cycle cycle-1 --mode medium --self-judge --judge-lang pt
+
+# Self-Judge in English
 python scripts/unified_evaluation.py --cycle cycle-1 --mode medium --self-judge --judge-lang en
 ```
 
@@ -172,7 +239,7 @@ python scripts/unified_evaluation.py --cycle cycle-1 --mode medium --self-judge 
 | `--mode medium` | 200 samples (stratified) |
 | `--mode full` | All samples (~2100) |
 | `--self-judge` | Enable LLM-as-Judge (doubles execution time) |
-| `--judge-lang pt\|en` | Judge rubric language (default: en) |
+| `--judge-lang pt\|en` | Judge rubric language (default: pt) |
 | `--judge-tokens` | Max tokens for judge response (default: 256) |
 | `--max-tokens` | Max tokens for model response (default: 256) |
 | `--fresh` | Clear output directory before running |
@@ -194,75 +261,102 @@ Results: [benchmark](#benchmark)
 
 ## RAG (Retrieval-Augmented Generation)
 
-OCI Copilot uses a persistent RAG layer to access real-time facts from Oracle documentation.
+OCI Copilot uses a persistent RAG layer to access facts from Oracle documentation.
 
-### 1. RAG Setup
+### 1. Offline Ingestion (Mandatory)
+> [!NOTE]
+> Run with **venv-rag** environment activated: `source venv-rag/bin/activate`
 
-```bash
-python3.12 -m venv venv-rag
-source venv-rag/bin/activate
-pip install -r requirements-rag.txt
-```
-
-### 2. Offline Ingestion (Mandatory)
 To save RAM during chat, indices must be generated offline:
 ```bash
 python scripts/update_rag.py
 ```
 
-### 3. Orchestration and Agents
-The agent ecosystem is orchestrated via **LangGraph** and served via **FastAPI** and **Chainlit**.
+### 2. Orchestration and Agents
+The ecosystem is orchestrated via **LangGraph** and served via **FastAPI**.
 
 **Start Backend API (RAG Indices):**
+> [!NOTE]
+> Run with **venv-rag** environment activated: `source venv-rag/bin/activate`
+
 ```bash
 uvicorn rag.api:app --host 0.0.0.0 --port 8000
 ```
 
 **Start Orchestrator and UI (Copilot Interface):**
+> [!NOTE]
+> Run with **venv-rag** environment activated: `source venv-rag/bin/activate`
+
 ```bash
-chainlit run rag/app_chainlit.py -w
+chainlit run rag/app_chainlit.py --port 8001
 ```
 
 ---
 
 ## Inference and UI
 
-After training and merge, use the official **Chainlit** interface to interact with the Copilot.
+Local inference is performed using the model after the **Merge** process.
 
-### 1. Start RAG Backend
+### 1. Inference Servers
+
+#### MLX (Recommended - Apple Silicon)
+> [!TIP]
+> Recommended for Apple Silicon. Local inference via MLX with LoRA adapter.
+
+> [!NOTE]
+> Run with **venv** environment activated: `source venv/bin/activate`
+
 ```bash
-uvicorn rag.api:app --port 8000
+mlx_lm.server --model mlx-community/Qwen2.5-Coder-7B-Instruct-4bit --adapter outputs/cycle-1/adapters
 ```
 
-### 2. Start Visual Interface
+#### Ollama
 ```bash
-chainlit run rag/app_chainlit.py -w
+# 1. Create Modelfile
+cat > ./outputs/cycle-1/gguf/Modelfile << 'EOF'
+FROM ./oci-specialist-Q4_K_M.gguf
+PARAMETER temperature 0.1
+PARAMETER top_p 0.9
+PARAMETER top_k 40
+SYSTEM You are an OCI (Oracle Cloud Infrastructure) specialist.
+EOF
+
+# 2. Create model
+ollama create oci-specialist -f ./outputs/cycle-1/gguf/Modelfile
+
+# 3. Start server in background
+ollama serve &
+
+# 4. Load model into memory
+curl http://localhost:11434/api/generate -d '{"model": "oci-specialist", "keep_alive": -1}'
 ```
-Access at: `http://localhost:8000` (or configured port).
+
+#### llama.cpp
+```bash
+llama-server -m outputs/cycle-1/gguf/oci-specialist-Q4_K_M.gguf --port 8080
+```
+
+### 2. OCI Copilot UI
+> [!NOTE]
+> Run with **venv-rag** environment activated: `source venv-rag/bin/activate`
+
+With the RAG backend running, start the visual interface:
+```bash
+chainlit run rag/app_chainlit.py --port 8001
+```
 
 ---
 
 ## Benchmark
 
 ### How to Evaluate
-To generate new benchmark reports, follow the instructions in the [Evaluation](#evaluation) section.
+To generate new benchmark reports, use the commands detailed in the [Evaluation](#evaluation) section.
 
 ### Metrics Comparison
 ![Comparison Chart](outputs/cycle-1/benchmarks/comparison_chart_20260416_101519.png)
 
 ### Performance by Category
 ![Category Chart](outputs/cycle-1/benchmarks/category_chart_20260416_101519.png)
-
-### Summary of Results
-
-| Metric | Base Model | Fine-Tuned | Delta |
-|--------|-------------|------------|-------|
-| technical_correctness | 3.40 | 3.40 | +0.00 |
-| depth | 2.60 | 2.60 | +0.00 |
-| structure | 4.00 | 4.44 | +0.45 |
-| hallucination | 3.58 | 4.68 | +1.10 |
-| clarity | 3.50 | 3.37 | -0.13 |
-| **Overall** | **3.42** | **3.70** | **+0.28** |
 
 ### Top Gains by Topic (Top 5)
 1. **Troubleshooting Connectivity**: +0.66
@@ -390,8 +484,8 @@ This project was developed by integrating the following cutting-edge technologie
 - **Agent Orchestration**: [LangGraph](https://python.langchain.com/docs/langgraph) and [LangChain](https://langchain.com).
 - **User Interface**: [Chainlit](https://chainlit.io).
 - **Backend Services**: [FastAPI](https://fastapi.tiangolo.com).
-- **Search Engines (RAG Hybrid)**: [FAISS](https://github.com/facebookresearch/faiss) (Dense), [Rank-BM25](https://github.com/dorianbrown/rank_bm25) (Sparse) and [Sentence-Transformers](https://sbert.net) (Cross-Encoder Re-ranking).
-- **Embeddings**: [Hugging Face](https://huggingface.co) and [Sentence-Transformers](https://sbert.net).
+- **Search Engines (RAG Hybrid)**: [FAISS](https://github.com/facebookresearch/faiss) (Dense) and [Rank-BM25](https://github.com/dorianbrown/rank_bm25) (Sparse).
+- **Embeddings and Re-ranking**: [Hugging Face](https://huggingface.co) and [Sentence-Transformers](https://sbert.net).
 - **Development**: [Python 3.12](https://www.python.org).
 - **Data**: Synthesized and validated specifically for Oracle Cloud Infrastructure (OCI) scenarios.
 
