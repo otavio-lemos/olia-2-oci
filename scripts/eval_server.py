@@ -29,6 +29,9 @@ def load_cycle_config(cycle_name: str) -> dict:
         / "config"
         / f"{cycle_name}.env"
     )
+    if not env_file.exists():
+        raise FileNotFoundError(f"Config not found: {env_file}")
+
     config = {}
     with open(env_file) as f:
         for line in f:

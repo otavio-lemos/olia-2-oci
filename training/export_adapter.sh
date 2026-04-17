@@ -12,13 +12,13 @@ PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 
 CYCLE=${CYCLE:-"cycle-1"}
 
-# Load config from outputs dir first (reproducibility), fallback to config/
+# Load config from outputs dir only (reproducibility)
 if [ -f "${PROJECT_DIR}/outputs/${CYCLE}/config/${CYCLE}.env" ]; then
     source "${PROJECT_DIR}/outputs/${CYCLE}/config/${CYCLE}.env"
     echo "[config] Loaded from: outputs/${CYCLE}/config/${CYCLE}.env"
 else
-    source "${PROJECT_DIR}/config/${CYCLE}.env"
-    echo "[config] Loaded from: config/${CYCLE}.env"
+    echo "ERROR: Config not found: outputs/${CYCLE}/config/${CYCLE}.env"
+    exit 1
 fi
 
 BASE_MODEL=${BASE_MODEL:-${MODEL:-"mlx-community/Meta-Llama-3.1-8B-Instruct-4bit"}}

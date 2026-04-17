@@ -35,8 +35,6 @@ def load_cycle_config(cycle_name):
         / f"{cycle_name}.env"
     )
     if not env_file.exists():
-        env_file = Path(__file__).parent.parent / "config" / f"{cycle_name}.env"
-    if not env_file.exists():
         print(f"ERROR: Config not found: {env_file}")
         sys.exit(1)
 
