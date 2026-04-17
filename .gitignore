@@ -45,3 +45,6 @@ worktrees/
 # LLM generation checkpoint
 data/.llm_gen_checkpoint.json
 
+# Old archived files
+ARQUIVOS-OLD/
+
