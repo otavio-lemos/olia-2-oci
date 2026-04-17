@@ -151,9 +151,6 @@ Gera exemplos usando templates com OCI CLI commands reais e intents variados. R�
 ```bash
 # Gerar dataset (88 categorias × 180 exemplos = 15,840)
 python scripts/generate_v5_combined.py
-
-# Após gerar, executar o pipeline de preparação
-bash scripts/prepare_data.sh
 ```
 
 ### Passo Final — Validar, Limpar e Gerar Splits
