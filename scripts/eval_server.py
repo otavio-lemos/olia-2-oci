@@ -21,7 +21,14 @@ from mlx_lm.sample_utils import make_sampler
 
 
 def load_cycle_config(cycle_name: str) -> dict:
-    env_file = Path(__file__).parent.parent / "config" / f"{cycle_name}.env"
+    """Load cycle configuration from outputs/{cycle}/config/{cycle}.env for reproducibility."""
+    env_file = (
+        Path(__file__).parent.parent
+        / "outputs"
+        / cycle_name
+        / "config"
+        / f"{cycle_name}.env"
+    )
     config = {}
     with open(env_file) as f:
         for line in f:

@@ -25,8 +25,14 @@ from mlx_lm.sample_utils import make_sampler
 
 
 def load_cycle_config(cycle_name: str) -> dict:
-    """Load cycle configuration from config/cycle-N.env file."""
-    env_file = Path(__file__).parent.parent / "config" / f"{cycle_name}.env"
+    """Load cycle configuration from outputs/{cycle}/config/{cycle}.env for reproducibility."""
+    env_file = (
+        Path(__file__).parent.parent
+        / "outputs"
+        / cycle_name
+        / "config"
+        / f"{cycle_name}.env"
+    )
     if not env_file.exists():
         raise FileNotFoundError(f"Config not found: {env_file}")
 
@@ -1335,6 +1341,14 @@ def main():
     )
     print(f"Categories: {len(categories)}")
 
+    # Initialize semantic scorer before evaluation
+    print("\n[2/5] Loading semantic scorer...")
+    semantic_scorer = SemanticScorer()
+    try:
+        semantic_scorer.load_model()
+    except Exception as e:
+        print(f"Warning: Could not load semantic scorer: {e}")
+
     # Initialize self-judge if enabled
     self_judge = None
     if args.self_judge:
@@ -1418,9 +1432,9 @@ def main():
     print("FT model unloaded.")
 
     print("\n[4.5/5] Running Semantic Hallucination Scoring (PyTorch)...")
-    semantic_scorer = SemanticScorer()
     try:
-        semantic_scorer.load_model()
+        if semantic_scorer.model is None:
+            semantic_scorer.load_model()
         print("Semantic scorer loaded. Scoring base and FT results...")
 
         # Update base results

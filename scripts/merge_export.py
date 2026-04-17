@@ -45,7 +45,14 @@ def find_llama_cpp_bin(name: str) -> str:
 
 
 def load_cycle_config(cycle_name: str) -> dict:
-    env_file = Path(__file__).parent.parent / "config" / f"{cycle_name}.env"
+    """Load cycle configuration from outputs/{cycle}/config/{cycle}.env for reproducibility."""
+    env_file = (
+        Path(__file__).parent.parent
+        / "outputs"
+        / cycle_name
+        / "config"
+        / f"{cycle_name}.env"
+    )
     if not env_file.exists():
         raise FileNotFoundError(f"Config not found: {env_file}")
 
