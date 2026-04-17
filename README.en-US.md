@@ -141,42 +141,6 @@ After training, you must merge the LoRA adapters with the base model and export 
 python scripts/merge_export.py --cycle cycle-1 --quant q4 --name oci-specialist
 ```
 
-### Optimized Configuration (`config/cycle-1.env`)
-
-<details>
-<summary><b>Click to view Full .env Configuration (26 parameters)</b></summary>
-<sub>
-
-| Parameter | Value | Description |
-|-----------|-------|-------------|
-| **MODEL** | `mlx-community/Qwen2.5-Coder-7B-Instruct-4bit` | Optimized base model |
-| **TRAIN_DATA** | `data/train.jsonl` | Training dataset |
-| **VALID_DATA** | `data/valid.jsonl` | Validation dataset |
-| **OUTPUT_DIR** | `outputs/cycle-1` | Output directory |
-| **PREV_ADAPTER** | `""` | Previous adapter (if any) |
-| **BATCH_SIZE** | 1 | Batch size per iteration |
-| **LEARNING_RATE** | 2e-4 | Learning rate |
-| **LORA_RANK** | 16 | LoRA Rank |
-| **LORA_ALPHA** | 32 | LoRA Alpha |
-| **NUM_LAYERS** | 28 | Number of LoRA layers (100%) |
-| **TARGET_MODULES** | `"q_proj,k_proj,v_proj,o_proj,gate_proj,up_proj,down_proj"` | Target modules |
-| **ITERS** | 4000 | Total iterations |
-| **MAX_SEQ_LENGTH** | 768 | Maximum sequence length |
-| **VAL_BATCHES** | 5 | Validation batches |
-| **EVAL_STEPS** | 250 | Steps between evaluations |
-| **LOGGING_STEPS** | 1 | Steps between logging |
-| **SAVE_STEPS** | 500 | Steps between saves |
-| **WARMUP_STEPS** | 320 | Warmup steps |
-| **GRADIENT_CHECKPOINTING**| false | Gradient checkpointing |
-| **LR_SCHEDULER** | `cosine` | LR scheduler |
-| **WEIGHT_DECAY** | 0.01 | Weight decay |
-| **SEED** | 42 | Random seed |
-| **GRAD_CLIP_NORM** | 1.0 | Gradient clip norm |
-| **BF16** | true | Native M3 acceleration |
-
-</sub>
-</details>
-
 ---
 
 ## Evaluation

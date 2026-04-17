@@ -202,42 +202,6 @@ Após gerar os adaptadores LoRA, fundir com o modelo base para uso em inferênci
 python scripts/merge_export.py --cycle cycle-1 --quant q4 --name oci-specialist
 ```
 
-### Configuração Otimizada (`config/cycle-1.env`)
-
-<details>
-<summary><b>Clique para ver a Configuração Completa do .env (26 parâmetros)</b></summary>
-<sub>
-
-| Parâmetro | Valor | Descrição |
-|-----------|-------|-----------|
-| **MODEL** | `mlx-community/Qwen2.5-Coder-7B-Instruct-4bit` | Modelo base otimizado |
-| **TRAIN_DATA** | `data/train.jsonl` | Dataset de treinamento |
-| **VALID_DATA** | `data/valid.jsonl` | Dataset de validação |
-| **OUTPUT_DIR** | `outputs/cycle-1` | Diretório de saída |
-| **PREV_ADAPTER** | `""` | Adaptador prévio (se houver) |
-| **BATCH_SIZE** | 1 | Tamanho do lote por iteração |
-| **LEARNING_RATE** | 2e-4 | Taxa de aprendizado |
-| **LORA_RANK** | 16 | Ranque do LoRA |
-| **LORA_ALPHA** | 32 | Alfa do LoRA |
-| **NUM_LAYERS** | 28 | Número de camadas LoRA (100%) |
-| **TARGET_MODULES** | `"q_proj,k_proj,v_proj,o_proj,gate_proj,up_proj,down_proj"` | Módulos alvo |
-| **ITERS** | 5556 | Total de iterações |
-| **MAX_SEQ_LENGTH** | 768 | Comprimento máximo de sequência |
-| **VAL_BATCHES** | 5 | Batches de validação |
-| **EVAL_STEPS** | 250 | Passos entre avaliações |
-| **LOGGING_STEPS** | 1 | Passos entre logs |
-| **SAVE_STEPS** | 500 | Passos entre salvamentos |
-| **WARMUP_STEPS** | 555 | Passos de warmup |
-| **GRADIENT_CHECKPOINTING**| false | Checkpointing de gradiente |
-| **LR_SCHEDULER** | `cosine` | Scheduler de LR |
-| **WEIGHT_DECAY** | 0.001 | Decaimento de peso |
-| **SEED** | 42 | Semente aleatória |
-| **GRAD_CLIP_NORM** | 1.0 | Clipping de gradiente |
-| **BF16** | true | Aceleração nativa M3 |
-
-</sub>
-</details>
-
 ---
 
 ## Avaliação
