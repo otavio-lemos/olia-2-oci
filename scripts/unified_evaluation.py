@@ -1054,8 +1054,8 @@ def evaluate_model(
     mode: str = "base",
     resume_results: List[Dict] = None,
     checkpoint_file: Path = None,
-    max_tokens: int = 1248,
-    judge_max_tokens: int = 512,
+    max_tokens: int = 256,
+    judge_max_tokens: int = 256,
 ) -> List[Dict]:
     """Run evaluation loop for a model using batch processing."""
     total = len(eval_data)
@@ -1216,7 +1216,7 @@ def main():
     parser.add_argument(
         "--max-tokens",
         type=int,
-        default=1248,
+        default=256,
         help="Max tokens per response. Adjust based on expected response length.",
     )
     parser.add_argument(
@@ -1249,7 +1249,7 @@ def main():
     parser.add_argument(
         "--judge-tokens",
         type=int,
-        default=512,
+        default=256,
         help="Max tokens for self-judge response",
     )
     args = parser.parse_args()
