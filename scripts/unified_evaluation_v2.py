@@ -1501,39 +1501,8 @@ def main():
     except Exception as e:
         print(f"Warning: Could not load semantic scorer: {e}")
 
-    print("\n[3/5] Evaluating base model...")
-    base_evaluator = UnifiedEvaluator(
-        base_model_id=base_model_id,
-        adapter_path="",
-        merged_model_path="",
-    )
-
-    base_checkpoint = output_dir / "base_checkpoint.json"
-    base_results = evaluate_model(
-        base_evaluator,
-        eval_data,
-        semantic_scorer,
-        mode="base",
-        resume_results=resume_base if resume_base else None,
-        checkpoint_file=base_checkpoint,
-        max_tokens=args.max_tokens,
-    )
-
-    base_path = output_dir / f"base_results_{timestamp}.json"
-    save_results(base_results, base_path)
-
-    # Explicit memory cleanup to fit within RAM constraints
-    print("Unloading base model...")
-    base_evaluator.model = None
-    base_evaluator.tokenizer = None
-    base_evaluator._loaded = False
-    del base_evaluator
-    gc.collect()
-    _get_mlx()["mx"].clear_cache()
-    time.sleep(2)  # Give OS time to reclaim unified memory
-    print("Base model unloaded.")
-
-    print("\n[4/5] Evaluating fine-tuned model...")
+    # FT model evaluation first
+    print("\n[3/5] Evaluating fine-tuned model...")
     if ft_mode == "adapter":
         ft_evaluator = UnifiedEvaluator(
             base_model_id=base_model_id,
@@ -1562,7 +1531,6 @@ def main():
     ft_path = output_dir / f"ft_results_{timestamp}.json"
     save_results(ft_results, ft_path)
 
-    # Explicit memory cleanup to fit within RAM constraints
     print("Unloading FT model...")
     ft_evaluator.model = None
     ft_evaluator.tokenizer = None
@@ -1571,6 +1539,38 @@ def main():
     gc.collect()
     _get_mlx()["mx"].clear_cache()
     print("FT model unloaded.")
+
+    # Base model evaluation second
+    print("\n[4/5] Evaluating base model...")
+    base_evaluator = UnifiedEvaluator(
+        base_model_id=base_model_id,
+        adapter_path="",
+        merged_model_path="",
+    )
+
+    base_checkpoint = output_dir / "base_checkpoint.json"
+    base_results = evaluate_model(
+        base_evaluator,
+        eval_data,
+        semantic_scorer,
+        mode="base",
+        resume_results=resume_base if resume_base else None,
+        checkpoint_file=base_checkpoint,
+        max_tokens=args.max_tokens,
+    )
+
+    base_path = output_dir / f"base_results_{timestamp}.json"
+    save_results(base_results, base_path)
+
+    print("Unloading base model...")
+    base_evaluator.model = None
+    base_evaluator.tokenizer = None
+    base_evaluator._loaded = False
+    del base_evaluator
+    gc.collect()
+    _get_mlx()["mx"].clear_cache()
+    time.sleep(2)
+    print("Base model unloaded.")
 
     print("\n[4.5/5] Running Semantic Hallucination Scoring (PyTorch)...")
     try:
