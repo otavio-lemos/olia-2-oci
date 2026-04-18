@@ -215,17 +215,11 @@ O pipeline de avaliação compara o modelo fine-tuned contra o modelo base usand
 # Avaliação Rápida (10 amostras, ~2 min)
 python scripts/unified_evaluation_v2.py --cycle cycle-1 --mode small --fresh
 
-# Avaliação Recomendada (200 amostras, ~30 min)
-python scripts/unified_evaluation_v2.py --cycle cycle-1 --mode medium --fresh
-
 # Avaliação Completa (2133 amostras, ~4-6 horas)
 python scripts/unified_evaluation_v2.py --cycle cycle-1 --mode full --fresh
 
 # Avaliação com Judge (LLM-as-Judge usando modelo diferente)
 python scripts/unified_evaluation_v2.py --cycle cycle-1 --mode medium --external-judge --judge-lang pt
-
-# Judge em inglês
-python scripts/unified_evaluation_v2.py --cycle cycle-1 --mode medium --external-judge --judge-lang en
 ```
 
 Resultados: ver [Benchmark](#benchmark)
