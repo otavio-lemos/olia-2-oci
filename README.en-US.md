@@ -221,10 +221,10 @@ python scripts/unified_evaluation_v2.py --cycle cycle-1 --mode medium --fresh
 # Full Evaluation (2133 samples, ~4-6 hours)
 python scripts/unified_evaluation_v2.py --cycle cycle-1 --mode full --fresh
 
-# Evaluation with Self-Judge (LLM-as-Judge using the model itself)
+# Evaluation with External Judge (LLM-as-Judge using external model)
 python scripts/unified_evaluation_v2.py --cycle cycle-1 --mode medium --external-judge --judge-lang pt
 
-# Self-Judge in English
+# External Judge in English
 python scripts/unified_evaluation_v2.py --cycle cycle-1 --mode medium --external-judge --judge-lang en
 ```
 
