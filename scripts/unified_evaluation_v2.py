@@ -674,6 +674,19 @@ Output ONLY the JSON."""
             self.sampler = mlx_mods["make_sampler"](
                 temp=0.3, top_p=0.9, min_p=0.0, top_k=20
             )
+
+            # Fix mlx_lm bug #973: ensure <|im_end|> token is in eos_token_ids
+            im_end_tokens = self.tokenizer.encode("<|im_end|>")
+            if im_end_tokens:
+                im_end_id = im_end_tokens[-1]
+                eos_ids = getattr(self.tokenizer, "eos_token_ids", set())
+                if isinstance(eos_ids, (set, list, tuple)):
+                    eos_ids = set(eos_ids)
+                else:
+                    eos_ids = set()
+                eos_ids.add(im_end_id)
+                self.tokenizer._eos_token_ids = eos_ids
+
             print("External judge model loaded successfully")
 
     def unload(self):
@@ -752,7 +765,6 @@ Output ONLY the JSON."""
             max_tokens=max_tokens,
             sampler=self.sampler,
             verbose=False,
-            extra_eos_token="<|im_end|>",
         )
 
         elapsed = time.time() - start
@@ -1080,6 +1092,19 @@ class UnifiedEvaluator:
         self.sampler = mlx_mods["make_sampler"](
             temp=0.3, top_p=0.9, min_p=0.0, top_k=20
         )
+
+        # Fix mlx_lm bug #973: ensure <|im_end|> token is in eos_token_ids
+        im_end_tokens = self.tokenizer.encode("<|im_end|>")
+        if im_end_tokens:
+            im_end_id = im_end_tokens[-1]
+            eos_ids = getattr(self.tokenizer, "eos_token_ids", set())
+            if isinstance(eos_ids, (set, list, tuple)):
+                eos_ids = set(eos_ids)
+            else:
+                eos_ids = set()
+            eos_ids.add(im_end_id)
+            self.tokenizer._eos_token_ids = eos_ids
+
         self._loaded = True
         print("Model loaded successfully")
 
@@ -1108,7 +1133,6 @@ class UnifiedEvaluator:
             max_tokens=max_tokens,
             sampler=self.sampler,
             verbose=False,
-            extra_eos_token="<|im_end|>",
         )
         elapsed = time.time() - start
 
