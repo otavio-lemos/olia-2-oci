@@ -206,40 +206,27 @@ python scripts/merge_export.py --cycle cycle-1 --quant q4 --name oci-specialist
 O pipeline de avaliação compara o modelo fine-tuned contra o modelo base usando:
 - **Scoring automático**: Correctness, Depth, Structure, Hallucination, Clarity
 - **Similaridade semântica**: Sentence Transformers (MiniLM-L6-v2)
-- **Self-Judge (opcional)**: LLM-as-Judge usando o próprio modelo para auto-avaliação
+- **External Judge (opcional)**: LLM-as-Judge usando modelo externo (ex: Llama 3.1 8B) para avaliação imparcial
 
 > [!NOTE]
 > Execute com o ambiente **venv** ativado: `source venv/bin/activate`
 
 ```bash
 # Avaliação Rápida (10 amostras, ~2 min)
-python scripts/unified_evaluation.py --cycle cycle-1 --mode small --fresh
+python scripts/unified_evaluation_v2.py --cycle cycle-1 --mode small --fresh
 
 # Avaliação Recomendada (200 amostras, ~30 min)
-python scripts/unified_evaluation.py --cycle cycle-1 --mode medium --fresh
+python scripts/unified_evaluation_v2.py --cycle cycle-1 --mode medium --fresh
 
 # Avaliação Completa (2133 amostras, ~4-6 horas)
-python scripts/unified_evaluation.py --cycle cycle-1 --mode full --fresh
+python scripts/unified_evaluation_v2.py --cycle cycle-1 --mode full --fresh
 
 # Avaliação com Self-Judge (LLM-as-Judge usando o próprio modelo)
-python scripts/unified_evaluation.py --cycle cycle-1 --mode medium --self-judge --judge-lang pt
+python scripts/unified_evaluation_v2.py --cycle cycle-1 --mode medium --external-judge --judge-lang pt
 
 # Self-Judge em inglês
-python scripts/unified_evaluation.py --cycle cycle-1 --mode medium --self-judge --judge-lang en
+python scripts/unified_evaluation_v2.py --cycle cycle-1 --mode medium --external-judge --judge-lang en
 ```
-
-### Parâmetros de Avaliação
-
-| Parâmetro | Descrição |
-|-----------|-----------|
-| `--mode small/test` | 10 amostras (1 por categoria) |
-| `--mode medium` | 200 amostras (estratificado) |
-| `--mode full` | Todas as amostras (~2100) |
-| `--self-judge` | Ativar LLM-as-Judge (dobra tempo de execução) |
-| `--judge-lang pt\|en` | Idioma do rubric de avaliação (default: pt) |
-| `--judge-tokens` | Max tokens para resposta do judge (default: 256) |
-| `--max-tokens` | Max tokens para resposta do modelo (default: 256) |
-| `--fresh` | Limpar diretório de saída antes de executar |
 
 ### Resumo dos Resultados (Avaliação 200 amostras)
 
