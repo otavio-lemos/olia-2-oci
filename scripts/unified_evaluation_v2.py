@@ -696,11 +696,28 @@ Output ONLY the JSON."""
 ## Avaliação JSON:"""
 
     def parse_judge_response(self, response: str) -> Dict[str, Any]:
-        """Parse the judge's JSON response."""
+        """Parse the judge's JSON response with robust JSON extraction."""
         import re
 
-        json_match = re.search(r"\{[^}]+\}", response, re.DOTALL)
-        if not json_match:
+        # Robust JSON extraction - find first { and last }
+        start = response.find("{")
+        end = response.rfind("}")
+
+        if start >= 0 and end > start:
+            json_str = response[start : end + 1]
+            # Remove code blocks if present
+            json_str = re.sub(r"^```json\s*", "", json_str)
+            json_str = re.sub(r"\s*```$", "", json_str)
+        else:
+            return {
+                "correctness": 3,
+                "helpfulness": 3,
+                "depth": 3,
+                "safety": 3,
+                "reasoning": "No JSON found",
+            }
+
+        if not json_str:
             return {
                 "correctness": 3,
                 "helpfulness": 3,
@@ -710,7 +727,7 @@ Output ONLY the JSON."""
             }
 
         try:
-            result = json.loads(json_match.group())
+            result = json.loads(json_str)
             return {
                 "correctness": min(5, max(1, int(result.get("correctness", 3)))),
                 "helpfulness": min(5, max(1, int(result.get("helpfulness", 3)))),
@@ -718,13 +735,13 @@ Output ONLY the JSON."""
                 "safety": min(5, max(1, int(result.get("safety", 3)))),
                 "reasoning": result.get("reasoning", "")[:200],
             }
-        except (json.JSONDecodeError, ValueError, KeyError):
+        except (json.JSONDecodeError, ValueError, KeyError) as e:
             return {
                 "correctness": 3,
                 "helpfulness": 3,
                 "depth": 3,
                 "safety": 3,
-                "reasoning": "Parse error",
+                "reasoning": f"Parse error: {str(e)[:50]}",
             }
 
     def evaluate_response(
@@ -1666,6 +1683,23 @@ def main():
         print(
             f"\n[4.6/5] Running External Judge Evaluation ({external_judge_model})..."
         )
+
+        # Reset MLX global state to free GPU memory completely before loading judge
+        global _mlx_available, _mlx_modules
+        _mlx_available = False
+        _mlx_modules = None
+        gc.collect()
+
+        # Force Metal cleanup
+        try:
+            import mlx.core as mx
+
+            mx.clear_cache()
+        except:
+            pass
+
+        print("MLX state reset complete. Loading external judge...")
+
         external_judge = ExternalJudge(
             model_path=external_judge_model,
             use_portuguese=(args.judge_lang == "pt"),
