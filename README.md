@@ -231,7 +231,7 @@ python scripts/unified_evaluation_v2.py --cycle cycle-1 --ft-model outputs/cycle
 python scripts/unified_evaluation_v2.py --cycle cycle-1 --ft-model outputs/cycle-1/safetensors/q4 --mode full --fresh
 
 # Avaliação com Judge (LLM-as-Judge usando modelo diferente)
-python scripts/unified_evaluation_v2.py --cycle cycle-1 --ft-model outputs/cycle-1/safetensors/q4 --mode medium --external-judge --judge-lang pt
+python scripts/unified_evaluation_v2.py --cycle cycle-1 --ft-model outputs/cycle-1/safetensors/q4 --mode medium --external-judge --judge-lang pt --judge-tokens 768 --max-tokens 768
 ```
 
 Resultados: ver [Benchmark](#benchmark)
