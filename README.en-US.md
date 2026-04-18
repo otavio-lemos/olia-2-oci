@@ -211,16 +211,37 @@ The evaluation pipeline compares the fine-tuned model against the base model usi
 > [!NOTE]
 > Run with **venv** environment activated: `source venv/bin/activate`
 
+### 1. Generate Quantized Models (Prerequisite)
+
+Before evaluating, generate quantized models with merge_export:
+
 ```bash
-# Quick Evaluation (10 samples, ~2 min)
-python scripts/unified_evaluation_v2.py --cycle cycle-1 --mode small --fresh
+# Generate quantized versions of merged model
+# Creates: merged/bf16/, merged/q4_k_m/, merged/q5_k_m/, merged/q8_0/
+python scripts/merge_export.py --cycle cycle-1 --quant q4,q5,q8
+```
+
+### 2. Run Evaluation
+
+```bash
+# Quick Evaluation (10 samples, ~2 min) - specific model required
+python scripts/unified_evaluation_v2.py --cycle cycle-1 --ft-model outputs/cycle-1/safetensors/q4_k_m --mode small --fresh
 
 # Full Evaluation (2133 samples, ~4-6 hours)
-python scripts/unified_evaluation_v2.py --cycle cycle-1 --mode full --fresh
+python scripts/unified_evaluation_v2.py --cycle cycle-1 --ft-model outputs/cycle-1/safetensors/q4_k_m --mode full --fresh
 
 # Evaluation with Judge (LLM-as-Judge using different model)
-python scripts/unified_evaluation_v2.py --cycle cycle-1 --mode medium --external-judge --judge-lang pt
+python scripts/unified_evaluation_v2.py --cycle cycle-1 --ft-model outputs/cycle-1/safetensors/q4_k_m --mode medium --external-judge --judge-lang pt
 ```
+
+### 3. Available Models for Evaluation
+
+| Path | Size | Recommended Use |
+|------|------|-----------------|
+| `outputs/cycle-1/safetensors/bf16/` | ~15GB | Maximum quality |
+| `outputs/cycle-1/safetensors/q4_k_m/` | ~4.5GB | **Recommended** (faster, M3 Pro) |
+| `outputs/cycle-1/safetensors/q5_k_m/` | ~5.5GB | Balanced |
+| `outputs/cycle-1/safetensors/q8_0/` | ~8.5GB | Higher quality, more memory |
 
 Results: see [Benchmark](#benchmark)
 

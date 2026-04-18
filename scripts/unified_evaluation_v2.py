@@ -20,9 +20,71 @@ from typing import Dict, List, Any, Optional
 import random
 import gc
 
-# MLX imports - lazy loaded to allow --help without loading heavy deps
+
+# MLX lazy loading - initialized before use
 _mlx_available = False
 _mlx_modules = None
+
+
+def load_cycle_config(cycle_name: str) -> dict:
+    """Load cycle configuration from outputs/{cycle}/config/{cycle}.env for reproducibility."""
+    env_file = (
+        Path(__file__).parent.parent
+        / "outputs"
+        / cycle_name
+        / "config"
+        / f"{cycle_name}.env"
+    )
+    if not env_file.exists():
+        raise FileNotFoundError(f"Config not found: {env_file}")
+
+    config = {}
+    with open(env_file) as f:
+        for line in f:
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                key, value = line.split("=", 1)
+                config[key.strip()] = value.strip().strip('"')
+    return config
+
+
+# Common EOS tokens from various models (fallback for mlx_lm bug)
+STOP_TOKEN_FALLBACKS = {
+    151645,  # Qwen2.5 1
+    151643,  # Qwen2.5 2
+    151652,  # Qwen2.5 3
+    151653,  # Qwen2.5 <|im_sep|>
+    128009,  # Llama 3 <|eot_id|>
+    128000,  # Llama 3 <|begin_of_text|>
+    128001,  # Llama 3 <|end_of_text|>
+    2,  # Llama 2 <|end_of_text|>
+    2,  # Mistral <|end_of_text|>
+    1,  # General BOS
+    0,  # General EOS/_pad
+}
+
+
+def get_tokenizer_eos_token(tokenizer):
+    """Detecta o token EOS automaticamente a partir do tokenizer."""
+    if hasattr(tokenizer, "eos_token") and tokenizer.eos_token:
+        eos = tokenizer.eos_token
+        if hasattr(eos, "content"):
+            return eos.content
+        return str(eos)
+
+    if hasattr(tokenizer, "eos_token_id") and tokenizer.eos_token_id:
+        try:
+            return tokenizer.decode([tokenizer.eos_token_id])
+        except:
+            pass
+
+    if hasattr(tokenizer, "eos_token_ids") and tokenizer.eos_token_ids:
+        try:
+            return tokenizer.decode([tokenizer.eos_token_ids[0]])
+        except:
+            pass
+
+    return None
 
 
 def _load_mlx():
@@ -138,7 +200,7 @@ class ScoringEngine:
     STRUCTURE_BULLET = re.compile(r"^[-*]\s+", re.MULTILINE)
     STRUCTURE_SECTIONS = re.compile(r"#+\s+")
 
-    HALLUCINATION_PATTERNS = [
+    HALLUCINATION_PATTERNSS = [
         (re.compile(r"oci\s+instances\s+", re.IGNORECASE), 1.5),
         (re.compile(r"oci\s+storage\s+(?!gateway)", re.IGNORECASE), 1.5),
         (re.compile(r"oci\s+connectivity\s+", re.IGNORECASE), 1.5),
@@ -308,7 +370,7 @@ class ScoringEngine:
         if not response or response.startswith("Error:"):
             return 1.0
 
-        for pattern, penalty in cls.HALLUCINATION_PATTERNS:
+        for pattern, penalty in cls.HALLUCINATION_PATTERNSS:
             if pattern.search(response):
                 score -= penalty
         for pattern, penalty in cls.HALLUCINATION_CROSS_CLOUD:
@@ -502,14 +564,14 @@ Avalie a resposta do modelo OCI Specialist para a pergunta do usuário.
 
 ### 1. Correctness (Corretude Técnica)
 - 5: Resposta tecnicamente correta, comandos OCI válidos, sem erros
-- 4: Resposta mostly correta, pequenos detalhes ausentes
+- 4: Resposta mostly correta, minor detalhes ausentes
 - 3: Resposta parcialmente correta, alguns comandos incorretos
 - 2: Resposta com erros significativos de comandos OCI
 - 1: Resposta completamente incorreta ou hallucinated
 
 ### 2. Helpfulness (Utilidade)
 - 5: Resposta completa, prática, inclui código/exemplos funcionais
-- 4: Resposta útil mas poderia ter mais detalhespráticos
+- 4: Resposta útil mas poderia ter mais detalhes práticos
 - 3: Resposta básica, genérica
 - 2: Resposta pouco útil
 - 1: Resposta inútil ou misleading
@@ -522,7 +584,7 @@ Avalie a resposta do modelo OCI Specialist para a pergunta do usuário.
 - 1: Sem explicação ou apenas repeat da pergunta
 
 ### 4. Safety (Segurança/Hallucination)
-- 5: Sem Commands fake, sem referências AWS/Azure, informações verificadas
+- 5: Sem commands fake, sem referências AWS/Azure, informações verificadas
 - 4: Pequenos problemas de accuracy
 - 3: Alguns comandos ou conceitos invented
 - 2: Vários elementos fake/hallucinated
@@ -585,7 +647,7 @@ Evaluate and provide your assessment in JSON:
   "reasoning": "<brief justification>"
 }}
 ```
-Output ONLY the JSON, nothing else."""
+Output ONLY the JSON."""
 
     def __init__(
         self,
@@ -604,8 +666,10 @@ Output ONLY the JSON, nothing else."""
         if self.model is None:
             print(f"Loading external judge model: {self.model_path}")
             mlx_mods = _get_mlx()
+
+            # Load with native tokenizer config (no overrides)
             self.model, self.tokenizer = mlx_mods["load"](
-                path_or_hf_repo=self.model_path
+                path_or_hf_repo=self.model_path,
             )
             self.sampler = mlx_mods["make_sampler"](
                 temp=0.3, top_p=0.9, min_p=0.0, top_k=20
@@ -678,7 +742,10 @@ Output ONLY the JSON, nothing else."""
             messages, add_generation_prompt=True
         )
 
-        judge_response = mlx_mods["generate"](
+        start = time.time()
+        mlx_mods = _get_mlx()
+
+        response = mlx_mods["generate"](
             self.model,
             self.tokenizer,
             prompt=prompt_tokens,
@@ -687,7 +754,9 @@ Output ONLY the JSON, nothing else."""
             verbose=False,
         )
 
-        return self.parse_judge_response(judge_response)
+        elapsed = time.time() - start
+
+        return self.parse_judge_response(response)
 
 
 class ReportGenerator:
@@ -971,16 +1040,32 @@ class UnifiedEvaluator:
         self._loaded = False
 
     def load_model(self):
-        """Carrega modelo base ou FT."""
+        """Carrega modelo base ou FT com tokenizer_config para stop tokens corretos."""
         if self._loaded:
             return
 
         mlx_mods = _get_mlx()
 
+        # Detect EOS token from model name
+        model_path = self.merged_model_path or self.base_model_id
+        model_lower = model_path.lower()
+
+        # Detect EOS token - just for logging (tokenizer should handle it natively)
+        if "qwen" in model_lower:
+            print("[INFO] Qwen model detected - using native tokenizer EOS config")
+        elif "llama-3" in model_lower or "llama3" in model_lower:
+            print("[INFO] Llama-3 model detected - using native tokenizer EOS config")
+        elif "llama-2" in model_lower or "llama2" in model_lower:
+            print("[INFO] Llama-2 model detected - using native tokenizer EOS config")
+        elif "mistral" in model_lower:
+            print("[INFO] Mistral model detected - using native tokenizer EOS config")
+
+        # Load model without overriding tokenizer config
+        # The tokenizer should use its native EOS config from the model files
         if self.merged_model_path:
             print(f"Loading merged model: {self.merged_model_path}")
             self.model, self.tokenizer = mlx_mods["load"](
-                path_or_hf_repo=self.merged_model_path
+                path_or_hf_repo=self.merged_model_path,
             )
         else:
             print(f"Loading model: {self.base_model_id}")
@@ -1014,6 +1099,7 @@ class UnifiedEvaluator:
 
         start = time.time()
         mlx_mods = _get_mlx()
+
         response = mlx_mods["generate"](
             self.model,
             self.tokenizer,
@@ -1251,6 +1337,11 @@ def main():
     )
     parser.add_argument("--cycle", required=True, help="Cycle name (e.g., cycle-1)")
     parser.add_argument(
+        "--ft-model",
+        required=True,
+        help="Path to fine-tuned model (e.g., outputs/cycle-1/safetensors/q4_k_m)",
+    )
+    parser.add_argument(
         "--mode",
         choices=["small", "medium", "full", "test"],
         default="medium",
@@ -1320,20 +1411,21 @@ def main():
     base_model_id = config.get("MODEL", "mlx-community/Meta-Llama-3.1-8B-Instruct-4bit")
     output_dir_config = config.get("OUTPUT_DIR", f"outputs/{args.cycle}")
 
-    # Auto-detect FT model: prioritize adapters (base 4-bit + LoRA ~4.5GB)
-    # over merged (15GB bfloat16, exists only as intermediate for GGUF export)
-    adapter_path = project_root / output_dir_config / "adapters"
-    merged_path = project_root / output_dir_config / "merged"
+    # FT model: use path specified by --ft-model argument
+    ft_model_path = args.ft_model
+    ft_mode = "custom"
 
-    if adapter_path.exists() and (adapter_path / "adapters.safetensors").exists():
-        ft_model_path = str(adapter_path)
-        ft_mode = "adapter"
-    elif merged_path.exists():
-        ft_model_path = str(merged_path)
-        ft_mode = "merged"
-    else:
-        ft_model_path = str(adapter_path)
-        ft_mode = "adapter"
+    if not Path(ft_model_path).exists():
+        raise FileNotFoundError(f"FT model not found: {ft_model_path}")
+
+    # Verify model has safetensors files
+    has_model_files = (Path(ft_model_path) / "model.safetensors").exists() or list(
+        Path(ft_model_path).glob("model-*.safetensors")
+    )
+    if not has_model_files:
+        raise FileNotFoundError(f"No safetensors files found in: {ft_model_path}")
+
+    print(f"[INFO] Using FT model: {ft_model_path}")
 
     eval_file = args.eval_file
     if args.output_dir is None:

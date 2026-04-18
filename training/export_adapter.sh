@@ -21,9 +21,9 @@ else
     exit 1
 fi
 
-BASE_MODEL=${BASE_MODEL:-${MODEL:-"mlx-community/Meta-Llama-3.1-8B-Instruct-4bit"}}
+BASE_MODEL=${BASE_MODEL:-${MODEL:-"mlx-community/Qwen2.5-Coder-7B-Instruct-4bit"}}
 ADAPTER_DIR=${ADAPTER_DIR:-${OUTPUT_DIR:-"outputs/${CYCLE}"}}
-MERGED_MODEL=${MERGED_MODEL:-"outputs/merged-model"}
+MERGED_MODEL=${MERGED_MODEL:-"outputs/${CYCLE}/merged"}
 TARGET_MODULES=${TARGET_MODULES:-"q_proj,k_proj,v_proj,o_proj,gate_proj,up_proj,down_proj"}
 
 export ADAPTER_CONFIG_PATH="${ADAPTER_DIR}/adapters/adapter_config.json"
@@ -108,6 +108,18 @@ model.save_pretrained_merged('${MERGED_MODEL}', tokenizer)
 print('Export complete!')
 print(f'Merged model saved to: ${MERGED_MODEL}')
 "
+
+# Copy tokenizer files from base model if missing
+echo "[tokenizer] Ensuring complete tokenizer files..."
+BASE_MODEL_DIR=$(python -c "from huggingface_hub import snapshot_download; print(snapshot_download('${BASE_MODEL}', local_files_only=True))")
+
+TOKENIZER_FILES="added_tokens.json special_tokens_map.json tokenizer.json tokenizer_config.json"
+for f in $TOKENIZER_FILES; do
+    if [ ! -f "${MERGED_MODEL}/${f}" ] && [ -f "${BASE_MODEL_DIR}/${f}" ]; then
+        cp "${BASE_MODEL_DIR}/${f}" "${MERGED_MODEL}/${f}"
+        echo "[tokenizer] Copied: ${f}"
+    fi
+done
 
 echo ""
 echo "=========================================="

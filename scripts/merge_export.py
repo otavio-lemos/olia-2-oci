@@ -20,6 +20,7 @@ from pathlib import Path
 import torch
 from safetensors import safe_open
 from safetensors.torch import save_file
+from huggingface_hub import snapshot_download
 
 LLAMA_CPP_PATHS = [
     "/opt/homebrew/bin",
@@ -66,6 +67,39 @@ def load_cycle_config(cycle_name: str) -> dict:
     return config
 
 
+def ensure_tokenizer_complete(safetensors_dir: Path, base_model: str):
+    """Ensure tokenizer has all required files, copying from base model if missing."""
+    tokenizer_files = [
+        "added_tokens.json",
+        "special_tokens_map.json",
+        "tokenizer.json",
+        "tokenizer_config.json",
+        "chat_template.jinja",
+    ]
+
+    missing = [f for f in tokenizer_files if not (safetensors_dir / f).exists()]
+    if not missing:
+        return
+
+    print(f"[tokenizer] Missing files: {missing}")
+    print(f"[tokenizer] Copying from base model: {base_model}")
+
+    try:
+        base_path = Path(snapshot_download(base_model, local_files_only=True))
+    except Exception as e:
+        print(f"[WARN] Could not download base model: {e}")
+        return
+
+    for f in missing:
+        src = base_path / f
+        dst = safetensors_dir / f
+        if src.exists():
+            shutil.copy(src, dst)
+            print(f"[tokenizer] Copied: {f}")
+        else:
+            print(f"[tokenizer] Not found in base: {f}")
+
+
 def run_cmd(cmd: list, cwd: str = None, env: dict = None):
     print(f"[CMD] {' '.join(cmd)}")
     result = subprocess.run(cmd, cwd=cwd, env=env, capture_output=True, text=True)
@@ -76,14 +110,14 @@ def run_cmd(cmd: list, cwd: str = None, env: dict = None):
     return result
 
 
-def clean_quantized_model(merged_dir: Path) -> Path:
+def clean_quantized_model(safetensors_dir: Path) -> Path:
     import json
     from safetensors import safe_open
 
     print("\n=== Step 1.5: Checking model for quantized tensors ===")
 
     # Check if model is sharded (multiple safetensors files)
-    index_path = merged_dir / "model.safetensors.index.json"
+    index_path = safetensors_dir / "model.safetensors.index.json"
     if not index_path.exists():
         raise FileNotFoundError(f"Model index not found: {index_path}")
 
@@ -99,15 +133,15 @@ def clean_quantized_model(merged_dir: Path) -> Path:
         print(
             "No quantized tensors found (dequantize worked!). Using merged model directly."
         )
-        return merged_dir
+        return safetensors_dir
 
     print(f"Removing {len(tensors_to_remove)} quantized tensors (biases/scales)")
 
-    cleaned_dir = merged_dir.parent / "merged_clean"
+    cleaned_dir = safetensors_dir.parent / "merged_clean"
     cleaned_dir.mkdir(parents=True, exist_ok=True)
 
     # Handle sharded safetensors
-    safetensors_files = list(merged_dir.glob("model-*.safetensors"))
+    safetensors_files = list(safetensors_dir.glob("model-*.safetensors"))
 
     if safetensors_files:
         # Sharded model - need to process each file
@@ -135,7 +169,7 @@ def clean_quantized_model(merged_dir: Path) -> Path:
             json.dump(new_index, f, indent=2)
     else:
         # Single file model
-        with safe_open(merged_dir / "model.safetensors", framework="pt") as f:
+        with safe_open(safetensors_dir / "model.safetensors", framework="pt") as f:
             all_keys = list(f.keys())
 
             new_tensors = {}
@@ -160,13 +194,16 @@ def clean_quantized_model(merged_dir: Path) -> Path:
             json.dump(new_index, f, indent=2)
 
     # Copy config files
-    for f in [
+    tokenizer_files = [
         "config.json",
         "tokenizer.json",
         "tokenizer_config.json",
+        "added_tokens.json",
+        "special_tokens_map.json",
         "chat_template.jinja",
-    ]:
-        src = merged_dir / f
+    ]
+    for f in tokenizer_files:
+        src = safetensors_dir / f
         dst = cleaned_dir / f
         if src.exists():
             shutil.copy(src, dst)
@@ -256,7 +293,7 @@ def download_gguf_libs():
     return gguf_dir
 
 
-def convert_to_gguf(merged_dir: str, output_file: str, quant_type: str = None):
+def convert_to_gguf(safetensors_dir: str, output_file: str, quant_type: str = None):
     print("\n=== Step 2: Converting to GGUF (FP16) ===")
 
     convert_script = Path(__file__).parent / "convert_hf_to_gguf.py"
@@ -264,7 +301,7 @@ def convert_to_gguf(merged_dir: str, output_file: str, quant_type: str = None):
     cmd = [
         sys.executable,
         str(convert_script),
-        merged_dir,
+        safetensors_dir,
         "--outfile",
         output_file,
         "--outtype",
@@ -279,6 +316,61 @@ def quantize_model(input_file: str, output_file: str, quant_type: str):
 
     cmd = [quantize_bin, input_file, output_file, quant_type]
     run_cmd(cmd)
+
+
+def quantize_to_safetensors(
+    bf16_dir: str, output_dir: str, q_bits: int = 4, q_group_size: int = 128
+):
+    """Quantize bf16 model to 4-bit safetensors format using mlx_lm convert."""
+    print(f"\n=== Converting to {q_bits}-bit safetensors ===")
+
+    output_path = Path(output_dir)
+
+    # Remove directory if exists (mlx_lm refuses to overwrite)
+    if output_path.exists():
+        import shutil
+
+        shutil.rmtree(output_path)
+
+    # Use mlx_lm convert with quantization (it will create the directory)
+    cmd = [
+        sys.executable,
+        "-m",
+        "mlx_lm",
+        "convert",
+        "--hf-path",
+        bf16_dir,
+        "--mlx-path",
+        output_dir,
+        "--quantize",
+        "--q-bits",
+        str(q_bits),
+        "--q-group-size",
+        str(q_group_size),
+        "--dtype",
+        "bfloat16",
+    ]
+    run_cmd(cmd)
+
+    # Copy tokenizer files to the quantized directory
+    tokenizer_files = [
+        "config.json",
+        "tokenizer.json",
+        "tokenizer_config.json",
+        "added_tokens.json",
+        "special_tokens_map.json",
+        "chat_template.jinja",
+    ]
+
+    for f in tokenizer_files:
+        src = Path(bf16_dir) / f
+        dst = output_path / f
+        if src.exists():
+            import shutil
+
+            shutil.copy(src, dst)
+
+    print(f"Saved quantized model to: {output_dir}")
 
 
 def create_ollama_modelfile(gguf_path: str, model_name: str) -> str:
@@ -321,7 +413,7 @@ def main():
         raise FileNotFoundError(f"Adapter not found: {adapter_dir}")
 
     cycle_output = project_root / "outputs" / args.cycle
-    merged_dir = cycle_output / "merged"
+    safetensors_dir = cycle_output / "safetensors"
     gguf_dir = cycle_output / "gguf"
     gguf_dir.mkdir(parents=True, exist_ok=True)
 
@@ -335,20 +427,29 @@ def main():
 
     quant_types = [q.strip().lower() for q in args.quant.split(",")]
 
-    # Step 1: Merge (auto-detect)
-    if (merged_dir / "model.safetensors").exists():
-        print(f"[CHECK] Found existing merged model: {merged_dir}")
+    # Step 1: Merge directly to bf16 directory (not root)
+    bf16_dir = safetensors_dir / "bf16"
 
-        # Clean quantized tensors (biases/scales) for GGUF compatibility
-        cleaned_dir = merged_dir.parent / "merged_clean"
+    # Check if bf16 already exists with model files
+    if bf16_dir.exists() and (
+        list(bf16_dir.glob("model-*.safetensors"))
+        or (bf16_dir / "model.safetensors").exists()
+    ):
+        print(f"[CHECK] Found existing BF16 model: {bf16_dir}")
+        # Clean quantized tensors if needed
+        cleaned_dir = safetensors_dir.parent / "safetensors_clean"
         if cleaned_dir.exists():
             print(f"[SKIP] Using existing cleaned model: {cleaned_dir}")
             use_dir = cleaned_dir
         else:
-            use_dir = clean_quantized_model(merged_dir)
+            use_dir = clean_quantized_model(bf16_dir)
     else:
-        fuse_model(str(base_model), str(adapter_dir), str(merged_dir))
-        use_dir = clean_quantized_model(merged_dir)
+        # Fuse directly to bf16 directory (not in root)
+        print(f"\n=== Creating bf16 directory ===")
+        bf16_dir.mkdir(parents=True, exist_ok=True)
+        fuse_model(str(base_model), str(adapter_dir), str(bf16_dir))
+        use_dir = clean_quantized_model(bf16_dir)
+        print(f"Saved BF16 model to: {bf16_dir}")
 
     # Step 2: Convert to GGUF FP16
     fp16_gguf = gguf_dir / f"{model_name}-fp16.gguf"
@@ -364,10 +465,37 @@ def main():
     print(f"\n=== Quantizing: {quant_types} ===")
     created_models = []
 
+    # Map q4/q5/q8 to directory names
+    safetensor_dir_map = {
+        "q4": "q4_k_m",
+        "q5": "q5_k_m",
+        "q8": "q8_0",
+    }
+
+    # Map q4/q5/q8 to bit depth
+    bits_map = {
+        "q4": 4,
+        "q5": 5,
+        "q8": 8,
+    }
+
     for q in quant_types:
         quant_type = QUANT_MAP.get(q, q.upper())
+        safetensor_dir = safetensors_dir / safetensor_dir_map.get(q, q)
 
-        # Use quant type in filename (e.g., Q4_K_M)
+        # Check if safetensor directory already exists
+        if safetensor_dir.exists() and (
+            list(safetensor_dir.glob("model-*.safetensors"))
+            or (safetensor_dir / "model.safetensors").exists()
+        ):
+            print(f"[SKIP] {safetensor_dir.name} directory already exists")
+        else:
+            print(f"\n=== Creating {safetensor_dir.name} safetensors ===")
+            quantize_to_safetensors(
+                str(use_dir), str(safetensor_dir), q_bits=bits_map.get(q, 4)
+            )
+
+        # GGUF quantization (existing code)
         output_gguf = gguf_dir / f"{model_name}-{quant_type}.gguf"
 
         if output_gguf.exists():
@@ -387,9 +515,25 @@ def main():
     print("EXPORT COMPLETE")
     print("=" * 50)
     print(f"Adapter: {adapter_dir}")
-    print(f"Merged: {merged_dir}")
+    print(f"Safetensors: {safetensors_dir}")
     print(f"GGUF: {gguf_dir}")
-    print("\nGenerated files:")
+
+    # Show safetensors directories
+    print("\nSafetensors directories:")
+    if bf16_dir.exists():
+        size = sum(f.stat().st_size for f in bf16_dir.rglob("*") if f.is_file()) / (
+            1024**3
+        )
+        print(f"  - bf16/ ({size:.2f} GB)")
+    for q in quant_types:
+        safetensor_dir = safetensors_dir / safetensor_dir_map.get(q, q)
+        if safetensor_dir.exists():
+            size = sum(
+                f.stat().st_size for f in safetensor_dir.rglob("*") if f.is_file()
+            ) / (1024**3)
+            print(f"  - {safetensor_dir.name}/ ({size:.2f} GB)")
+
+    print("\nGGUF files:")
     for m in created_models:
         size_mb = m.stat().st_size / (1024 * 1024)
         # Extract quant type and map to display name
