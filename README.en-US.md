@@ -228,18 +228,7 @@ python scripts/unified_evaluation_v2.py --cycle cycle-1 --mode medium --external
 python scripts/unified_evaluation_v2.py --cycle cycle-1 --mode medium --external-judge --judge-lang en
 ```
 
-### Summary of Results (200 Samples Evaluation)
-
-| Metric | Base Model | Fine-Tuned (Cycle 1) | Delta |
-|--------|-------------|------------|-------|
-| technical_correctness | 3.40 | 3.40 | +0.00 |
-| depth | 2.60 | 2.60 | +0.00 |
-| structure | 4.00 | 4.44 | +0.45 |
-| hallucination | 3.58 | 4.68 | +1.10 |
-| clarity | 3.50 | 3.37 | -0.13 |
-| **Overall** | **3.42** | **3.70** | **+0.28** |
-
-Results: [benchmark](#benchmark)
+Results: see [Benchmark](#benchmark)
 
 ---
 
@@ -332,6 +321,17 @@ chainlit run rag/app_chainlit.py --port 8001
 ---
 
 ## Benchmark
+
+### Summary of Results (200 Samples Evaluation)
+
+| Metric | Base Model | Fine-Tuned (Cycle 1) | Delta |
+|--------|-------------|------------|-------|
+| technical_correctness | 3.40 | 3.40 | +0.00 |
+| depth | 2.60 | 2.60 | +0.00 |
+| structure | 4.00 | 4.44 | +0.45 |
+| hallucination | 3.58 | 4.68 | +1.10 |
+| clarity | 3.50 | 3.37 | -0.13 |
+| **Overall** | **3.42** | **3.70** | **+0.28** |
 
 ### How to Evaluate
 To generate new benchmark reports, use the commands detailed in the [Evaluation](#evaluation) section.
