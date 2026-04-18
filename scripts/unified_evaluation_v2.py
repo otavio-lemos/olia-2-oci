@@ -752,6 +752,7 @@ Output ONLY the JSON."""
             max_tokens=max_tokens,
             sampler=self.sampler,
             verbose=False,
+            extra_eos_token="<|im_end|>",
         )
 
         elapsed = time.time() - start
@@ -1107,6 +1108,7 @@ class UnifiedEvaluator:
             max_tokens=max_tokens,
             sampler=self.sampler,
             verbose=False,
+            extra_eos_token="<|im_end|>",
         )
         elapsed = time.time() - start
 
