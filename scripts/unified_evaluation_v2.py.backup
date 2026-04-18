@@ -1362,12 +1362,6 @@ def main():
         help="Eval mode: small/test (10), medium (200), full (1930)",
     )
     parser.add_argument(
-        "--n-samples",
-        type=int,
-        default=None,
-        help="Custom number of samples to evaluate. Overrides --mode. Use 0 for all samples.",
-    )
-    parser.add_argument(
         "--test-samples", type=int, default=10, help="Samples count (small/test mode)"
     )
     parser.add_argument(
@@ -1498,15 +1492,7 @@ def main():
     eval_data = load_eval_data(eval_file)
     print(f"Loaded {len(eval_data)} examples")
 
-    if args.n_samples is not None:
-        n = args.n_samples
-        if n == 0:
-            print(f"Custom mode: {len(eval_data)} samples (all data)")
-        else:
-            if n < len(eval_data):
-                eval_data = sample_stratified(eval_data, samples=n)
-            print(f"Custom mode: {len(eval_data)} samples (--n-samples={n})")
-    elif args.mode in ["small", "test"]:
+    if args.mode in ["small", "test"]:
         eval_data = sample_per_category(eval_data, samples=args.test_samples)
         print(f"Small/Test mode: {len(eval_data)} samples from different categories")
     elif args.mode == "medium":
