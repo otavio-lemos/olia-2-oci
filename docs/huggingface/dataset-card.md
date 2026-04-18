@@ -27,7 +27,7 @@ tags:
 
 ## Overview
 
-This dataset contains **13,196 examples** of high-quality training data for fine-tuning a Large Language Model to become an Oracle Cloud Infrastructure (OCI) specialist — the "OCI Copilot Jr".
+This dataset contains **13,196 examples** of high-quality training data for fine-tuning a Large Language Model to become the **best knowledgeable** in Oracle Cloud Infrastructure (OCI) — the "OCI Copilot Jr".
 
 The dataset was **synthetically generated** using prompt templates with OCI CLI commands and real-world enterprise scenarios in Brazilian Portuguese (PT-BR).
 

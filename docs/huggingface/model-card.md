@@ -121,7 +121,7 @@ Você é um arquiteto e especialista experiente em OCI. Forneça orientações t
 ## Limitations
 
 - **Language**: Optimized for Brazilian Portuguese (PT-BR)
-- **Scope**: Operational tasks (CLI, Terraform, troubleshooting)
+- **Scope**: Operational guidance — OCI CLI commands, Terraform snippets, step-by-step procedures, risk validation, and troubleshooting runbooks
 - **Training**: Single-cycle LoRA (may improve with more cycles)
 - **Knowledge**: Based on OCI documentation up to April 2026
 
