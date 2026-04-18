@@ -29,24 +29,24 @@ This project builds a fine-tuned LLM specialist in Oracle Cloud Infrastructure (
 | Batch | 1 |
 | Grad Accum | 4 |
 | Num Layers | 28 |
-| Max Seq | 768 |
+| Max Seq | 1100 |
 | BF16 | true |
 | Grad Checkpointing | false |
 
 ### Expected Performance (M3 Pro 18GB)
-- **Peak memory**: ~9.8 GB
-- **Throughput**: ~150-165 tokens/sec
-- **Duration**: ~2.5 hours
+- **Peak memory**: ~10.5 GB
+- **Throughput**: ~140-155 tokens/sec
+- **Duration**: ~3 hours
 
 ## Data Flow
 
 ```
-data/curated/        → Generated topic-specific JSONL files
+data/curated/          → Generated topic-specific JSONL files (88 categories × 150 ex)
 data/all_curated.jsonl → Concatenated and sanitized dataset
-data/train.jsonl     → 11,112 examples (75%)
-data/valid.jsonl     → 2,222 examples (15%)
-data/eval.jsonl      → 1,483 examples (10%)
-Total: 14,817 examples
+data/train.jsonl       → ~9,900 examples (75%)
+data/valid.jsonl       → ~1,980 examples (15%)
+data/eval.jsonl        → ~1,320 examples (10%)
+Total: 13,196 examples | avg 883 tokens | range 410-934
 ```
 
 ## RAG Layer & Orchestration (OCI Copilot)

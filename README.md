@@ -9,7 +9,7 @@ Large Language Model (LLM) fine-tuned para Oracle Cloud Infrastructure (OCI) usa
 [![MLX](https://img.shields.io/badge/MLX-Apple%20Silicon-orange?style=flat-square)](https://mlx.ai)
 [![MLX-Tune](https://img.shields.io/badge/Finetune-MLX--Tune-blue?style=flat-square)](https://github.com/Aaronipher/mlx-tune)
 [![Model](https://img.shields.io/badge/Base%20Model-Qwen2.5--Coder--7B--Instruct--4bit-purple?style=flat-square)](https://huggingface.co/mlx-community/Qwen2.5-Coder-7B-Instruct-4bit)
-[![Dataset](https://img.shields.io/badge/Dataset-14869_examples-green?style=flat-square)](docs/taxonomy.md)
+[![Dataset](https://img.shields.io/badge/Dataset-13196_examples-green?style=flat-square)](docs/taxonomy.md)
 [![LangGraph](https://img.shields.io/badge/Orquestração-LangGraph-black?style=flat-square&logo=langchain)](https://python.langchain.com/docs/langgraph)
 [![Chainlit](https://img.shields.io/badge/UI-Chainlit-orange?style=flat-square)](https://chainlit.io)
 [![FastAPI](https://img.shields.io/badge/API-FastAPI-009688?style=flat-square&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
@@ -42,7 +42,7 @@ O processo de desenvolvimento do OCI Specialist LLM segue uma ordem rigorosa de 
 ```mermaid
 flowchart TD
     subgraph GENERATION["1. Geração & Preparação"]
-        A1["generate_v5_combined.py\n(88 cats, 100% diversity)"] --> A2["prepare_data.sh"]
+        A1["generate_v7_combined.py\n(88 cats, 100% diversity)"] --> A2["prepare_data.sh"]
         A2 --> A3["train.jsonl / valid.jsonl"]
     end
 
@@ -88,11 +88,11 @@ flowchart TD
 
 | Métrica | Valor |
 |--------|-------|
-| **Total Gerado** | 15.840 exemplos (88 categorias × 180) |
-| **Após Limpeza/Desduplicação** | 14.869 exemplos |
-| **Treino (Train)** | 11.151 exemplos (75%) |
-| **Validação (Valid)** | 2.230 exemplos (15%) |
-| **Avaliação (Eval)** | 1.488 exemplos (10%) |
+| **Total Gerado** | 13.200 exemplos (88 categorias × 150) |
+| **Após Limpeza/Desduplicação** | 13.196 exemplos |
+| **Treino (Train)** | 9.897 exemplos (75%) |
+| **Validação (Valid)** | 1.979 exemplos (15%) |
+| **Avaliação (Eval)** | 1.320 exemplos (10%) |
 | **Categorias** | 88 tópicos do OCI |
 
 ---
@@ -136,7 +136,7 @@ Pipeline para validar, limpar, desduplicar e gerar splits do dataset.
 
 ```mermaid
 flowchart LR
-    A1["generate_v5_combined.py\n(88 cats, 100% diversity)"] --> D["prepare_data.sh"]
+    A1["generate_v7_combined.py\n(88 cats, 100% diversity)"] --> D["prepare_data.sh"]
     D --> E["validate_jsonl.py\n(estrutura)"]
     E --> F["clean_dataset.py\n(conteúdo)"]
     F --> G["dedupe_embedding.py\n(semântico)"]
@@ -150,7 +150,7 @@ Gera exemplos usando templates com OCI CLI commands reais e intents variados. R�
 
 ```bash
 # Gerar dataset (88 categorias × 180 exemplos = 15,840)
-python scripts/generate_v5_combined.py
+python scripts/generate_v7_combined.py
 ```
 
 ### Passo Final — Validar, Limpar e Gerar Splits
