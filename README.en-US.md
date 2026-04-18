@@ -206,7 +206,7 @@ python scripts/merge_export.py --cycle cycle-1 --quant q4 --name oci-specialist
 The evaluation pipeline compares the fine-tuned model against the base model using:
 - **Automatic scoring**: Correctness, Depth, Structure, Hallucination, Clarity
 - **Semantic similarity**: Sentence Transformers (MiniLM-L6-v2)
-- **External Judge (optional)**: LLM-as-Judge using external model (e.g., Llama 3.1 8B) for unbiased evaluation
+- **Judge (optional)**: LLM-as-Judge using different model (e.g., Llama 3.1 8B) for unbiased evaluation
 
 > [!NOTE]
 > Run with **venv** environment activated: `source venv/bin/activate`
@@ -221,10 +221,10 @@ python scripts/unified_evaluation_v2.py --cycle cycle-1 --mode medium --fresh
 # Full Evaluation (2133 samples, ~4-6 hours)
 python scripts/unified_evaluation_v2.py --cycle cycle-1 --mode full --fresh
 
-# Evaluation with External Judge (LLM-as-Judge using external model)
+# Evaluation with Judge (LLM-as-Judge using different model)
 python scripts/unified_evaluation_v2.py --cycle cycle-1 --mode medium --external-judge --judge-lang pt
 
-# External Judge in English
+# Judge in English
 python scripts/unified_evaluation_v2.py --cycle cycle-1 --mode medium --external-judge --judge-lang en
 ```
 
