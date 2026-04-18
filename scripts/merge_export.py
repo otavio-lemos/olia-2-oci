@@ -137,7 +137,7 @@ def clean_quantized_model(safetensors_dir: Path) -> Path:
 
     print(f"Removing {len(tensors_to_remove)} quantized tensors (biases/scales)")
 
-    cleaned_dir = safetensors_dir.parent / "merged_clean"
+    cleaned_dir = safetensors_dir.parent / f"{safetensors_dir.name}_clean"
     cleaned_dir.mkdir(parents=True, exist_ok=True)
 
     # Handle sharded safetensors
@@ -228,7 +228,6 @@ def fuse_model(base_model: str, adapter_path: str, output_dir: str):
         adapter_path,
         "--save-path",
         output_dir,
-        "--dequantize",
     ]
     run_cmd(cmd)
 
@@ -352,6 +351,17 @@ def quantize_to_safetensors(
     ]
     run_cmd(cmd)
 
+    # Clean quantized tensors (remove biases/scales) that prevent loading
+    print("\n=== Cleaning quantized model (removing biases/scales) ===")
+    cleaned_dir = clean_quantized_model(output_path)
+    if cleaned_dir != output_path:
+        # Replace original with cleaned version
+        import shutil
+
+        shutil.rmtree(output_path)
+        shutil.move(str(cleaned_dir), str(output_path))
+        print(f"Cleaned model saved to: {output_path}")
+
     # Copy tokenizer files to the quantized directory
     tokenizer_files = [
         "config.json",
@@ -427,75 +437,67 @@ def main():
 
     quant_types = [q.strip().lower() for q in args.quant.split(",")]
 
-    # Step 1: Merge directly to bf16 directory (not root)
+    # Step 1: Generate bf16 for GGUF
     bf16_dir = safetensors_dir / "bf16"
 
-    # Check if bf16 already exists with model files
     if bf16_dir.exists() and (
         list(bf16_dir.glob("model-*.safetensors"))
         or (bf16_dir / "model.safetensors").exists()
     ):
         print(f"[CHECK] Found existing BF16 model: {bf16_dir}")
-        # Clean quantized tensors if needed
-        cleaned_dir = safetensors_dir.parent / "safetensors_clean"
-        if cleaned_dir.exists():
-            print(f"[SKIP] Using existing cleaned model: {cleaned_dir}")
-            use_dir = cleaned_dir
-        else:
-            use_dir = clean_quantized_model(bf16_dir)
     else:
-        # Fuse directly to bf16 directory (not in root)
-        print(f"\n=== Creating bf16 directory ===")
+        print(f"\n=== Creating bf16 directory (for GGUF) ===")
         bf16_dir.mkdir(parents=True, exist_ok=True)
-        fuse_model(str(base_model), str(adapter_dir), str(bf16_dir))
-        use_dir = clean_quantized_model(bf16_dir)
+        # Fuse with dequantize to get bf16
+        bf16_cmd = [
+            sys.executable,
+            "-m",
+            "mlx_lm",
+            "fuse",
+            "--model",
+            base_model,
+            "--adapter-path",
+            str(adapter_dir),
+            "--save-path",
+            str(bf16_dir),
+            "--dequantize",
+        ]
+        run_cmd(bf16_cmd)
         print(f"Saved BF16 model to: {bf16_dir}")
 
-    # Step 2: Convert to GGUF FP16
+    # Step 2: Generate q4 for MLX evaluation (4-bit, no dequantize)
+    q4_dir = safetensors_dir / "q4"
+
+    if q4_dir.exists() and (
+        list(q4_dir.glob("model-*.safetensors"))
+        or (q4_dir / "model.safetensors").exists()
+    ):
+        print(f"[CHECK] Found existing q4 model: {q4_dir}")
+    else:
+        print(f"\n=== Creating q4 directory (4-bit for MLX) ===")
+        q4_dir.mkdir(parents=True, exist_ok=True)
+        # Fuse without dequantize to get 4-bit
+        fuse_model(str(base_model), str(adapter_dir), str(q4_dir))
+        print(f"Saved q4 model to: {q4_dir}")
+
+    # Step 3: Convert bf16 to GGUF FP16
     fp16_gguf = gguf_dir / f"{model_name}-fp16.gguf"
     if check_fp16_exists(fp16_gguf):
         print("[SKIP] FP16 GGUF already exists")
     else:
-        convert_to_gguf(str(use_dir), str(fp16_gguf))
+        convert_to_gguf(str(bf16_dir), str(fp16_gguf))
 
     if not fp16_gguf.exists():
         raise FileNotFoundError(f"FP16 GGUF not found: {fp16_gguf}")
 
-    # Step 3: Quantize
+    # Step 3: Generate GGUF quantizations only
     print(f"\n=== Quantizing: {quant_types} ===")
     created_models = []
 
-    # Map q4/q5/q8 to directory names
-    safetensor_dir_map = {
-        "q4": "q4_k_m",
-        "q5": "q5_k_m",
-        "q8": "q8_0",
-    }
-
-    # Map q4/q5/q8 to bit depth
-    bits_map = {
-        "q4": 4,
-        "q5": 5,
-        "q8": 8,
-    }
-
     for q in quant_types:
         quant_type = QUANT_MAP.get(q, q.upper())
-        safetensor_dir = safetensors_dir / safetensor_dir_map.get(q, q)
 
-        # Check if safetensor directory already exists
-        if safetensor_dir.exists() and (
-            list(safetensor_dir.glob("model-*.safetensors"))
-            or (safetensor_dir / "model.safetensors").exists()
-        ):
-            print(f"[SKIP] {safetensor_dir.name} directory already exists")
-        else:
-            print(f"\n=== Creating {safetensor_dir.name} safetensors ===")
-            quantize_to_safetensors(
-                str(use_dir), str(safetensor_dir), q_bits=bits_map.get(q, 4)
-            )
-
-        # GGUF quantization (existing code)
+        # GGUF quantization (this works)
         output_gguf = gguf_dir / f"{model_name}-{quant_type}.gguf"
 
         if output_gguf.exists():
@@ -520,18 +522,11 @@ def main():
 
     # Show safetensors directories
     print("\nSafetensors directories:")
-    if bf16_dir.exists():
-        size = sum(f.stat().st_size for f in bf16_dir.rglob("*") if f.is_file()) / (
+    if q4_dir.exists():
+        size = sum(f.stat().st_size for f in q4_dir.rglob("*") if f.is_file()) / (
             1024**3
         )
-        print(f"  - bf16/ ({size:.2f} GB)")
-    for q in quant_types:
-        safetensor_dir = safetensors_dir / safetensor_dir_map.get(q, q)
-        if safetensor_dir.exists():
-            size = sum(
-                f.stat().st_size for f in safetensor_dir.rglob("*") if f.is_file()
-            ) / (1024**3)
-            print(f"  - {safetensor_dir.name}/ ({size:.2f} GB)")
+        print(f"  - q4/ ({size:.2f} GB)")
 
     print("\nGGUF files:")
     for m in created_models:

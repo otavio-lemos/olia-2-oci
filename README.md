@@ -217,31 +217,22 @@ Antes de avaliar, gere os modelos quantizados com o merge_export:
 
 ```bash
 # Gerar versões quantizadas do modelo mergeado
-# Cria: merged/bf16/, merged/q4_k_m/, merged/q5_k_m/, merged/q8_0/
-python scripts/merge_export.py --cycle cycle-1 --quant q4,q5,q8
+# Cria: safetensors/bf16/, safetensors/q4/
+python scripts/merge_export.py --cycle cycle-1 --quant q4
 ```
 
 ### 2. Executar Avaliação
 
 ```bash
 # Avaliação Rápida (10 amostras, ~2 min) - modelo específico obrigatório
-python scripts/unified_evaluation_v2.py --cycle cycle-1 --ft-model outputs/cycle-1/safetensors/q4_k_m --mode small --fresh
+python scripts/unified_evaluation_v2.py --cycle cycle-1 --ft-model outputs/cycle-1/safetensors/q4 --mode small --fresh
 
 # Avaliação Completa (2133 amostras, ~4-6 horas)
-python scripts/unified_evaluation_v2.py --cycle cycle-1 --ft-model outputs/cycle-1/safetensors/q4_k_m --mode full --fresh
+python scripts/unified_evaluation_v2.py --cycle cycle-1 --ft-model outputs/cycle-1/safetensors/q4 --mode full --fresh
 
 # Avaliação com Judge (LLM-as-Judge usando modelo diferente)
-python scripts/unified_evaluation_v2.py --cycle cycle-1 --ft-model outputs/cycle-1/safetensors/q4_k_m --mode medium --external-judge --judge-lang pt
+python scripts/unified_evaluation_v2.py --cycle cycle-1 --ft-model outputs/cycle-1/safetensors/q4 --mode medium --external-judge --judge-lang pt
 ```
-
-### 3. Modelos Disponíveis para Avaliação
-
-| Caminho | Tamanho | Uso Recomendado |
-|---------|---------|------------------|
-| `outputs/cycle-1/safetensors/bf16/` | ~15GB | Máxima qualidade |
-| `outputs/cycle-1/safetensors/q4_k_m/` | ~4.5GB | **Recomendado** (mais rápido, M3 Pro) |
-| `outputs/cycle-1/safetensors/q5_k_m/` | ~5.5GB | Balanceado |
-| `outputs/cycle-1/safetensors/q8_0/` | ~8.5GB | Alta qualidade, mais memória |
 
 Resultados: ver [Benchmark](#benchmark)
 
