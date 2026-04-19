@@ -346,9 +346,9 @@ chainlit run rag/app_chainlit.py --port 8001
 
 ## Benchmark
 
-### Resumo dos Resultados (Avaliação 200 amostras)
+### Avaliação Própria (Modelo Base/FT) - 200 amostras
 
-| Métrica | Modelo Base | Fine-Tuned (Cycle 1) | Delta |
+| Métrica | Modelo Base | Fine-Tuned | Delta |
 |--------|-------------|------------|-------|
 | technical_correctness | 3.67 | 4.51 | +0.84 |
 | depth | 3.11 | 3.93 | +0.82 |
@@ -357,7 +357,7 @@ chainlit run rag/app_chainlit.py --port 8001
 | clarity | 3.07 | 3.06 | -0.01 |
 | **Overall** | **3.31** | **3.98** | **+0.67** |
 
-### Avaliação Externa (Llama 3.1 8B Judge)
+### Avaliação Llama 3.1 Instruct 8B (Judge) - 200 amostras
 
 | Métrica | Modelo Base | Fine-Tuned | Delta |
 |--------|-------------|------------|-------|

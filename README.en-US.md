@@ -346,9 +346,9 @@ chainlit run rag/app_chainlit.py --port 8001
 
 ## Benchmark
 
-### Summary of Results (200 Samples Evaluation)
+### Self-Evaluation (Base/FT Model) - 200 samples
 
-| Metric | Base Model | Fine-Tuned (Cycle 1) | Delta |
+| Metric | Base Model | Fine-Tuned | Delta |
 |--------|-------------|------------|-------|
 | technical_correctness | 3.67 | 4.51 | **+0.84** |
 | depth | 3.11 | 3.93 | **+0.82** |
@@ -356,6 +356,17 @@ chainlit run rag/app_chainlit.py --port 8001
 | hallucination | 3.23 | 3.95 | **+0.72** |
 | clarity | 3.07 | 3.06 | -0.01 |
 | **Overall** | **3.31** | **3.98** | **+0.67** |
+
+### Llama 3.1 Instruct 8B (Judge) - 200 samples
+
+| Metric | Base Model | Fine-Tuned | Delta |
+|--------|-------------|------------|-------|
+| technical_correctness | 3.94 | 4.29 | **+0.35** |
+| depth | 4.04 | 4.58 | **+0.54** |
+| structure | 3.91 | 4.46 | **+0.55** |
+| hallucination | 4.17 | 4.33 | **+0.16** |
+| clarity | 3.97 | 4.36 | **+0.39** |
+| **Overall** | **4.01** | **4.40** | **+0.40** |
 
 ### How to Evaluate
 To generate new benchmark reports, use the commands detailed in the [Evaluation](#evaluation) section.
