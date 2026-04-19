@@ -2,6 +2,7 @@
 venv/
 __pycache__/
 *.pyc
+venv-rag/
 
 # OS
 .DS_Store
@@ -13,30 +14,10 @@ __pycache__/
 # keys
 config/llm_provider_*.yaml
 
-
-# Large model files (too big for Git)
-# First: allow benchmark charts
-!outputs/cycle-1/benchmarks/
-!outputs/cycle-1/benchmarks/*.png
-# Then ignore everything else
-outputs/*
-# But keep OUTPUT.md in outputs/ directory
-!outputs/OUTPUT.md
-!outputs/cycle-1/
-!outputs/cycle-1/OUTPUT.md
-
 # Ignore large model artifacts but keep structure
 outputs/cycle-1/gguf/
 outputs/cycle-1/safetensors/
 
-# Temp/diagnostic logs
-outputs/benchmarks/eval-run.log
-outputs/benchmarks/eval-ft-checkpoint.json
-outputs/benchmarks/quick/
-outputs/test/
-outputs/test-quick/
-outputs/benchmark/
-outputs/*/logs/
 backup_*/
 
 /* Firecrawl cache */

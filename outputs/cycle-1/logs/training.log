@@ -1,0 +1,47 @@
+============================================================
+OCI Specialist LLM - MLX-Tune v2 (SFTTrainer API)
+============================================================
+Cycle: cycle-1
+Model: mlx-community/Qwen2.5-Coder-7B-Instruct-4bit
+Train: data/train.jsonl
+Output: outputs/cycle-1
+Resume: (none, training from scratch)
+Batch Size: 1
+Grad Accum: 4
+Learning Rate: 0.0001
+Weight Decay: 0.01
+Warmup Steps: 247
+LR Scheduler: cosine
+Grad Clip: 1.0
+LoRA Rank: 32
+LoRA Alpha: 64
+LoRA Layers: 16
+Iters: 2475
+Max Seq Length: 1024
+Seed: 42
+Grad Checkpoint: True
+BF16: True
+Adapter Path: outputs/cycle-1/adapters
+============================================================
+
+Loading model...
+Model loaded
+Loading and formatting datasets...
+  Train: 9897 examples
+  Valid: 1979 examples
+Creating trainer...
+
+Starting training for 2475 steps...
+
+Starting training...
+
+  Training completed in 21829.4s (363.8 min)
+[METRICS] Logs saved!
+[6/6] Adapter already saved by trainer
+  Adapters saved to: outputs/cycle-1/adapters
+
+============================================================
+Training complete!
+Adapters: outputs/cycle-1/adapters
+Logs: outputs/cycle-1/logs/
+============================================================
