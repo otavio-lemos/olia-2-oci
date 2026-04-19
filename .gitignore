@@ -25,6 +25,10 @@ outputs/*
 !outputs/cycle-1/
 !outputs/cycle-1/OUTPUT.md
 
+# Ignore large model artifacts but keep structure
+outputs/cycle-1/gguf/
+outputs/cycle-1/safetensors/
+
 # Temp/diagnostic logs
 outputs/benchmarks/eval-run.log
 outputs/benchmarks/eval-ft-checkpoint.json

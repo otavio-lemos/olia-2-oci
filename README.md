@@ -77,6 +77,13 @@ flowchart TD
 - **LoRA Fine-tuning**: Adaptação de baixo ranque com modelo base **Qwen 2.5 Coder 7B Instruct** (4-bit).
 - **Otimizado para M3 Pro**: Configurações hiper-otimizadas para 18GB de RAM, usando **BF16 nativo** e sem Swap em disco.
 - **RAG Híbrido Avançado**: Busca semântica (FAISS) + lexical (BM25) com persistência local e **Ingestão Offline**.
+- **Query Rewriting**: Expansão automática de queries para melhor recall.
+- **Intent Classification**: Classificação de intenção via embeddings similarity.
+- **Session Management**: Sessões persistidas com histórico.
+- **Rate Limiting**: Controle de acesso por usuário.
+- **HITL**: Human-in-the-loop para comandos destrutivos.
+- **Logging Estruturado**: JSON logging com trace_id.
+- **Métricas**: Latência P50/P95/P99.
 - **Sistema Multi-Agentes**: Orquestração via **LangGraph** (Router, Descoberta, Arquitetura, Execução).
 - **Interface OCI Copilot**: UI construída com **Chainlit**, suportando anexos de arquivos, streaming de tokens e **Human-in-the-loop** para segurança em comandos CLI.
 - **Merge & Export**: Pipeline para fundir adaptadores LoRA ao modelo base e exportar para GGUF (quantização local).

@@ -91,6 +91,12 @@ Evaluation on 200 samples comparing base model vs fine-tuned:
 | 4 | Troubleshooting Functions | +1.86 |
 | 5 | Security WAF | +1.84 |
 
+### Benchmark Charts
+
+![Comparison Chart](comparison_chart_20260418_220044.png)
+
+![Category Chart](category_chart_20260418_220044.png)
+
 ## Usage
 
 ### MLX (Apple Silicon - Recommended)

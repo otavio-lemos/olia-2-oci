@@ -101,6 +101,12 @@ Evaluation on 200 samples comparing base model vs fine-tuned:
 | 4 | Troubleshooting Connectivity | +0.66 |
 | 5 | Troubleshooting Storage | +0.66 |
 
+### Benchmark Charts
+
+![Comparison Chart](benchmarks/comparison_chart_20260418_220044.png)
+
+![Category Chart](benchmarks/category_chart_20260418_220044.png)
+
 ## Usage
 
 ### Ollama
