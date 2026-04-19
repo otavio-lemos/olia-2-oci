@@ -116,6 +116,35 @@ flowchart LR
 | Min tokens | 410 |
 | Max tokens | 934 |
 
+## Fine-Tuning Results
+
+After fine-tuning **Qwen 2.5 Coder 7B Instruct** (4-bit) with LoRA on this dataset, the model achieved significant improvements:
+
+### External Judge Evaluation (mlx-community/Meta-Llama-3.1-8B-Instruct-4bit) - 200 samples
+
+| Metric | Base Model | Fine-Tuned | Delta |
+|--------|-------------|------------|-------|
+| technical_correctness | 3.00 | 3.73 | **+0.72** |
+| depth | 3.06 | 3.82 | **+0.76** |
+| structure | 3.50 | 4.63 | **+1.14** |
+| hallucination | 3.62 | 4.46 | **+0.84** |
+| clarity | 3.20 | 3.98 | **+0.77** |
+| **Overall** | **3.27** | **4.12** | **+0.85** |
+
+### Top Gains by Topic
+1. **storage/object**: +3.60
+2. **troubleshooting/performance**: +3.80
+3. **observability/apm**: +3.40
+4. **security/dynamic-groups**: +3.40
+5. **database/postgresql**: +3.40
+
+### Model Files
+
+| Resource | URL |
+|----------|-----|
+| **Safetensors** | https://huggingface.co/otavio-lemos/oci-copilot-jr-safetensors |
+| **GGUF** | https://huggingface.co/otavio-lemos/oci-copilot-jr-gguf |
+
 ## Use and Limitations
 
 ### Intended Use

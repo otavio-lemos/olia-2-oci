@@ -70,32 +70,32 @@ tags:
 
 ## Benchmark Results (Cycle 1)
 
-Evaluation on 200 samples comparing base model vs fine-tuned:
+### External Judge Evaluation (mlx-community/Meta-Llama-3.1-8B-Instruct-4bit) - 200 samples
 
 | Metric | Base Model | Fine-Tuned | Delta |
 |--------|-------------|------------|-------|
-| Technical Correctness | 3.67 | 4.51 | **+0.84** |
-| Depth | 3.11 | 3.93 | **+0.82** |
-| Structure | 3.47 | 4.45 | **+0.98** |
-| Hallucination | 3.23 | 3.95 | **+0.72** |
-| Clarity | 3.07 | 3.06 | -0.01 |
-| **Overall** | **3.31** | **3.98** | **+0.67** |
+| technical_correctness | 3.00 | 3.73 | **+0.72** |
+| depth | 3.06 | 3.82 | **+0.76** |
+| structure | 3.50 | 4.63 | **+1.14** |
+| hallucination | 3.62 | 4.46 | **+0.84** |
+| clarity | 3.20 | 3.98 | **+0.77** |
+| **Overall** | **3.27** | **4.12** | **+0.85** |
 
 ### Top Performance Gains by Category
 
 | Rank | Category | Delta |
 |------|----------------------|-------|
-| 1 | Security Posture Management | +2.24 |
-| 2 | Governance Tagging | +2.20 |
-| 3 | Terraform State | +2.00 |
-| 4 | Troubleshooting Functions | +1.86 |
-| 5 | Security WAF | +1.84 |
+| 1 | storage/object | +3.60 |
+| 2 | troubleshooting/performance | +3.80 |
+| 3 | observability/apm | +3.40 |
+| 4 | security/dynamic-groups | +3.40 |
+| 5 | database/postgresql | +3.40 |
 
 ### Benchmark Charts
 
-![Comparison Chart](comparison_chart_20260418_220044.png)
+![Comparison Chart](comparison_chart_20260419_162359.png)
 
-![Category Chart](category_chart_20260418_220044.png)
+![Category Chart](category_chart_20260419_162359.png)
 
 ## Usage
 
@@ -103,27 +103,6 @@ Evaluation on 200 samples comparing base model vs fine-tuned:
 
 ```bash
 mlx_lm.server --model mlx-community/Qwen2.5-Coder-7B-Instruct-4bit --adapter outputs/cycle-1/adapters
-```
-
-### Ollama
-
-```bash
-# Create Modelfile
-cat > Modelfile << 'EOF'
-FROM ./oci-copilot-jr-Q4_K_M.gguf
-PARAMETER temperature 0.1
-PARAMETER top_p 0.9
-PARAMETER top_k 40
-SYSTEM Você é um especialista em OCI (Oracle Cloud Infrastructure).
-EOF
-
-ollama create oci-copilot-jr -f Modelfile
-```
-
-### llama.cpp
-
-```bash
-llama-server -m oci-copilot-jr-Q4_K_M.gguf --port 8080
 ```
 
 ## System Prompt

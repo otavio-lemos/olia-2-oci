@@ -346,138 +346,129 @@ chainlit run rag/app_chainlit.py --port 8001
 
 ## Benchmark
 
-### Self-Evaluation (Base/FT Model) - 200 samples
+### External Judge Evaluation (mlx-community/Meta-Llama-3.1-8B-Instruct-4bit) - 200 samples
 
 | Metric | Base Model | Fine-Tuned | Delta |
 |--------|-------------|------------|-------|
-| technical_correctness | 3.67 | 4.51 | **+0.84** |
-| depth | 3.11 | 3.93 | **+0.82** |
-| structure | 3.47 | 4.45 | **+0.98** |
-| hallucination | 3.23 | 3.95 | **+0.72** |
-| clarity | 3.07 | 3.06 | -0.01 |
-| **Overall** | **3.31** | **3.98** | **+0.67** |
-
-### Llama 3.1 Instruct 8B (Judge) - 200 samples
-
-| Metric | Base Model | Fine-Tuned | Delta |
-|--------|-------------|------------|-------|
-| technical_correctness | 3.94 | 4.29 | **+0.35** |
-| depth | 4.04 | 4.58 | **+0.54** |
-| structure | 3.91 | 4.46 | **+0.55** |
-| hallucination | 4.17 | 4.33 | **+0.16** |
-| clarity | 3.97 | 4.36 | **+0.39** |
-| **Overall** | **4.01** | **4.40** | **+0.40** |
+| technical_correctness | 3.00 | 3.73 | **+0.72** |
+| depth | 3.06 | 3.82 | **+0.76** |
+| structure | 3.50 | 4.63 | **+1.14** |
+| hallucination | 3.62 | 4.46 | **+0.84** |
+| clarity | 3.20 | 3.98 | **+0.77** |
+| **Overall** | **3.27** | **4.12** | **+0.85** |
 
 ### How to Evaluate
 To generate new benchmark reports, use the commands detailed in the [Evaluation](#evaluation) section.
 
 ### Metrics Comparison
-![Comparison Chart](outputs/cycle-1/benchmarks/comparison_chart_20260418_220044.png)
+![Comparison Chart](outputs/cycle-1/benchmarks/comparison_chart_20260419_162359.png)
 
 ### Performance by Category
-![Category Chart](outputs/cycle-1/benchmarks/category_chart_20260418_220044.png)
+![Category Chart](outputs/cycle-1/benchmarks/category_chart_20260419_162359.png)
 
 ### Top Gains by Topic (Top 5)
-1. **Security Posture Management**: +2.24
-2. **Governance Tagging**: +2.20
-3. **Terraform State**: +2.00
-4. **Troubleshooting Functions**: +1.86
-5. **Security WAF**: +1.84
+1. **Storage Object**: +3.60
+2. **Troubleshooting Performance**: +3.80
+3. **Observability APM**: +3.40
+4. **Security Dynamic Groups**: +3.40
+5. **Database PostgreSQL**: +3.40
 
-### Detailed Category Results (86 Topics)
+### Detailed Category Results (88 Topics)
 
 <details>
 <summary>Click to expand the performance by category table</summary>
 <sub>
 
 | # | Category | Base | FT | Delta |
-|---|----------|------|----|-------|
-| 1 | compute/custom-images | 3.59 | 3.63 | +0.05 |
-| 2 | compute/instances | 3.56 | 3.60 | +0.05 |
-| 3 | compute/scaling | 3.33 | 3.69 | +0.36 |
-| 4 | container/instances | 3.29 | 3.61 | +0.32 |
-| 5 | container/oke | 3.28 | 3.61 | +0.33 |
-| 6 | database/autonomous | 3.37 | 3.68 | +0.30 |
-| 7 | database/autonomous-json | 3.51 | 3.70 | +0.19 |
-| 8 | database/exadata | 3.55 | 3.60 | +0.05 |
-| 9 | database/exadata-cloud | 3.54 | 3.71 | +0.17 |
-| 10 | database/mysql | 3.51 | 3.69 | +0.18 |
-| 11 | database/nosql | 3.52 | 3.76 | +0.24 |
-| 12 | database/postgresql | 3.55 | 3.66 | +0.11 |
-| 13 | devops/artifacts | 3.31 | 3.67 | +0.37 |
-| 14 | devops/ci-cd | 3.39 | 3.60 | +0.20 |
-| 15 | devops/resource-manager | 3.55 | 3.76 | +0.21 |
-| 16 | devops/secrets | 3.20 | 3.70 | +0.50 |
-| 17 | finops/cost-optimization | 3.24 | 3.84 | +0.60 |
-| 18 | finops/rightsizing | 3.47 | 3.79 | +0.31 |
-| 19 | finops/showback-chargeback | 3.61 | 3.61 | +0.00 |
-| 20 | finops/storage-tiering | 3.46 | 3.56 | +0.11 |
-| 21 | governance/audit-readiness | 3.36 | 3.70 | +0.34 |
-| 22 | governance/budgets-cost | 3.52 | 3.62 | +0.10 |
-| 23 | governance/compartments | 3.37 | 3.70 | +0.33 |
-| 24 | governance/compliance | 3.31 | 3.67 | +0.36 |
-| 25 | governance/landing-zone | 3.47 | 3.67 | +0.21 |
-| 26 | governance/policies-guardrails | 3.30 | 3.72 | +0.42 |
-| 27 | governance/resource-discovery | 3.29 | 3.66 | +0.37 |
-| 28 | governance/tagging | 3.42 | 3.62 | +0.20 |
-| 29 | lb/load-balancer | 3.53 | 3.63 | +0.10 |
-| 30 | migration/aws-database | 3.60 | 3.83 | +0.23 |
-| 31 | migration/azure-compute | 3.37 | 3.65 | +0.28 |
-| 32 | migration/azure-database | 3.50 | 3.81 | +0.31 |
-| 33 | migration/azure-storage | 3.27 | 3.65 | +0.38 |
-| 34 | migration/data-transfer | 3.16 | 3.68 | +0.52 |
-| 35 | migration/gcp-compute | 3.37 | 3.81 | +0.44 |
-| 36 | migration/gcp-database | 3.40 | 3.79 | +0.39 |
-| 37 | migration/gcp-storage | 3.28 | 3.73 | +0.45 |
-| 38 | migration/onprem-compute | 3.42 | 3.79 | +0.37 |
-| 39 | migration/onprem-database | 3.45 | 3.75 | +0.30 |
-| 40 | migration/onprem-storage | 3.49 | 3.78 | +0.29 |
-| 41 | migration/onprem-vmware | 3.37 | 3.71 | +0.34 |
-| 42 | networking/connectivity | 3.38 | 3.64 | +0.26 |
-| 43 | networking/security | 3.53 | 3.75 | +0.21 |
-| 44 | networking/vcn | 3.62 | 3.68 | +0.07 |
-| 45 | observability/apm | 3.38 | 3.66 | +0.28 |
-| 46 | observability/logging | 3.49 | 3.66 | +0.18 |
-| 47 | observability/monitoring | 3.34 | 3.67 | +0.33 |
-| 48 | observability/stack-monitoring | 3.45 | 3.70 | +0.25 |
-| 49 | platform/backup-governance | 3.27 | 3.72 | +0.46 |
-| 50 | platform/sre-operations | 3.35 | 3.65 | +0.30 |
-| 51 | security/cloud-guard | 3.55 | 3.72 | +0.17 |
-| 52 | security/dynamic-groups | 3.43 | 3.72 | +0.29 |
-| 53 | security/encryption | 3.18 | 3.68 | +0.50 |
-| 54 | security/federation | 3.44 | 3.61 | +0.17 |
-| 55 | security/iam-basics | 3.29 | 3.61 | +0.32 |
-| 56 | security/policies | 3.51 | 3.76 | +0.25 |
-| 57 | security/posture-management | 3.29 | 3.76 | +0.47 |
-| 58 | security/vault-keys | 3.56 | 3.71 | +0.15 |
-| 59 | security/vault-secrets | 3.66 | 3.66 | +0.00 |
-| 60 | security/waf | 3.31 | 3.71 | +0.40 |
-| 61 | security/zero-trust | 3.50 | 3.59 | +0.09 |
-| 62 | serverless/api-gateway | 3.33 | 3.66 | +0.33 |
-| 63 | serverless/functions | 3.53 | 3.58 | +0.05 |
-| 64 | storage/block | 3.49 | 3.70 | +0.21 |
-| 65 | storage/file | 3.32 | 3.71 | +0.39 |
-| 66 | storage/object | 3.43 | 3.69 | +0.26 |
-| 67 | terraform/compute | 3.31 | 3.67 | +0.35 |
-| 68 | terraform/container | 3.37 | 3.66 | +0.29 |
-| 69 | terraform/database | 3.47 | 3.72 | +0.25 |
-| 70 | terraform/devops | 3.35 | 3.61 | +0.26 |
-| 71 | terraform/load-balancer | 3.47 | 3.62 | +0.14 |
-| 72 | terraform/networking | 3.37 | 3.71 | +0.34 |
-| 73 | terraform/observability | 3.23 | 3.75 | +0.52 |
-| 74 | terraform/provider | 3.56 | 3.66 | +0.10 |
-| 75 | terraform/security | 3.40 | 3.73 | +0.33 |
-| 76 | terraform/serverless | 3.41 | 3.70 | +0.30 |
-| 77 | terraform/state | 3.45 | 3.76 | +0.31 |
-| 78 | terraform/storage | 3.27 | 3.69 | +0.42 |
-| 79 | troubleshooting/authentication | 3.38 | 3.84 | +0.46 |
-| 80 | troubleshooting/compute | 3.63 | 3.71 | +0.08 |
-| 81 | troubleshooting/connectivity | 3.16 | 3.82 | +0.66 |
-| 82 | troubleshooting/database | 3.52 | 3.77 | +0.25 |
-| 83 | troubleshooting/functions | 3.31 | 3.80 | +0.49 |
-| 84 | troubleshooting/oke | 3.63 | 3.82 | +0.18 |
-| 85 | troubleshooting/performance | 3.43 | 3.72 | +0.29 |
-| 86 | troubleshooting/storage | 3.19 | 3.85 | +0.66 |
+---|----------|------|----|-------|
+| 1 | compute/custom-images | 2.80 | 4.60 | +1.80 |
+| 2 | compute/instances | 4.60 | 4.80 | +0.20 |
+| 3 | compute/scaling | 4.40 | 4.20 | -0.20 |
+| 4 | container/instances | 1.40 | 3.40 | +2.00 |
+| 5 | container/oke | 2.60 | 5.00 | +2.40 |
+| 6 | database/autonomous | 4.00 | 1.60 | -2.40 |
+| 7 | database/autonomous-json | 1.20 | 3.40 | +2.20 |
+| 8 | database/exadata | 4.00 | 5.00 | +1.00 |
+| 9 | database/exadata-cloud | 4.60 | 3.20 | -1.40 |
+| 10 | database/mysql | 4.20 | 3.60 | -0.60 |
+| 11 | database/nosql | 1.60 | 4.20 | +2.60 |
+| 12 | database/postgresql | 1.00 | 4.40 | +3.40 |
+| 13 | devops/artifacts | 4.80 | 5.00 | +0.20 |
+| 14 | devops/ci-cd | 4.40 | 4.60 | +0.20 |
+| 15 | devops/resource-manager | 4.60 | 4.80 | +0.20 |
+| 16 | devops/secrets | 1.60 | 4.20 | +2.60 |
+| 17 | finops/cost-optimization | 4.60 | 5.00 | +0.40 |
+| 18 | finops/rightsizing | 3.80 | 4.80 | +1.00 |
+| 19 | finops/showback-chargeback | 4.60 | 4.80 | +0.20 |
+| 20 | finops/storage-tiering | 4.40 | 3.80 | -0.60 |
+| 21 | governance/audit-readiness | 3.80 | 4.80 | +1.00 |
+| 22 | governance/budgets-cost | 2.40 | 5.00 | +2.60 |
+| 23 | governance/compartments | 2.40 | 4.40 | +2.00 |
+| 24 | governance/compliance | 1.00 | 3.60 | +2.60 |
+| 25 | governance/landing-zone | 4.80 | 3.20 | -1.60 |
+| 26 | governance/policies-guardrails | 4.40 | 4.60 | +0.20 |
+| 27 | governance/resource-discovery | 1.40 | 4.40 | +3.00 |
+| 28 | governance/tagging | 1.40 | 4.00 | +2.60 |
+| 29 | lb/load-balancer | 5.00 | 4.60 | -0.40 |
+| 30 | migration/aws-compute | 5.00 | 4.60 | -0.40 |
+| 31 | migration/aws-database | 1.40 | 4.40 | +3.00 |
+| 32 | migration/aws-storage | 2.40 | 2.00 | -0.40 |
+| 33 | migration/azure-compute | 1.80 | 4.60 | +2.80 |
+| 34 | migration/azure-database | 3.60 | 3.00 | -0.60 |
+| 35 | migration/azure-storage | 0.80 | 2.60 | +1.80 |
+| 36 | migration/data-transfer | 4.80 | 4.20 | -0.60 |
+| 37 | migration/gcp-compute | 1.60 | 4.60 | +3.00 |
+| 38 | migration/gcp-database | 2.40 | 3.40 | +1.00 |
+| 39 | migration/gcp-storage | 3.00 | 1.40 | -1.60 |
+| 40 | migration/onprem-compute | 2.80 | 5.00 | +2.20 |
+| 41 | migration/onprem-database | 2.60 | 4.60 | +2.00 |
+| 42 | migration/onprem-storage | 2.20 | 4.60 | +2.40 |
+| 43 | migration/onprem-vmware | 4.40 | 4.60 | +0.20 |
+| 44 | networking/connectivity | 2.20 | 4.40 | +2.20 |
+| 45 | networking/security | 4.20 | 4.60 | +0.40 |
+| 46 | networking/vcn | 2.40 | 2.40 | +0.00 |
+| 47 | observability/apm | 1.60 | 5.00 | +3.40 |
+| 48 | observability/logging | 4.60 | 4.60 | +0.00 |
+| 49 | observability/monitoring | 4.60 | 3.00 | -1.60 |
+| 50 | observability/stack-monitoring | 2.00 | 4.60 | +2.60 |
+| 51 | platform/backup-governance | 2.80 | 4.60 | +1.80 |
+| 52 | platform/sre-operations | 2.20 | 3.60 | +1.40 |
+| 53 | security/cloud-guard | 4.60 | 4.60 | +0.00 |
+| 54 | security/dynamic-groups | 1.40 | 4.80 | +3.40 |
+| 55 | security/encryption | 4.60 | 4.60 | +0.00 |
+| 56 | security/federation | 4.40 | 3.60 | -0.80 |
+| 57 | security/iam-basics | 1.60 | 4.60 | +3.00 |
+| 58 | security/policies | 1.80 | 3.40 | +1.60 |
+| 59 | security/posture-management | 5.00 | 4.80 | -0.20 |
+| 60 | security/vault-keys | 4.00 | 4.60 | +0.60 |
+| 61 | security/vault-secrets | 3.20 | 4.60 | +1.40 |
+| 62 | security/waf | 1.40 | 4.60 | +3.20 |
+| 63 | security/zero-trust | 4.40 | 3.20 | -1.20 |
+| 64 | serverless/api-gateway | 4.20 | 2.40 | -1.80 |
+| 65 | serverless/functions | 4.40 | 4.60 | +0.20 |
+| 66 | storage/block | 1.20 | 4.40 | +3.20 |
+| 67 | storage/file | 2.40 | 2.60 | +0.20 |
+| 68 | storage/object | 1.00 | 4.60 | +3.60 |
+| 69 | terraform/compute | 4.40 | 3.40 | -1.00 |
+| 70 | terraform/container | 2.60 | 4.40 | +1.80 |
+| 71 | terraform/database | 5.00 | 3.40 | -1.60 |
+| 72 | terraform/devops | 4.00 | 4.00 | +0.00 |
+| 73 | terraform/load-balancer | 3.80 | 4.80 | +1.00 |
+| 74 | terraform/networking | 2.20 | 4.40 | +2.20 |
+| 75 | terraform/observability | 3.60 | 4.80 | +1.20 |
+| 76 | terraform/provider | 2.00 | 2.60 | +0.60 |
+| 77 | terraform/security | 3.40 | 4.60 | +1.20 |
+| 78 | terraform/serverless | 4.00 | 4.60 | +0.60 |
+| 79 | terraform/state | 4.60 | 3.80 | -0.80 |
+| 80 | terraform/storage | 4.80 | 4.20 | -0.60 |
+| 81 | troubleshooting/authentication | 2.00 | 4.60 | +2.60 |
+| 82 | troubleshooting/compute | 4.60 | 4.40 | -0.20 |
+| 83 | troubleshooting/connectivity | 4.20 | 4.40 | +0.20 |
+| 84 | troubleshooting/database | 4.20 | 4.60 | +0.40 |
+| 85 | troubleshooting/functions | 1.80 | 3.40 | +1.60 |
+| 86 | troubleshooting/oke | 1.40 | 4.40 | +3.00 |
+| 87 | troubleshooting/performance | 1.00 | 4.80 | +3.80 |
+| 88 | troubleshooting/storage | 4.20 | 4.80 | +0.60 |
 
 </sub>
 </details>
