@@ -2,13 +2,13 @@
 annotations_creators:
 - no-annotation
 language:
-- pt-BR
+- pt
 language_creators:
 - machine-generated
 license:
 - mit
 multilingual:
-- pt-BR
+- pt
 pretty_name: OCI Copilot Jr Dataset
 size_categories:
 - 10K<n<100K

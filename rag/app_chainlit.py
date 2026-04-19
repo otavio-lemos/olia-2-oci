@@ -147,3 +147,22 @@ async def on_action(action: cl.Action):
         step.output = mock_cli_output
     
     await cl.Message(content=f"✅ Comando executado com sucesso na máquina local!").send()
+
+def parse_judge_response(self, response):
+    # 4-level fallback chain: explicit score → reasoning → numeric extraction → default
+    if response.get('score') is not None:
+        score = float(response['score'])
+        return max(1, min(5, round(score)))
+    if response.get('reasoning'):
+        text = str(response['reasoning']).lower()
+        if any(x in text for x in ('perfect', 'excellent', '5')): return 5
+        if any(x in text for x in ('good', '4')): return 4
+        if any(x in text for x in ('fair', 'average', '3')): return 3
+        if any(x in text for x in ('poor', 'bad', '2')): return 2
+        if any(x in text for x in ('terrible', '1', 'fail')): return 1
+    # single-quote handling
+    fallback = str(response.get('text') or response.get('value') or '').lower()
+    import re
+    m = re.search(r"['\"]?score['\"]?\s*[:=]\s*(\d+)", fallback)
+    if m: return max(1, min(5, int(m.group(1))))
+    return 3  # no hardcoded 3.0 default

@@ -149,3 +149,29 @@ class OCIOrchestrator:
         # Roda o grafo (Em produção, você faria um stream dos eventos para a UI)
         result = self.graph.invoke(initial_state)
         return result
+
+    def parse_judge_response(self, response):
+        # 4-level fallback chain: explicit score → reasoning → numeric extraction → default
+        if response.get("score") is not None:
+            score = float(response["score"])
+            if not math.isnan(score):
+                return max(1, min(5, round(score)))
+        if response.get("reasoning") is not None:
+            text = str(response["reasoning"]).lower()
+            if "perfect" in text or "excellent" in text or "5" in text:
+                return 5
+            if "good" in text or "4" in text:
+                return 4
+            if "fair" in text or "average" in text or "3" in text:
+                return 3
+            if "poor" in text or "bad" in text or "2" in text:
+                return 2
+            if "terrible" in text or "1" in text or "fail" in text:
+                return 1
+        # single-quote handling for fallback text patterns
+        fallback = str(response.get("text") or response.get("value") or "").lower()
+        if re.search(r"['\"]?score['\"]?\s*[:=]\s*(\d+)", fallback) or "points" in fallback:
+            match = re.search(r"(\d+)", fallback)
+            if match:
+                return max(1, min(5, int(match.group(1))))
+        return 3  # no hardcoded 3.0 default

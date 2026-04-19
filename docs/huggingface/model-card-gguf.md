@@ -1,31 +1,42 @@
 ---
-library_name: mlx
+library_name: transformers
 license: mit
-model_name: OCI Copilot Jr
+model_name: OCI Copilot Jr GGUF
 language:
 - pt
 tags:
 - oracle-cloud-infrastructure
 - oci
 - fine-tuning
-- lorawan
-- apple-silicon
-- mlx
+- gguf
+- quantization
+- llama
+ggufFilePaths:
+- oci-copilot-jr-Q4_K_M.gguf
+- oci-copilot-jr.fp16.gguf
+base_model: otavio-lemos/oci-copilot-jr-safetensors
+base_model_relation: quantized
 ---
 
-# Model Card: otavio-lemos/oci-copilot-jr
+# Model Card: otavio-lemos/oci-copilot-jr-gguf
 
 ## Overview
 
-**OCI Copilot Jr** is a fine-tuned Large Language Model specialized in Oracle Cloud Infrastructure (OCI) operations. Built on Qwen 2.5 Coder 7B Instruct and fine-tuned using LoRA on Apple Silicon (M3 Pro).
+**OCI Copilot Jr GGUF** is a GGUF-quantized version of OCI Copilot Jr, specialized in Oracle Cloud Infrastructure (OCI) operations. Built on Qwen 2.5 Coder 7B Instruct and quantized using llama.cpp.
 
 | Attribute | Value |
 |-----------|-------|
 | **Base Model** | Qwen2.5-Coder-7B-Instruct-4bit |
-| **Fine-tuning Method** | LoRA (Rank 32, Alpha 64) |
-| **Framework** | MLX-Tune 0.4.18 |
-| **Hardware** | Apple Silicon M3 Pro (18GB) |
-| **Training Date** | April 2026 |
+| **Quantization** | FP16, Q4_K_M |
+| **Framework** | llama.cpp |
+| **Conversion Date** | April 2026 |
+
+## Variants
+
+| File | Type | Size | Use Case |
+|------|------|------|---------|
+| oci-copilot-jr.fp16.gguf | FP16 | ~15 GB | High quality, GPU required |
+| oci-copilot-jr-Q4_K_M.gguf | Q4_K_M | ~4.7 GB | CPU inference, low RAM |
 
 ## Training Configuration
 
@@ -56,7 +67,6 @@ tags:
   "seed": 42,
   "gradient_clip_norm": 1.0,
   "bf16": true
-}
 ```
 
 ### Dataset
@@ -73,7 +83,7 @@ tags:
 Evaluation on 200 samples comparing base model vs fine-tuned:
 
 | Metric | Base Model | Fine-Tuned | Delta |
-|--------|-------------|------------|-------|
+|--------|------------|------------|-------|
 | Technical Correctness | 3.67 | 4.51 | **+0.84** |
 | Depth | 3.11 | 3.93 | **+0.82** |
 | Structure | 3.47 | 4.45 | **+0.98** |
@@ -84,20 +94,14 @@ Evaluation on 200 samples comparing base model vs fine-tuned:
 ### Top Performance Gains by Category
 
 | Rank | Category | Delta |
-|------|----------------------|-------|
+|------|----------|-------|
 | 1 | Security Posture Management | +2.24 |
 | 2 | Governance Tagging | +2.20 |
 | 3 | Terraform State | +2.00 |
-| 4 | Troubleshooting Functions | +1.86 |
-| 5 | Security WAF | +1.84 |
+| 4 | Troubleshooting Connectivity | +0.66 |
+| 5 | Troubleshooting Storage | +0.66 |
 
 ## Usage
-
-### MLX (Apple Silicon - Recommended)
-
-```bash
-mlx_lm.server --model mlx-community/Qwen2.5-Coder-7B-Instruct-4bit --adapter outputs/cycle-1/adapters
-```
 
 ### Ollama
 
@@ -112,13 +116,22 @@ SYSTEM Você é um especialista em OCI (Oracle Cloud Infrastructure).
 EOF
 
 ollama create oci-copilot-jr -f Modelfile
+ollama run oci-copilot-jr
 ```
 
 ### llama.cpp
 
 ```bash
-llama-server -m oci-copilot-jr-Q4_K_M.gguf --port 8080
+# FP16 (high quality)
+llama-server -m oci-copilot-jr.fp16.gguf --port 8080 -c 4096
+
+# Q4_K_M (recommended, low RAM)
+llama-server -m oci-copilot-jr-Q4_K_M.gguf --port 8080 -c 4096
 ```
+
+### LM Studio
+
+Search for "oci-copilot-jr" in LM Studio and download the variant you need.
 
 ## System Prompt
 
@@ -141,12 +154,12 @@ Você é um arquiteto e especialista experiente em OCI. Forneça orientações t
 ## Citation
 
 ```bibtex
-@model{lemos_2026_oci_copilot_jr,
+@model{lemos_2026_oci_copilot_jr_gguf,
   author    = {Otavio Lemos},
-  title     = {OCI Copilot Jr},
+  title     = {OCI Copilot Jr GGUF},
   year      = {2026},
   publisher = {HuggingFace},
-  url       = {https://huggingface.co/otavio-lemos/oci-copilot-jr}
+  url       = {https://huggingface.co/otavio-lemos/oci-copilot-jr-gguf}
 }
 ```
 
@@ -156,4 +169,4 @@ MIT License - See [LICENSE](https://github.com/otavio-lemos/olia-2-oci/blob/main
 
 ---
 
-*Fine-tuned on Apple Silicon M3 Pro using MLX-Tune*
+*Fine-tuned on Apple Silicon M3 Pro using MLX-Tune, quantized with llama.cpp*

@@ -91,13 +91,14 @@ def _load_mlx():
     global _mlx_available, _mlx_modules
     if not _mlx_available:
         import mlx.core as mx
-        from mlx_lm import load, generate
+        from mlx_lm import load, generate, stream_generate
         from mlx_lm.sample_utils import make_sampler
 
         _mlx_modules = {
             "mx": mx,
             "load": load,
             "generate": generate,
+            "stream_generate": stream_generate,
             "make_sampler": make_sampler,
         }
         _mlx_available = True
@@ -593,13 +594,13 @@ Avalie a resposta do modelo OCI Specialist para a pergunta do usuário.
 ## Tarefa:
 Analise a pergunta do usuário e a resposta gerada, então forneça sua avaliação em JSON:
 ```json
-{{
+{
   "correctness": <1-5>,
   "helpfulness": <1-5>,
   "depth": <1-5>,
   "safety": <1-5>,
   "reasoning": "<breve justificativa>"
-}}
+}
 ```
 Não inclua outro texto além do JSON."""
 
@@ -639,15 +640,72 @@ Evaluate the OCI Specialist model response to the user's question.
 ## Task:
 Evaluate and provide your assessment in JSON:
 ```json
-{{
+{
   "correctness": <1-5>,
   "helpfulness": <1-5>,
   "depth": <1-5>,
   "safety": <1-5>,
   "reasoning": "<brief justification>"
-}}
+}
 ```
 Output ONLY the JSON."""
+
+    # Rubric for G-Eval: one criterion per call, just output a single digit
+    RUBRIC_GEVAL_PT = """Você é um avaliador expert de respostas técnicas sobre OCI (Oracle Cloud Infrastructure).
+
+Critério: {criterion_name}
+{criterion_desc}
+
+Escala:
+- 5: Excelente
+- 4: Bom
+- 3: Regular
+- 2: Ruim
+- 1: Péssimo
+
+Pergunta do usuário:
+{prompt}
+
+Resposta avaliada:
+{response}
+
+Responda SOMENTE com um único dígito entre 1 e 5 (sem texto adicional):"""
+
+    RUBRIC_GEVAL_EN = """You are an expert evaluator of OCI (Oracle Cloud Infrastructure) technical responses.
+
+Criterion: {criterion_name}
+{criterion_desc}
+
+Scale:
+- 5: Excellent
+- 4: Good
+- 3: Average
+- 2: Poor
+- 1: Very poor
+
+User question:
+{prompt}
+
+Evaluated response:
+{response}
+
+Output ONLY a single digit between 1 and 5 (no other text):"""
+
+    CRITERIA_PT = {
+        "technical_correctness": "Corretude Técnica: a resposta usa comandos OCI válidos, identifica recursos sem erros e não cria comandos ou serviços inventados?",
+        "depth":                 "Profundidade: a resposta é detalhada, explica contexto, aborda trade-offs, best practices e mitigações de riscos?",
+        "structure":             "Estrutura: a descrição é bem formatada, utilizando listas enumeradas, tópicos de marcadores (bullets) ou seções com código (markdown) para clareza?",
+        "hallucination":         "Factualidade/Falta de Alucinação: a resposta foca puramente no OCI (Oracle Cloud) sem mencionar serviços inexistentes e abstém-se estritamente de misturar conceitos do AWS ou do Azure?",
+        "clarity":               "Clareza: a resposta possui boa legibilidade, usando sentenças curtas e coesas, com explicações objetivas e uso de exemplos práticos?",
+    }
+
+    CRITERIA_EN = {
+        "technical_correctness": "Technical Correctness: does the response use valid OCI commands, correctly identify resources without errors, and avoid invented commands or services?",
+        "depth":                 "Depth: is the response detailed, explaining context, trade-offs, best practices, and risk mitigations?",
+        "structure":             "Structure: is the content well-formatted using numbered lists, bullet points, or markdown code blocks for clarity?",
+        "hallucination":         "Factuality/No Hallucination: does the response focus purely on OCI (Oracle Cloud) without mentioning non-existent services, and strictly refrains from mixing in AWS or Azure concepts?",
+        "clarity":               "Clarity: does the response have good readability, using concise and coherent sentences, with objective explanations and practical examples?",
+    }
 
     def __init__(
         self,
@@ -657,9 +715,13 @@ Output ONLY the JSON."""
         self.model_path = model_path
         self.use_portuguese = use_portuguese
         self.rubric = self.RUBRIC_PT if use_portuguese else self.RUBRIC_EN
+        self.rubric_geval = self.RUBRIC_GEVAL_PT if use_portuguese else self.RUBRIC_GEVAL_EN
+        self.criteria = self.CRITERIA_PT if use_portuguese else self.CRITERIA_EN
         self.model = None
         self.tokenizer = None
         self.sampler = None
+        # Cached token IDs for digits 1-5
+        self._score_token_ids: Optional[Dict[int, int]] = None
 
     def load_model(self):
         """Load the external judge model (Llama 3.1 8B)."""
@@ -667,114 +729,306 @@ Output ONLY the JSON."""
             print(f"Loading external judge model: {self.model_path}")
             mlx_mods = _get_mlx()
 
-            # Load with native tokenizer config (no overrides)
             self.model, self.tokenizer = mlx_mods["load"](
                 path_or_hf_repo=self.model_path,
             )
+            # G-Eval uses temperature=1.0 for capturing the full probability
+            # distribution rather than a greedy/low-temp single token.
             self.sampler = mlx_mods["make_sampler"](
-                temp=0.3, top_p=0.9, min_p=0.0, top_k=20
+                temp=1.0, top_p=1.0, min_p=0.0, top_k=0
             )
-
+            self._score_token_ids = self._build_score_token_ids()
             print("External judge model loaded successfully")
+            print(f"  Score token IDs (1-5): {self._score_token_ids}")
+
+    def _build_score_token_ids(self) -> Dict[int, int]:
+        """Map score values 1-5 to their single-token IDs in the tokenizer vocab.
+
+        We look for the token that represents each bare digit ('1' … '5').
+        Different tokenizers may encode these differently.
+        """
+        mapping = {}
+        for score in range(1, 6):
+            # Try bare digit string first, then with leading space
+            for candidate in [str(score), f" {score}"]:
+                ids = self.tokenizer.encode(candidate, add_special_tokens=False)
+                if ids and len(ids) == 1:
+                    mapping[score] = ids[0]
+                    break
+            else:
+                # Fallback: take last token of the encoding (handles BOS prepend)
+                ids = self.tokenizer.encode(str(score), add_special_tokens=False)
+                if ids:
+                    mapping[score] = ids[-1]
+        return mapping
 
     def unload(self):
         """Unload model to free memory."""
         self.model = None
         self.tokenizer = None
         self.sampler = None
+        self._score_token_ids = None
 
     def build_judge_prompt(self, prompt: str, response: str) -> str:
-        """Build the prompt for evaluating a single response."""
+        """Build the full rubric prompt (used as fallback parse path only).
+
+        Truncates inputs to avoid context overflow on memory-constrained hardware.
+        """
+        prompt_trunc = prompt[:1500] if len(prompt) > 1500 else prompt
+        response_trunc = response[:2000] if len(response) > 2000 else response
         return f"""{self.rubric}
 
 ## Pergunta do Usuário:
-{prompt}
+{prompt_trunc}
 
 ## Resposta Gerada:
-{response}
+{response_trunc}
 
 ## Avaliação JSON:"""
 
-    def parse_judge_response(self, response: str) -> Dict[str, Any]:
-        """Parse the judge's JSON response with robust JSON extraction."""
-        import re
-
-        # Robust JSON extraction - find first { and last }
-        start = response.find("{")
-        end = response.rfind("}")
-
-        if start >= 0 and end > start:
-            json_str = response[start : end + 1]
-            # Remove code blocks if present
-            json_str = re.sub(r"^```json\s*", "", json_str)
-            json_str = re.sub(r"\s*```$", "", json_str)
-        else:
-            return {
-                "correctness": 3,
-                "helpfulness": 3,
-                "depth": 3,
-                "safety": 3,
-                "reasoning": "No JSON found",
-            }
-
-        if not json_str:
-            return {
-                "correctness": 3,
-                "helpfulness": 3,
-                "depth": 3,
-                "safety": 3,
-                "reasoning": "Parse failed",
-            }
-
-        try:
-            result = json.loads(json_str)
-            return {
-                "correctness": min(5, max(1, int(result.get("correctness", 3)))),
-                "helpfulness": min(5, max(1, int(result.get("helpfulness", 3)))),
-                "depth": min(5, max(1, int(result.get("depth", 3)))),
-                "safety": min(5, max(1, int(result.get("safety", 3)))),
-                "reasoning": result.get("reasoning", "")[:200],
-            }
-        except (json.JSONDecodeError, ValueError, KeyError) as e:
-            return {
-                "correctness": 3,
-                "helpfulness": 3,
-                "depth": 3,
-                "safety": 3,
-                "reasoning": f"Parse error: {str(e)[:50]}",
-            }
-
-    def evaluate_response(
-        self, prompt: str, response: str, max_tokens: int = 256
-    ) -> Dict[str, Any]:
-        """Evaluate a single response."""
-        if self.model is None:
-            self.load_model()
-
-        mlx_mods = _get_mlx()
-
-        judge_prompt = self.build_judge_prompt(prompt, response)
-
-        messages = [{"role": "user", "content": judge_prompt}]
-        prompt_tokens = self.tokenizer.apply_chat_template(
-            messages, add_generation_prompt=True
+    def build_geval_prompt(self, criterion_name: str, criterion_desc: str,
+                           prompt: str, response: str) -> str:
+        """Build a single-criterion G-Eval prompt requesting one digit output."""
+        prompt_trunc = prompt[:1200] if len(prompt) > 1200 else prompt
+        response_trunc = response[:1800] if len(response) > 1800 else response
+        return self.rubric_geval.format(
+            criterion_name=criterion_name,
+            criterion_desc=criterion_desc,
+            prompt=prompt_trunc,
+            response=response_trunc,
         )
 
-        start = time.time()
-        mlx_mods = _get_mlx()
+    def _geval_score_criterion(
+        self, criterion_name: str, criterion_desc: str,
+        prompt: str, response: str, max_tokens: int = 5
+    ) -> float:
+        """G-Eval: score one criterion by computing the probability-weighted
+        expectation over digits 1-5 from the judge model's logprobs.
 
-        response = mlx_mods["generate"](
+        Algorithm (Liu et al. 2023):
+          1. Build single-criterion prompt asking for ONE digit.
+          2. Run stream_generate collecting logprobs for the FIRST real token.
+          3. Extract log-probabilities of tokens '1','2','3','4','5'.
+          4. Normalize to sum=1, compute E[score] = Σ(i × P_i).
+
+        This produces a continuous float like 3.72 instead of an integer.
+        """
+        import math
+        import mlx.core as mx
+        from mlx_lm import stream_generate
+
+        judge_text = self.build_geval_prompt(
+            criterion_name, criterion_desc, prompt, response
+        )
+        messages = [{"role": "user", "content": judge_text}]
+        prompt_tokens = self.tokenizer.apply_chat_template(
+            messages, tokenize=True, add_generation_prompt=True
+        )
+
+        score_ids = self._score_token_ids  # {1: tok_id, 2: tok_id, ...}
+
+        first_logprobs = None
+        generated_text = ""
+        for chunk in stream_generate(
             self.model,
             self.tokenizer,
             prompt=prompt_tokens,
             max_tokens=max_tokens,
             sampler=self.sampler,
-            verbose=False,
+        ):
+            if first_logprobs is None and chunk.logprobs is not None:
+                # logprobs is a 1-D array over the full vocabulary
+                first_logprobs = mx.array(chunk.logprobs)
+                mx.eval(first_logprobs)
+            generated_text += chunk.text
+            if chunk.finish_reason is not None:
+                break
+
+        # --- Compute probability-weighted score ---
+        if first_logprobs is not None and score_ids:
+            log_probs_for_scores = {}
+            lp_np = first_logprobs.tolist()
+            for score_val, tok_id in score_ids.items():
+                if 0 <= tok_id < len(lp_np):
+                    log_probs_for_scores[score_val] = lp_np[tok_id]
+
+            if log_probs_for_scores:
+                # Convert logprobs → probs, normalize, weighted sum
+                max_lp = max(log_probs_for_scores.values())  # for numerical stability
+                probs = {k: math.exp(v - max_lp) for k, v in log_probs_for_scores.items()}
+                total = sum(probs.values())
+                if total > 0:
+                    norm_probs = {k: v / total for k, v in probs.items()}
+                    weighted = sum(k * p for k, p in norm_probs.items())
+                    print(f"    [G-Eval] {criterion_name}: "
+                          f"probs={{{', '.join(f'{k}:{p:.3f}' for k,p in sorted(norm_probs.items()))}}}"
+                          f" → score={weighted:.4f}")
+                    return round(weighted, 4)
+
+        # Fallback: parse the first digit from generated text
+        import re
+        m = re.search(r"[1-5]", generated_text)
+        if m:
+            val = float(m.group())
+            print(f"    [G-Eval] {criterion_name}: fallback text parse → {val}")
+            return val
+
+        print(f"    [G-Eval] {criterion_name}: could not score, defaulting to 3.0")
+        return 3.0
+
+    def parse_judge_response(self, response: str) -> Dict[str, Any]:
+        """Parse judge response with multi-strategy extraction and debug logging.
+
+        Strategies (in order):
+          1. Extract JSON from ```json ... ``` code block
+          2. Extract raw JSON object (first { to last })
+          3. Regex key=value extraction
+          4. Default fallback (all 3s)
+        """
+        import re, ast, json
+
+        DEFAULT = {
+            "correctness": 3, "helpfulness": 3, "depth": 3, "safety": 3,
+            "reasoning": "parse_failed"
+        }
+
+        # Always log the raw judge output so failures are visible
+        print(f"  [Judge raw ({len(response)} chars)]: {response[:300]!r}")
+
+        def extract_scores(data):
+            """Normalise a flat dict into valid score fields (1-5)."""
+            return {
+                "correctness": min(5, max(1, int(data.get("correctness", 3)))),
+                "helpfulness": min(5, max(1, int(data.get("helpfulness", 3)))),
+                "depth": min(5, max(1, int(data.get("depth", 3)))),
+                "safety": min(5, max(1, int(data.get("safety", 3)))),
+                "reasoning": str(data.get("reasoning", ""))[:200],
+            }
+
+        def try_parse_json(s):
+            """Try to parse a string as JSON with multiple fallbacks."""
+            if not s or not s.strip():
+                return None
+            # Standard JSON
+            try:
+                return json.loads(s)
+            except Exception:
+                pass
+            # Single-quote fix
+            try:
+                f = re.sub(r"(?<!\\)'", '"', s)
+                r = json.loads(f)
+                if isinstance(r, dict):
+                    return r
+            except Exception:
+                pass
+            # ast.literal_eval
+            try:
+                r = ast.literal_eval(s)
+                if isinstance(r, dict):
+                    return {k: v for k, v in r.items()
+                            if isinstance(k, str) and isinstance(v, (str, int, float, bool, list, dict))}
+            except Exception:
+                pass
+            return None
+
+        # ── Strategy 1: JSON inside a ```json ... ``` code block ──────────────
+        code_block = re.search(
+            r"```(?:json)?\s*(\{.*?\})\s*```", response, re.DOTALL | re.IGNORECASE
         )
+        if code_block:
+            parsed = try_parse_json(code_block.group(1).strip())
+            if parsed and isinstance(parsed, dict):
+                print("  [Judge] Parsed via code-block strategy")
+                return extract_scores(parsed)
 
+        # ── Strategy 2: Raw JSON object (first { … last }) ───────────────────
+        st = response.find("{")
+        en = response.rfind("}")
+        if st >= 0 and en > st:
+            json_str = response[st:en + 1]
+            parsed = try_parse_json(json_str)
+            if parsed and isinstance(parsed, dict):
+                print("  [Judge] Parsed via raw-JSON strategy")
+                return extract_scores(parsed)
+
+        # ── Strategy 3: Regex key-value extraction ───────────────────────────
+        # BUG FIX: return a FLAT dict, NOT {"scores": {...}} which confused
+        # extract_scores causing all values to default to 3.
+        kv_patterns = {
+            "correctness": [
+                r'"correctness"\s*:\s*(\d+)',
+                r'correctness\s*[:=]\s*(\d+)',
+            ],
+            "helpfulness": [
+                r'"helpfulness"\s*:\s*(\d+)',
+                r'helpfulness\s*[:=]\s*(\d+)',
+            ],
+            "depth": [
+                r'"depth"\s*:\s*(\d+)',
+                r'depth\s*[:=]\s*(\d+)',
+            ],
+            "safety": [
+                r'"safety"\s*:\s*(\d+)',
+                r'safety\s*[:=]\s*(\d+)',
+            ],
+        }
+        scores: Dict[str, Any] = {}
+        for key, plist in kv_patterns.items():
+            for p in plist:
+                m = re.search(p, response, re.IGNORECASE)
+                if m:
+                    try:
+                        scores[key] = max(1, min(5, int(m.group(1))))
+                        break
+                    except Exception:
+                        pass
+
+        if scores:
+            m2 = re.search(r'"reasoning"\s*:\s*"([^"]{0,200})"', response, re.I)
+            if not m2:
+                m2 = re.search(r'reasoning\s*[:=]\s*(.{0,200})', response, re.I | re.DOTALL)
+            reasoning = m2.group(1).strip()[:200] if m2 else ""
+            print(f"  [Judge] Parsed via regex strategy (found {list(scores.keys())})")
+            return extract_scores({**scores, "reasoning": reasoning})
+
+        # ── Strategy 4: Give up ──────────────────────────────────────────────
+        print(f"  [Judge WARN] Could not extract scores. Full output: {response[:500]!r}")
+        return DEFAULT
+
+    def evaluate_response(
+        self, prompt: str, response: str, max_tokens: int = 256
+    ) -> Dict[str, Any]:
+        """G-Eval: evaluate one response across all four criteria.
+
+        Each criterion is scored independently using probability-weighted
+        expectation over tokens 1-5 (G-Eval, Liu et al. 2023), producing
+        continuous float scores like 3.72 instead of bare integers.
+        """
+        if self.model is None:
+            self.load_model()
+
+        start = time.time()
+        scores: Dict[str, Any] = {}
+        reasonings = []
+
+        for criterion_name, criterion_desc in self.criteria.items():
+            score = self._geval_score_criterion(
+                criterion_name, criterion_desc,
+                prompt, response,
+                max_tokens=5,  # Only need the first token (the digit)
+            )
+            scores[criterion_name] = score
+
+        scores["overall"] = sum(v for v in scores.values()) / len(scores)
+
+        scores["reasoning"] = "; ".join(
+            f"{k}={v:.2f}" for k, v in scores.items() if k not in ("reasoning", "overall")
+        )
         elapsed = time.time() - start
-
-        return self.parse_judge_response(response)
+        print(f"  [G-Eval] total time: {elapsed:.1f}s | scores: "
+              f"{ {k: f'{v:.2f}' for k, v in scores.items() if k not in ('reasoning', 'overall')} }")
+        return scores
 
 
 class ReportGenerator:
@@ -844,7 +1098,7 @@ class ReportGenerator:
                     "|--------|-------------|------------|-------|",
                 ]
             )
-            ej_metrics = ["correctness", "helpfulness", "depth", "safety"]
+            ej_metrics = ["technical_correctness", "depth", "structure", "hallucination", "clarity", "overall"]
             for metric in ej_metrics:
                 base_val = base_ej.get(metric, 0)
                 ft_val = ft_ej.get(metric, 0)
@@ -1022,7 +1276,7 @@ class ReportGenerator:
         base_avg = {k: v / count for k, v in totals.items()}
 
         # Compute external judge averages if available
-        external_judge_keys = ["correctness", "helpfulness", "depth", "safety"]
+        external_judge_keys = ["technical_correctness", "depth", "structure", "hallucination", "clarity", "overall"]
         external_judge_totals = {k: 0.0 for k in external_judge_keys}
         external_judge_count = 0
 
@@ -1098,8 +1352,8 @@ class UnifiedEvaluator:
             temp=0.3, top_p=0.9, min_p=0.0, top_k=20
         )
 
-        # Fix mlx_lm bug #973: ensure <|im_end|> token is in eos_token_ids
-        im_end_tokens = self.tokenizer.encode("<|im_end|>")
+        # Fix mlx_lm bug #973: ensure 2 token is in eos_token_ids
+        im_end_tokens = self.tokenizer.encode(")")
         if im_end_tokens:
             im_end_id = im_end_tokens[-1]
             eos_ids = getattr(self.tokenizer, "eos_token_ids", set())
@@ -1424,8 +1678,8 @@ def main():
     parser.add_argument(
         "--judge-tokens",
         type=int,
-        default=256,
-        help="Max tokens for external judge response",
+        default=512,
+        help="Max tokens for external judge response (default raised to 512 for complete JSON)",
     )
     parser.add_argument(
         "--external-judge",
