@@ -333,28 +333,28 @@ chainlit run rag/app_chainlit.py --port 8001
 
 | Metric | Base Model | Fine-Tuned (Cycle 1) | Delta |
 |--------|-------------|------------|-------|
-| technical_correctness | 3.40 | 3.40 | +0.00 |
-| depth | 2.60 | 2.60 | +0.00 |
-| structure | 4.00 | 4.44 | +0.45 |
-| hallucination | 3.58 | 4.68 | +1.10 |
-| clarity | 3.50 | 3.37 | -0.13 |
-| **Overall** | **3.42** | **3.70** | **+0.28** |
+| technical_correctness | 3.67 | 4.51 | **+0.84** |
+| depth | 3.11 | 3.93 | **+0.82** |
+| structure | 3.47 | 4.45 | **+0.98** |
+| hallucination | 3.23 | 3.95 | **+0.72** |
+| clarity | 3.07 | 3.06 | -0.01 |
+| **Overall** | **3.31** | **3.98** | **+0.67** |
 
 ### How to Evaluate
 To generate new benchmark reports, use the commands detailed in the [Evaluation](#evaluation) section.
 
 ### Metrics Comparison
-![Comparison Chart](outputs/cycle-1/benchmarks/comparison_chart_20260416_101519.png)
+![Comparison Chart](outputs/cycle-1/benchmarks/comparison_chart_20260418_220044.png)
 
 ### Performance by Category
-![Category Chart](outputs/cycle-1/benchmarks/category_chart_20260416_101519.png)
+![Category Chart](outputs/cycle-1/benchmarks/category_chart_20260418_220044.png)
 
 ### Top Gains by Topic (Top 5)
-1. **Troubleshooting Connectivity**: +0.66
-2. **Troubleshooting Storage**: +0.66
-3. **FinOps Cost-Optimization**: +0.60
-4. **DevOps Secrets**: +0.50
-5. **Security Encryption**: +0.50
+1. **Security Posture Management**: +2.24
+2. **Governance Tagging**: +2.20
+3. **Terraform State**: +2.00
+4. **Troubleshooting Functions**: +1.86
+5. **Security WAF**: +1.84
 
 ### Detailed Category Results (86 Topics)
 
