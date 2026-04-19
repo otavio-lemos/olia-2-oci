@@ -89,7 +89,8 @@ flowchart TD
 | Metric | Value |
 |--------|-------|
 | **Total Generated** | 13,200 examples (88 categories × 150) |
-| **After Clean/Dedup** | 13,196 examples |
+| **After Cleaning** | 14,940 examples |
+| **After Dedup** | 13,196 examples |
 | **Train** | 9,897 examples (75%) |
 | **Valid** | 1,979 examples (15%) |
 | **Eval** | 1,320 examples (10%) |
