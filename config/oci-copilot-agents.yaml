@@ -29,6 +29,7 @@ rag:
     enabled: true
     model: "oci-migration-cross-encoder-v1"
     top_k: 10
+    max_tokens: 512  # limite por documento para Cross-Encoder
   query_rewriting:
     enabled: true
     # o próprio LLM especialista reescreve a query para retrieval

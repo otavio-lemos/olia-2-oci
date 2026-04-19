@@ -4,20 +4,51 @@ from typing import List, Dict, Any, Optional
 from langchain_core.documents import Document
 
 
+def count_tokens(text: str) -> int:
+    """Conta tokens usando tiktoken ou fallback simples."""
+    try:
+        import tiktoken
+
+        enc = tiktoken.get_encoding("cl100k_base")
+        return len(enc.encode(text))
+    except Exception:
+        return len(text.split())
+
+
+def truncate_to_tokens(text: str, max_tokens: int) -> str:
+    """Trunca texto para max_tokens."""
+    tokens = count_tokens(text)
+    if tokens <= max_tokens:
+        return text
+    words = text.split()
+    avg_token_per_word = tokens / max(1, len(words))
+    keep_words = int(max_tokens / avg_token_per_word)
+    return " ".join(words[:keep_words])
+
+
 class EnsembleRetriever:
     """Ensemble retriever with RRF fusion and optional Cross-Encoder Re-ranking."""
 
-    def __init__(self, retrievers: List, weights: List[float], reranker_model: Optional[str] = None, reranker_top_k: int = 10):
+    def __init__(
+        self,
+        retrievers: List,
+        weights: List[float],
+        reranker_model: Optional[str] = None,
+        reranker_top_k: int = 10,
+        reranker_max_tokens: int = 512,
+    ):
         self.retrievers = retrievers
         self.weights = weights
         self.reranker_model = reranker_model
         self.reranker_top_k = reranker_top_k
+        self.reranker_max_tokens = reranker_max_tokens
         self.cross_encoder = None
-        
+
         # Carregamento lazy do Cross-Encoder para não travar a inicialização
         if self.reranker_model:
             try:
                 from sentence_transformers import CrossEncoder
+
                 self.cross_encoder = CrossEncoder(self.reranker_model)
             except Exception as e:
                 print(f"Failed to load cross-encoder {self.reranker_model}: {e}")
@@ -56,17 +87,28 @@ class EnsembleRetriever:
         # Re-ranking step using Cross-Encoder
         if self.cross_encoder and result_docs:
             try:
+                # Truncate docs to max tokens before re-ranking
+                truncated_docs = []
+                for doc in result_docs:
+                    truncated_content = truncate_to_tokens(
+                        doc.page_content, self.reranker_max_tokens
+                    )
+                    doc_copy = Document(
+                        page_content=truncated_content, metadata=doc.metadata.copy()
+                    )
+                    truncated_docs.append(doc_copy)
+
                 # Prepare pairs of (query, document_text)
-                pairs = [[query, doc.page_content] for doc in result_docs]
+                pairs = [[query, doc.page_content] for doc in truncated_docs]
                 scores = self.cross_encoder.predict(pairs)
-                
+
                 # Pair docs with new scores and sort
                 scored_docs = list(zip(result_docs, scores))
                 scored_docs.sort(key=lambda x: x[1], reverse=True)
-                
+
                 # Extract sorted docs
                 result_docs = [doc for doc, score in scored_docs]
-                return result_docs[:self.reranker_top_k]
+                return result_docs[: self.reranker_top_k]
             except Exception as e:
                 print(f"Error during re-ranking: {e}")
                 return result_docs[:k]
@@ -93,32 +135,43 @@ class HybridRetrieverWithConfig:
             by_type = config.get("by_type", {})
             reranking_config = config.get("re_ranking", {})
 
-            self.GLOBAL_RERANKER = reranking_config.get("model") if reranking_config.get("enabled") else None
+            self.GLOBAL_RERANKER = (
+                reranking_config.get("model")
+                if reranking_config.get("enabled")
+                else None
+            )
             self.GLOBAL_RERANKER_TOP_K = reranking_config.get("top_k", 10)
+            self.GLOBAL_RERANKER_MAX_TOKENS = reranking_config.get("max_tokens", 512)
 
             self.STRATEGIES = {
                 "default": {
                     "weights": [
                         config.get("fusion", {}).get("dense_weight", 0.7),
-                        config.get("fusion", {}).get("sparse_weight", 0.3)
+                        config.get("fusion", {}).get("sparse_weight", 0.3),
                     ],
                     "k": config.get("dense", {}).get("top_k", 20),
-                    "re_ranking": reranking_config.get("enabled", False)
+                    "re_ranking": reranking_config.get("enabled", False),
                 }
             }
 
             for strategy_name, strategy_config in by_type.items():
                 weights = [
-                    strategy_config.get("fusion.dense_weight", self.STRATEGIES["default"]["weights"][0]),
-                    strategy_config.get("fusion.sparse_weight", self.STRATEGIES["default"]["weights"][1]),
+                    strategy_config.get(
+                        "fusion.dense_weight", self.STRATEGIES["default"]["weights"][0]
+                    ),
+                    strategy_config.get(
+                        "fusion.sparse_weight", self.STRATEGIES["default"]["weights"][1]
+                    ),
                 ]
                 k = strategy_config.get("dense.top_k", self.STRATEGIES["default"]["k"])
-                re_ranking_enabled = strategy_config.get("re_ranking.enabled", self.STRATEGIES["default"]["re_ranking"])
-                
+                re_ranking_enabled = strategy_config.get(
+                    "re_ranking.enabled", self.STRATEGIES["default"]["re_ranking"]
+                )
+
                 self.STRATEGIES[strategy_name] = {
-                    "weights": weights, 
+                    "weights": weights,
                     "k": k,
-                    "re_ranking": re_ranking_enabled
+                    "re_ranking": re_ranking_enabled,
                 }
         except Exception:
             self.GLOBAL_RERANKER = None
@@ -127,19 +180,24 @@ class HybridRetrieverWithConfig:
                 "default": {"weights": [0.7, 0.3], "k": 10, "re_ranking": False},
                 "migracao": {"weights": [0.6, 0.4], "k": 10, "re_ranking": False},
                 "configuracao": {"weights": [0.4, 0.6], "k": 10, "re_ranking": False},
-                "troubleshooting": {"weights": [0.5, 0.5], "k": 10, "re_ranking": False},
+                "troubleshooting": {
+                    "weights": [0.5, 0.5],
+                    "k": 10,
+                    "re_ranking": False,
+                },
             }
 
     def _build(self):
         strategy = self.STRATEGIES.get(self.config_name, self.STRATEGIES["default"])
-        
+
         reranker_model = self.GLOBAL_RERANKER if strategy.get("re_ranking") else None
-        
+
         self.retriever = EnsembleRetriever(
             retrievers=[self.dense, self.sparse],
             weights=strategy["weights"],
             reranker_model=reranker_model,
-            reranker_top_k=self.GLOBAL_RERANKER_TOP_K
+            reranker_top_k=self.GLOBAL_RERANKER_TOP_K,
+            reranker_max_tokens=self.GLOBAL_RERANKER_MAX_TOKENS,
         )
 
     def set_strategy(self, strategy_name: str):
@@ -148,7 +206,9 @@ class HybridRetrieverWithConfig:
         self._build()
 
     def invoke(self, query: str):
-        return self.retriever.invoke(query, k=self.STRATEGIES.get(self.config_name, {}).get("k", 10))
+        return self.retriever.invoke(
+            query, k=self.STRATEGIES.get(self.config_name, {}).get("k", 10)
+        )
 
     def get_config(self) -> Dict[str, Any]:
         return self.STRATEGIES.get(self.config_name, self.STRATEGIES["default"])
@@ -160,12 +220,12 @@ def create_hybrid_retriever(
     weights: List[float] = [0.7, 0.3],
     k: int = 10,
     reranker_model: Optional[str] = None,
-    reranker_top_k: int = 10
+    reranker_top_k: int = 10,
 ) -> EnsembleRetriever:
     """Cria hybrid retriever com weights e re-ranking opcional."""
     return EnsembleRetriever(
         retrievers=[dense_retriever, sparse_retriever],
         weights=weights,
         reranker_model=reranker_model,
-        reranker_top_k=reranker_top_k
+        reranker_top_k=reranker_top_k,
     )

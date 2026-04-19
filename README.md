@@ -77,15 +77,25 @@ flowchart TD
 - **LoRA Fine-tuning**: Adaptação de baixo ranque com modelo base **Qwen 2.5 Coder 7B Instruct** (4-bit).
 - **Otimizado para M3 Pro**: Configurações hiper-otimizadas para 18GB de RAM, usando **BF16 nativo** e sem Swap em disco.
 - **RAG Híbrido Avançado**: Busca semântica (FAISS) + lexical (BM25) com persistência local e **Ingestão Offline**.
-- **Query Rewriting**: Expansão automática de queries para melhor recall.
-- **Intent Classification**: Classificação de intenção via embeddings similarity.
-- **Session Management**: Sessões persistidas com histórico.
-- **Rate Limiting**: Controle de acesso por usuário.
+- **Query Rewriting**: Expansão automática de queries via LLM para melhor recall.
+- **Multi-Query Expansion**: Geração de 3-5 variações da query original.
+- **Cross-Encoder Re-ranking**: Reordenação de resultados pós-RRF.
+- **Re-ranking por Tipo**: Estratégia configurável por tipo de query (migracao, troubleshooting, etc).
+- **Chunking Inteligente**: Divisão por seções e headings, não apenas tokens.
+- **Metadata Extraction**: Extração automática de serviço OCI, versão e categoria.
+- **Atualização Incremental**: Indexação de novos docs sem rebuild completo.
+- **Intent Classification via Embeddings**: Classificação de intenção real (não mock).
+- **Tool Calling**: Agentes com tools via @tool decorator e Pydantic.
+- **Session Management**: Sessões persistidas com histórico e context window.
+- **Rate Limiting**: Controle de acesso por usuário via token bucket.
 - **HITL**: Human-in-the-loop para comandos destrutivos.
-- **Logging Estruturado**: JSON logging com trace_id.
-- **Métricas**: Latência P50/P95/P99.
-- **Sistema Multi-Agentes**: Orquestração via **LangGraph** (Router, Descoberta, Arquitetura, Execução).
+- **Streaming SSE**: Tokens enviados em tempo real via Server-Sent Events.
+- **Fallback Entre Agentes**: Redundância quando agente falha.
+- **Logging Estruturado**: JSON logging com trace_id por request.
+- **Métricas**: Latência P50/P95/P99 + health checks.
+- **Sistema Multi-Agentes**: Orquestração via **LangGraph** (Router, Descoberta, Arquitetura, Execução, Troubleshooting, etc).
 - **Interface OCI Copilot**: UI construída com **Chainlit**, suportando anexos de arquivos, streaming de tokens e **Human-in-the-loop** para segurança em comandos CLI.
+- **Action Buttons**: Botões de ação para OCI CLI e Terraform na UI.
 - **Merge & Export**: Pipeline para fundir adaptadores LoRA ao modelo base e exportar para GGUF (quantização local).
 - **Avaliação Automatizada**: Pipeline de benchmark para medir precisão técnica, alucinação e profundidade.
 
@@ -490,12 +500,18 @@ O modelo treinado e o dataset estão disponíveis no Hugging Face:
 
 | Recurso | URL |
 |---------|-----|
-| **Modelo (GGUF Q4)** | https://huggingface.co/otavio-lemos/oci-copilot-jr |
+| **Safetensors** | https://huggingface.co/otavio-lemos/oci-copilot-jr-safetensors |
+| **GGUF** | https://huggingface.co/otavio-lemos/oci-copilot-jr-gguf |
 | **Dataset** | https://huggingface.co/datasets/otavio-lemos/oci-copilot-jr-dataset |
 
-### Arquivos do Modelo
-- `model-Q4_K_M.gguf` - Versão quantizada Q4 (4.6GB)
-- `model-fp16.gguf` - Versão FP16 (~15GB)
+### Arquivos do Modelo (Safetensors)
+- `adapters/` - LoRA adapters do Cycle 1
+- `safetensors/bf16/` - Modelo em BF16
+- `safetensors/q4/` - Modelo quantizado Q4
+
+### Arquivos do Modelo (GGUF)
+- `oci-specialist-Q4_K_M.gguf` - Versão quantizada Q4 (4.6GB)
+- `oci-specialist-FP16.gguf` - Versão FP16 (~15GB)
 - `eval_results.json` - Resultados da avaliação
 
 ### Dataset

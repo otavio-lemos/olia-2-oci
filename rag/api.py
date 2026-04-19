@@ -92,19 +92,49 @@ async def list_workflows():
 
 
 @app.post("/rag/ingest")
-async def ingest_documents(urls: list = None, domain: str = "general"):
-    """Ingere documentos e persiste no disco."""
+async def ingest_documents(
+    urls: list = None, domain: str = "general", incremental: bool = True
+):
+    """Ingere documentos e persiste no disco.
+
+    Se incremental=True (default), apenas adiciona docs novos baseados em URL.
+    Se incremental=False, faz rebuild completo do índice.
+    """
     docs = load_oracle_docs(urls, domain)
     chunks = split_with_metadata(docs)
 
-    # Cria e salva no disco automaticamente pelas novas funções
-    dense = create_dense_retriever(chunks)
-    sparse = create_sparse_retriever(chunks)
+    indexed_urls = set()
+    existing_chunks = []
+
+    if incremental:
+        try:
+            from rag.dense_retriever import load_existing_index
+
+            existing = load_existing_index()
+            if existing:
+                existing_chunks = list(existing)
+                indexed_urls = {
+                    doc.metadata.get("url")
+                    for doc in existing_chunks
+                    if doc.metadata.get("url")
+                }
+        except Exception:
+            pass
+
+    new_chunks = [c for c in chunks if c.metadata.get("url") not in indexed_urls]
+
+    if not new_chunks:
+        return {"indexed": 0, "message": "No new documents"}
+
+    all_chunks = existing_chunks + new_chunks
+
+    dense = create_dense_retriever(all_chunks)
+    sparse = create_sparse_retriever(all_chunks)
 
     global RETRIEVER
     RETRIEVER = HybridRetrieverWithConfig(dense, sparse)
 
-    return {"Indexed": len(chunks)}
+    return {"indexed": len(new_chunks), "total": len(all_chunks)}
 
 
 class ChatMessage(BaseModel):

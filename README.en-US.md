@@ -77,8 +77,25 @@ flowchart TD
 - **LoRA Fine-tuning**: Low-rank adaptation with **Qwen 2.5 Coder 7B Instruct** (4-bit) base model.
 - **M3 Pro Optimized**: Hyper-optimized configurations for 18GB RAM, using **native BF16** and zero disk Swap.
 - **Advanced Hybrid RAG**: Semantic (FAISS) + Lexical (BM25) search with local persistence and **Offline Ingestion**.
-- **Multi-Agent System**: Orchestration via **LangGraph** (Router, Discovery, Architecture, Execution).
+- **Query Rewriting**: Automatic query expansion via LLM for better recall.
+- **Multi-Query Expansion**: Generation of 3-5 variations of the original query.
+- **Cross-Encoder Re-ranking**: Result re-ordering post-RRF.
+- **Re-ranking by Type**: Configurable strategy per query type (migration, troubleshooting, etc).
+- **Intelligent Chunking**: Split by sections and headings, not just tokens.
+- **Metadata Extraction**: Automatic extraction of OCI service, version and category.
+- **Incremental Update**: Indexing new docs without full rebuild.
+- **Intent Classification via Embeddings**: Real intent classification (not mock).
+- **Tool Calling**: Agents with tools via @tool decorator and Pydantic.
+- **Session Management**: Persisted sessions with history and context window.
+- **Rate Limiting**: User access control via token bucket.
+- **HITL**: Human-in-the-loop for destructive commands.
+- **Streaming SSE**: Real-time token streaming via Server-Sent Events.
+- **Agent Fallback**: Redundancy when agent fails.
+- **Structured Logging**: JSON logging with trace_id per request.
+- **Metrics**: Latency P50/P95/P99 + health checks.
+- **Multi-Agent System**: Orchestration via **LangGraph** (Router, Discovery, Architecture, Execution, Troubleshooting, etc).
 - **OCI Copilot Interface**: UI built with **Chainlit**, supporting file attachments, token streaming, and **Human-in-the-loop** for safe CLI commands.
+- **Action Buttons**: Action buttons for OCI CLI and Terraform in UI.
 - **Merge & Export**: Pipeline to fuse LoRA adapters into the base model and export to GGUF format (local quantization).
 - **Automated Evaluation**: Benchmark pipeline to measure technical accuracy, hallucination, and depth.
 
@@ -453,6 +470,33 @@ To generate new benchmark reports, use the commands detailed in the [Evaluation]
 
 </sub>
 </details>
+
+---
+
+## Hugging Face Hub
+
+The trained model and dataset are available on Hugging Face:
+
+| Resource | URL |
+|----------|-----|
+| **Safetensors** | https://huggingface.co/otavio-lemos/oci-copilot-jr-safetensors |
+| **GGUF** | https://huggingface.co/otavio-lemos/oci-copilot-jr-gguf |
+| **Dataset** | https://huggingface.co/datasets/otavio-lemos/oci-copilot-jr-dataset |
+
+### Model Files (Safetensors)
+- `adapters/` - LoRA adapters Cycle 1
+- `safetensors/bf16/` - Model in BF16
+- `safetensors/q4/` - Model quantized Q4
+
+### Model Files (GGUF)
+- `oci-specialist-Q4_K_M.gguf` - Version quantized Q4 (4.6GB)
+- `oci-specialist-FP16.gguf` - Version FP16 (~15GB)
+- `eval_results.json` - Evaluation results
+
+### Dataset
+- `train.jsonl` - 9,897 examples
+- `valid.jsonl` - 1,979 examples  
+- `eval.jsonl` - 1,320 examples
 
 ---
 

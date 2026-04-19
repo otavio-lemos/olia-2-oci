@@ -63,25 +63,35 @@ Conectar Cross-Encoder no pipeline pós-RRF para reordenar resultados.
 ### 2.5 Adicionar re-ranking por tipo de query
 Implementar estratégia de re-ranking configurável por tipo (migracao, troubleshooting, etc).
 
+- [x] COMPLETO (via config YAML by_type + re_ranking.enabled)
+
 - REQ-2.2.2
 
 ### 2.6 Adicionar limit de tokens no re-ranking
 Configurar limite de tokens para evitar latência excessiva.
+
+- [x] COMPLETO (truncate_to_tokens em hybrid_retriever.py)
 
 - REQ-2.2.3
 
 ### 2.7 Implementar chunking inteligente
 Atualizar splitter para chunking por seções e headings, não apenas tokens.
 
+- [x] COMPLETO (separators com \n## e \n### headings)
+
 - REQ-2.3.1
 
 ### 2.8 Adicionar metadata extraction automática
 Extrair metadados (serviço OCI, versão, categoria) durante ingest.
 
+- [x] COMPLETO (extract_oci_metadata em loaders.py)
+
 - REQ-2.3.2
 
 ### 2.9 Implementar atualização incremental
 Criar lógica de update incremental de índices, não rebuild completo.
+
+- [x] COMPLETO (load_existing_index + incremental flag em /rag/ingest)
 
 - REQ-2.3.3
 
