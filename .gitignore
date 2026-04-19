@@ -17,6 +17,7 @@ config/llm_provider_*.yaml
 # Ignore large model artifacts but keep structure
 outputs/cycle-1/gguf/
 outputs/cycle-1/safetensors/
+outputs/cycle-1/adapters/
 
 backup_*/
 
