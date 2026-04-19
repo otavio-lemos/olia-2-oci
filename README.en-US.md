@@ -243,13 +243,13 @@ python scripts/merge_export.py --cycle cycle-1 --quant q4
 
 ```bash
 # Quick Evaluation (10 samples, ~2 min) - specific model required
-python scripts/unified_evaluation_v2.py --cycle cycle-1 --ft-model outputs/cycle-1/safetensors/q4 --mode small --fresh
+python scripts/unified_evaluation_v3.py --cycle cycle-1 --ft-model outputs/cycle-1/safetensors/q4 --mode small --fresh
 
 # Full Evaluation (2133 samples, ~4-6 hours)
-python scripts/unified_evaluation_v2.py --cycle cycle-1 --ft-model outputs/cycle-1/safetensors/q4 --mode full --fresh
+python scripts/unified_evaluation_v3.py --cycle cycle-1 --ft-model outputs/cycle-1/safetensors/q4 --mode full --fresh
 
 # Evaluation with Judge (LLM-as-Judge using different model)
-python scripts/unified_evaluation_v2.py --cycle cycle-1 --ft-model outputs/cycle-1/safetensors/q4 --mode medium --external-judge --judge-lang pt --judge-tokens 768 --max-tokens 768
+python scripts/unified_evaluation_v3.py --cycle cycle-1 --ft-model outputs/cycle-1/safetensors/q4 --mode medium --external-judge --judge-lang pt --judge-tokens 768 --max-tokens 768
 ```
 
 Results: see [Benchmark](#benchmark)

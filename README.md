@@ -243,13 +243,13 @@ python scripts/merge_export.py --cycle cycle-1 --quant q4
 
 ```bash
 # Avaliação Rápida (10 amostras, ~2 min) - modelo específico obrigatório
-python scripts/unified_evaluation_v2.py --cycle cycle-1 --ft-model outputs/cycle-1/safetensors/q4 --mode small --fresh
+python scripts/unified_evaluation_v3.py --cycle cycle-1 --ft-model outputs/cycle-1/safetensors/q4 --mode small --fresh
 
 # Avaliação Completa (2133 amostras, ~4-6 horas)
-python scripts/unified_evaluation_v2.py --cycle cycle-1 --ft-model outputs/cycle-1/safetensors/q4 --mode full --fresh
+python scripts/unified_evaluation_v3.py --cycle cycle-1 --ft-model outputs/cycle-1/safetensors/q4 --mode full --fresh
 
 # Avaliação com Judge (LLM-as-Judge usando modelo diferente)
-python scripts/unified_evaluation_v2.py --cycle cycle-1 --ft-model outputs/cycle-1/safetensors/q4 --mode medium --external-judge --judge-lang pt --judge-tokens 768 --max-tokens 768
+python scripts/unified_evaluation_v3.py --cycle cycle-1 --ft-model outputs/cycle-1/safetensors/q4 --mode medium --external-judge --judge-lang pt --judge-tokens 768 --max-tokens 768
 ```
 
 Resultados: ver [Benchmark](#benchmark)
