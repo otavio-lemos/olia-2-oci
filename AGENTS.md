@@ -25,13 +25,14 @@ This project builds a fine-tuned LLM specialist in Oracle Cloud Infrastructure (
 | Parameter | Value |
 |-----------|-------|
 | MODEL | mlx-community/Qwen2.5-Coder-7B-Instruct-4bit |
-| Iters | 5556 |
+| Iters | 2475 |
 | Batch | 1 |
 | Grad Accum | 4 |
-| Num Layers | 28 |
-| Max Seq | 1100 |
+| Num Layers | 16 |
+| Max Seq | 1024 |
 | BF16 | true |
-| Grad Checkpointing | false |
+| LoRA Rank | 32 |
+| Learning Rate | 1e-4 |
 
 ### Expected Performance (M3 Pro 18GB)
 - **Peak memory**: ~10.5 GB
