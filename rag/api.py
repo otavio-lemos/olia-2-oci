@@ -6,18 +6,29 @@ from typing import Optional
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 from rag.config import load_rag_config
-from rag.loaders import load_oracle_docs
-from rag.splitter import split_with_metadata
-from rag.dense_retriever import create_dense_retriever
-from rag.sparse_retriever import create_sparse_retriever
-from rag.hybrid_retriever import HybridRetrieverWithConfig
+
+try:
+    from rag.loaders import load_oracle_docs
+    from rag.splitter import split_with_metadata
+    from rag.dense_retriever import create_dense_retriever
+    from rag.sparse_retriever import create_sparse_retriever
+    from rag.hybrid_retriever import HybridRetrieverWithConfig
+
+    RAG_AVAILABLE = True
+except ImportError:
+    RAG_AVAILABLE = False
+    HybridRetrieverWithConfig = None
 
 RETRIEVER: Optional[HybridRetrieverWithConfig] = None
 
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Tenta carregar índices persistidos do disco no startup
     global RETRIEVER
+    if not RAG_AVAILABLE:
+        print("RAG components not available.")
+        yield
+        return
     try:
         dense = create_dense_retriever(documents=None)
         sparse = create_sparse_retriever(documents=None)
@@ -27,9 +38,10 @@ async def lifespan(app: FastAPI):
     except Exception as e:
         print(f"No persisted RAG indices found or failed to load: {e}")
     yield
-    # Shutdown
+
 
 app = FastAPI(title="OCI Copilot RAG Service", lifespan=lifespan)
+
 
 class RetrieveRequest(BaseModel):
     query: str
@@ -93,3 +105,56 @@ async def ingest_documents(urls: list = None, domain: str = "general"):
     RETRIEVER = HybridRetrieverWithConfig(dense, sparse)
 
     return {"Indexed": len(chunks)}
+
+
+class ChatMessage(BaseModel):
+    role: str = "user"
+    content: str
+    timestamp: str | None = None
+
+
+class ChatRequest(BaseModel):
+    messages: list[ChatMessage] = []
+    query: str
+    session_id: str | None = None
+    temperature: float = 0.1
+    max_tokens: int = 2048
+    strategy: str | None = None
+
+
+class StreamChunk(BaseModel):
+    token: str = ""
+    done: bool = False
+    citations: list[dict] = []
+
+
+@app.post("/rag/chat")
+async def chat(request: ChatRequest):
+    """Chat endpoint com streaming SSE."""
+    from rag.llm_client import streaming_format, MLXClient
+    from fastapi.responses import StreamingResponse
+    import asyncio
+
+    context_docs = []
+    if RETRIEVER and RAG_AVAILABLE:
+        context_docs = RETRIEVER.invoke(request.query)[:5]
+
+    client = MLXClient()
+
+    async def event_stream():
+        try:
+            citations = [
+                {"content": d.page_content[:200], "metadata": d.metadata}
+                for d in context_docs
+            ]
+            yield streaming_format(f"Citations: {len(citations)} docs", done=False)
+
+            stream = client.stream(request.query, context_docs)
+            async for token in stream:
+                yield streaming_format(token, done=False)
+
+            yield streaming_format("", done=True)
+        finally:
+            await client.close()
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")

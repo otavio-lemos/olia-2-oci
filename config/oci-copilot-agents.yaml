@@ -1,5 +1,15 @@
 version: 1
 
+llm:
+  model_path: "outputs/cycle-1/gguf/oci-specialist-Q4_K_M.gguf"
+  adapter_path: "outputs/cycle-1/adapters"
+  temperature: 0.1
+  top_p: 0.9
+  top_k: 40
+  max_tokens: 2048
+  provider: "llama.cpp"  # mlx, llama.cpp, ollama
+  streaming: true
+
 rag:
   # Config global de RAG
   default_strategy: hybrid  # dense + sparse
